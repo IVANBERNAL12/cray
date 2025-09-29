@@ -298,21 +298,31 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Custom Crayfish Claw Cursor
-const cursor = document.getElementById('cursor');
-
-document.addEventListener('mousemove', (e) => {
-    cursor.style.left = e.clientX - 20 + 'px';
-    cursor.style.top = e.clientY - 20 + 'px';
-});
-
-document.addEventListener('mousedown', () => {
-    cursor.classList.add('clicked');
-});
-
-document.addEventListener('mouseup', () => {
-    cursor.classList.remove('clicked');
-});
-
+c// Only add cursor effect on non-touch devices
+if (!('ontouchstart' in window)) {
+    // Add interactive cursor effect
+    document.addEventListener('mousemove', (e) => {
+        const cursor = document.querySelector('.cursor');
+        if (!cursor) {
+            const newCursor = document.createElement('div');
+            newCursor.className = 'cursor';
+            newCursor.style.cssText = `
+                position: fixed;
+                width: 32px;
+                height: 32px;
+                background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M10,5 C10,5 5,10 5,15 C5,20 10,25 15,25 C20,25 25,20 25,15 C25,10 20,5 15,5 C15,5 12.5,7.5 10,5 Z" fill="rgba(255,127,80,0.8)" stroke="rgba(0,0,0,0.5)" stroke-width="1"/></svg>') no-repeat;
+                pointer-events: none;
+                z-index: 9999;
+                transition: none;
+            `;
+            document.body.appendChild(newCursor);
+        }
+        
+        const cursorElement = document.querySelector('.cursor');
+        cursorElement.style.left = `${e.clientX - 16}px`;
+        cursorElement.style.top = `${e.clientY - 16}px`;
+    });
+}
 // DOM Elements
 const desktopLoginBtn = document.getElementById('desktopLoginBtn');
 const desktopSignupBtn = document.getElementById('desktopSignupBtn');

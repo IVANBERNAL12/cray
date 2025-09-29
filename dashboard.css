@@ -1598,7 +1598,6 @@ nav {
 
 .notification-close:hover {
     opacity: 1;
-    transform: rotate(90deg);
 }
 
 .notification-message {
@@ -1673,7 +1672,8 @@ footer {
     height: 40px;
     pointer-events: none;
     z-index: 9999;
-    transition: transform 0.1s ease;
+    /* Remove transition for immediate movement */
+    transition: none;
     transform-origin: center;
 }
 
@@ -1685,6 +1685,18 @@ footer {
 
 .crayfish-cursor.clicked {
     transform: scale(0.8);
+    /* Add transition only for click effect */
+    transition: transform 0.1s ease;
+}
+
+/* Hide custom cursor on mobile and show default cursor */
+@media (max-width: 768px) {
+    .crayfish-cursor {
+        display: none !important;
+    }
+    body, * {
+        cursor: auto !important;
+    }
 }
 
 /* Loading animation */
