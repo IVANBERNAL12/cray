@@ -1073,8 +1073,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // Custom Crayfish Claw Cursor
-   // Custom Crayfish Claw Cursor - only for non-touch devices
-if (!('ontouchstart' in window)) {
     const cursor = document.getElementById('cursor');
     
     document.addEventListener('mousemove', (e) => {
@@ -1089,7 +1087,7 @@ if (!('ontouchstart' in window)) {
     document.addEventListener('mouseup', () => {
         cursor.classList.remove('clicked');
     });
-}
+
     // Add event listeners to all modal close buttons
     const closeButtons = document.querySelectorAll('.modal-close');
     closeButtons.forEach(button => {
