@@ -1899,7 +1899,7 @@ html, body {
 /* Improve scroll animations */
 .hero, .features, .team, .contact, footer {
     will-change: transform, opacity;
-    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94));
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 /* Improve mobile responsiveness for hero section */
@@ -1957,40 +1957,9 @@ html, body {
     }
 }
 
-/* Custom Crayfish Claw Cursor */
-* {
-    cursor: none;
-}
-
-.crayfish-cursor {
-    position: fixed;
-    width: 40px;
-    height: 40px;
-    pointer-events: none;
-    z-index: 9999;
-    /* Remove transition for immediate movement */
-    transition: none;
-    transform-origin: center;
-}
-
-.crayfish-cursor svg {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.7));
-}
-
-.crayfish-cursor.clicked {
-    transform: scale(0.8);
-    /* Add transition only for click effect */
-    transition: transform 0.1s ease;
-}
-
-/* Hide custom cursor on mobile and show default cursor */
+/* Disable cursor effect on mobile devices */
 @media (max-width: 768px) {
-    .crayfish-cursor {
+    .cursor {
         display: none !important;
-    }
-    body, * {
-        cursor: auto !important;
     }
 }
