@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaVision Pro - Crayfish Monitoring System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="landing.css">
+    <style>
+        /* Custom Crayfish Claw Cursor */
+        * {
+            cursor: none;
+        }
+        
+        .crayfish-cursor {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.1s ease;
+            transform-origin: center;
+        }
+        
+        .crayfish-cursor svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.7));
+        }
+        
+        .crayfish-cursor.clicked {
+            transform: scale(0.8);
+        }
+        
+        /* Additional styles for security features */
+        .error-message {
+            color: #ff4d4d;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .form-group.error input {
+            border-color: #ff4d4d;
+        }
+        
+        .password-strength {
+            height: 5px;
+            background-color: #e0e0e0;
+            margin-top: 5px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .password-strength-meter {
+            height: 100%;
+            width: 0;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        
+        .password-strength-meter.weak {
+            width: 33%;
+            background-color: #ff4d4d;
+        }
+        
+        .password-strength-meter.medium {
+            width: 66%;
+            background-color: #ffaa00;
+        }
+        
+        .password-strength-meter.strong {
+            width: 100%;
+            background-color: #00cc66;
+        }
+        
+        .auth-form .form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+        
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(0, 204, 102, 0.1);
+            color: #00cc66;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        
+        .security-badge i {
+            margin-right: 5px;
+        }
+        
+        /* Make auth modal more compact */
+        .auth-container {
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .auth-body {
+            padding: 10px 0;
+        }
+        
+        .auth-form .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .auth-form label {
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .auth-form input {
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-auth {
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        /* Account exists notice */
+        .account-exists-notice {
+            background-color: rgba(255, 77, 77, 0.1);
+            border-left: 4px solid #ff4d4d;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        .account-exists-notice strong {
+            color: #ff4d4d;
+        }
+        
+        .switch-to-login {
+            color: #00d4ff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Crayfish Claw Cursor -->
+    <div class="crayfish-cursor" id="cursor">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+            <path d="M30,50 C30,30 50,20 70,30 C80,35 85,45 85,55 C85,65 80,75 70,80 C50,90 30,80 30,60 Z" fill="#ff6b35"/>
+            <path d="M70,30 L90,20 C92,18 95,19 96,21 C97,23 96,26 94,27 L75,38 Z" fill="#ff6b35"/>
+            <path d="M70,30 L90,40 C92,42 95,41 96,39 C97,37 96,34 94,33 L75,22 Z" fill="#ff6b35"/>
+            <circle cx="55" cy="50" r="5" fill="#ff7f50"/>
+        </svg>
+    </div>
+
+    <!-- Ocean Background -->
+    <div class="ocean-bg">
+        <div class="ocean-waves"></div>
+        <div class="ocean-light"></div>
+    </div>
+    
+    <!-- Seabed -->
+    <div class="seabed"></div>
+    
+    <!-- Floating Ocean Elements -->
+    <div class="ocean-elements" id="ocean-elements"></div>
+    
+    <!-- Bioluminescent Particles -->
+    <div class="bioluminescence" id="bioluminescence"></div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <svg class="crayfish-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="30" height="30">
+                    <path d="M30,50 C30,30 50,20 70,30 C80,35 85,45 85,55 C85,65 80,75 70,80 C50,90 30,80 30,60 Z" fill="#00d4ff"/>
+                    <path d="M70,30 L90,20 C92,18 95,19 96,21 C97,23 96,26 94,27 L75,38 Z" fill="#00d4ff"/>
+                    <path d="M70,30 L90,40 C92,42 95,41 96,39 C97,37 96,34 94,33 L75,22 Z" fill="#00d4ff"/>
+                    <circle cx="55" cy="50" r="5" fill="#ff7f50"/>
+                </svg>
+                AquaVision Pro
+            </a>
+            <button class="mobile-menu-btn" aria-label="Toggle navigation menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#team">Team</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li class="mobile-auth">
+                    <button class="btn btn-outline" id="mobileLoginBtn">Log In</button>
+                    <button class="btn btn-primary" id="mobileSignupBtn">Sign Up</button>
+                </li>
+            </ul>
+            <div class="auth-buttons">
+                <button class="btn btn-outline" id="desktopLoginBtn">Log In</button>
+                <button class="btn btn-primary" id="desktopSignupBtn">Sign Up</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>Crayfish Monitoring System</h1>
+                <p>Dive into the future of aquaculture with our revolutionary monitoring system that harnesses the power of crayfish biology to optimize farming.</p>
+                <button class="btn btn-primary" id="getStartedBtn" aria-label="Get started with AquaVision Pro">Enter the Colony</button>
+                <div class="security-badge">
+                    <i class="fas fa-shield-alt"></i> High security
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="ocean-core-container">
+                    <div class="ocean-core">
+                        <div class="core-segment"></div>
+                        <div class="core-segment"></div>
+                        <div class="core-segment"></div>
+                        <div class="core-segment"></div>
+                        <div class="core-segment"></div>
+                        <div class="core-segment"></div>
+                        <div class="ocean-heart"></div>
+                        <div class="ocean-tentacle"></div>
+                        <div class="ocean-tentacle"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Crayfish Technologies</h2>
+                <p>AquaVision Pro combines cutting-edge technology with crayfish biology to deliver the ultimate aquaculture monitoring solution.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-thermometer-half"></i>
+                    </div>
+                    <h3>temperature Monitoring</h3>
+                    <p>Advanced temperature monitoring to maintain optimal conditions for growth.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-vial"></i>
+                    </div>
+                    <h3>pH Level Monitoring</h3>
+                    <p>Real-time pH level tracking using sensors to detect water chemistry changes.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <h3>Automated Feeding System</h3>
+                    <p>Precision feeding algorithms to automate feeding practices and to optimize nutrition based on growth patterns.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-water"></i>
+                    </div>
+                    <h3>Water Changing Filtration Technology</h3>
+                    <p>Intelligent water change system  to maintain pristine habitat conditions.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-satellite-dish"></i>
+                    </div>
+                    <h3>Remote Access Technologies</h3>
+                    <p>Seamless integration with your farm infrastructure through innovative sensors and communication technology.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>Futuristic Oceanic Interface</h3>
+                    <p>Intuitive dashboard with AI-powered insights inspired by crayfish habitat networks to optimize your farming operations.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section class="team" id="team">
+        <div class="container">
+            <div class="section-title">
+                <h2>The Team of Developers</h2>
+                <p>Meet the team of Developers and tech innovators behind AquaVision Pro.</p>
+            </div>
+            <div class="team-grid">
+                <!-- John Paul Santonia -->
+                <div class="team-member-card">
+                    <div class="team-member-inner">
+                        <!-- Front of the card -->
+                        <div class="team-member-front">
+                            <div class="member-img">
+                                <img src="image/john.jpg" alt="John Paul Santonia">
+                            </div>
+                            <div class="member-info">
+                                <h3>John Paul Santonia</h3>
+                                <p>Leader</p>
+                                <div class="social-links">
+                                    <a title="link" href="#" aria-label="LinkedIn profile"><i class="fab fa-linkedin-in"></i></a>
+                                    <a title="link" href="#" aria-label="Twitter profile"><i class="fab fa-twitter"></i></a>
+                                    <a title="link" href="#" aria-label="GitHub profile"><i class="fab fa-github"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Back of the card -->
+                        <div class="team-member-back">
+                            <div class="member-bio">
+                                <h3>John Paul Santonia</h3>
+                                <p class="member-position">Leader</p>
+                                <p class="member-description">John is the visionary leader behind AquaVision Pro with over 10 years of experience in aquaculture technology. He specializes in project management and strategic planning, ensuring that our crayfish monitoring system meets the highest industry standards.</p>
+                                <div class="member-skills">
+                                    <span class="skill-tag">Leadership</span>
+                                    <span class="skill-tag">Strategy</span>
+                                    <span class="skill-tag">Project Management</span>
+                                </div>
+                                <button class="flip-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ivan James L. Bernal -->
+                <div class="team-member-card">
+                    <div class="team-member-inner">
+                        <!-- Front of the card -->
+                        <div class="team-member-front">
+                            <div class="member-img">
+                                <img src="image/ivan.png" alt="Ivan James L. Bernal">
+                            </div>
+                            <div class="member-info">
+                                <h3>Ivan James L. Bernal</h3>
+                                <p>Lead Developer</p>
+                                <div class="social-links">
+                                    <a title="link" href="#" aria-label="LinkedIn profile"><i class="fab fa-linkedin-in"></i></a>
+                                    <a title="link" href="#" aria-label="Twitter profile"><i class="fab fa-twitter"></i></a>
+                                    <a title="link" href="#" aria-label="GitHub profile"><i class="fab fa-github"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Back of the card -->
+                        <div class="team-member-back">
+                            <div class="member-bio">
+                                <h3>Ivan James L. Bernal</h3>
+                                <p class="member-position">Lead Developer</p>
+                                <p class="member-description">Ivan is the technical mastermind who brings AquaVision Pro to life. With expertise in full-stack development and IoT systems, he has engineered the core functionality of our crayfish monitoring platform, ensuring seamless integration with various sensors and data analysis tools.</p>
+                                <div class="member-skills">
+                                    <span class="skill-tag">Full-Stack Development</span>
+                                    <span class="skill-tag">IoT Systems</span>
+                                    <span class="skill-tag">Data Analysis</span>
+                                </div>
+                                <button class="flip-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dereck Larino -->
+                <div class="team-member-card">
+                    <div class="team-member-inner">
+                        <!-- Front of the card -->
+                        <div class="team-member-front">
+                            <div class="member-img">
+                                <img src="image/dereck.jpg" alt="Dereck Larino">
+                            </div>
+                            <div class="member-info">
+                                <h3>Dereck Larino</h3>
+                                <p>Team Member</p>
+                                <div class="social-links">
+                                    <a title="link" href="#" aria-label="LinkedIn profile"><i class="fab fa-linkedin-in"></i></a>
+                                    <a title="link" href="#" aria-label="Twitter profile"><i class="fab fa-twitter"></i></a>
+                                    <a title="link" href="#" aria-label="GitHub profile"><i class="fab fa-github"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Back of the card -->
+                        <div class="team-member-back">
+                            <div class="member-bio">
+                                <h3>Dereck Larino</h3>
+                                <p class="member-position">Team Member</p>
+                                <p class="member-description">Dereck specializes in hardware integration and sensor technology for AquaVision Pro. His background in electrical engineering and aquaculture systems has been instrumental in developing the physical components of our monitoring system, ensuring accurate and reliable data collection.</p>
+                                <div class="member-skills">
+                                    <span class="skill-tag">Hardware Integration</span>
+                                    <span class="skill-tag">Sensor Technology</span>
+                                    <span class="skill-tag">Electrical Engineering</span>
+                                </div>
+                                <button class="flip-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Angelo Manuel -->
+                <div class="team-member-card">
+                    <div class="team-member-inner">
+                        <!-- Front of the card -->
+                        <div class="team-member-front">
+                            <div class="member-img">
+                                <img src="image/angelo.jpg" alt="Angelo Manuel">
+                            </div>
+                            <div class="member-info">
+                                <h3>Angelo Manuel</h3>
+                                <p>Team Member</p>
+                                <div class="social-links">
+                                    <a title="link" href="#" aria-label="LinkedIn profile"><i class="fab fa-linkedin-in"></i></a>
+                                    <a title="link" href="#" aria-label="Twitter profile"><i class="fab fa-twitter"></i></a>
+                                    <a title="link" href="#" aria-label="GitHub profile"><i class="fab fa-github"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Back of the card -->
+                        <div class="team-member-back">
+                            <div class="member-bio">
+                                <h3>Angelo Manuel</h3>
+                                <p class="member-position">Team Member</p>
+                                <p class="member-description">Angelo is our UX/UI designer who creates the intuitive interface for AquaVision Pro. With a keen eye for design and a deep understanding of user needs, he ensures that our platform is not only functional but also visually appealing and easy to navigate for aquaculture professionals.</p>
+                                <div class="member-skills">
+                                    <span class="skill-tag">UX/UI Design</span>
+                                    <span class="skill-tag">User Research</span>
+                                    <span class="skill-tag">Prototyping</span>
+                                </div>
+                                <button class="flip-back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact" id="contact">
+        <div class="container">
+            <div class="section-title">
+                <h2>Contact The Colony</h2>
+                <p>Reach out to our team of Developers for any inquiries.</p>
+            </div>
+            <div class="contact-grid">
+                <div class="contact-info-card">
+                    <div class="contact-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h3>Visit Us</h3>
+                    <p>STI COLLEGE<br>Calamba City Laguna</p>
+                </div>
+                <div class="contact-info-card">
+                    <div class="contact-icon">
+                        <i class="fas fa-phone-alt"></i>
+                    </div>
+                    <h3>Call Us</h3>
+                    <p>+63 928 110 8137<br>Mon-Fri 9AM-5PM</p>
+                </div>
+                <div class="contact-info-card">
+                    <div class="contact-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>Email Us</h3>
+                    <p>ivanbeernal12@gmail.com<br>bernalivanjames09@gmail.com</p>
+                </div>
+            </div>
+            <div class="contact-form-container">
+                <form class="contact-form" action="https://formspree.io/f/xrbypovp" method="POST">
+                    <div class="form-group">
+                        <label for="contactName">Name</label>
+                        <input type="text" class="form-control" id="contactName" name="name" placeholder="Your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactEmail">Email</label>
+                        <input type="email" class="form-control" id="contactEmail" name="email" placeholder="Your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactMessage">Message</label>
+                        <textarea class="form-control" id="contactMessage" name="message" rows="5" placeholder="Your message" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Authentication Modal -->
+    <div class="auth-modal" id="authModal" aria-modal="true" role="dialog" aria-labelledby="authModalTitle">
+        <div class="auth-container">
+            <div class="auth-header">
+                <h2 id="authModalTitle">Enter the Crayfish Colony</h2>
+                <button class="close-btn" id="closeModal" aria-label="Close authentication modal">&times;</button>
+            </div>
+            <div class="auth-body">
+                <div class="auth-tabs" role="tablist">
+                    <div class="auth-tab active" id="loginTab" role="tab" aria-selected="true" aria-controls="loginForm" tabindex="0">Molt In</div>
+                    <div class="auth-tab" id="signupTab" role="tab" aria-selected="false" aria-controls="signupForm" tabindex="-1">Register</div>
+                </div>
+                
+                <!-- Login Form -->
+                <form class="auth-form active" id="loginForm" role="tabpanel" aria-labelledby="loginTab" tabindex="0">
+                    <div class="form-group">
+                        <label for="loginEmail">Crayfish email</label>
+                        <input type="email" class="form-control" id="loginEmail" placeholder="Enter your crayfish ID" required aria-required="true">
+                        <div class="error-message" id="loginEmailError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Pass Code</label>
+                        <input type="password" class="form-control" id="loginPassword" placeholder="Enter your shell code" required aria-required="true">
+                        <div class="error-message" id="loginPasswordError"></div>
+                    </div>
+                    <div class="form-footer">
+                        <div class="remember-me">
+                            <input type="checkbox" id="rememberMe">
+                            <label for="rememberMe">Remember The Farmer</label>
+                        </div>
+                        <a href="#" class="forgot-password">Forgot PassCode?</a>
+                    </div>
+                    <button type="submit" class="btn-auth" aria-label="Enter the colony"><span>Enter To Colony</span></button>
+                </form>
+                
+                <!-- Sign Up Form -->
+                <form class="auth-form" id="signupForm" role="tabpanel" aria-labelledby="signupTab" tabindex="-1">
+                    <div class="account-exists-notice" id="accountExistsNotice">
+                        <strong>Account already exists!</strong> This account has been registered. Please try another account.
+                        <span class="switch-to-login" id="switchToLogin">Molt In instead</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupName">Full Name</label>
+                        <input type="text" class="form-control" id="signupName" placeholder="Enter your full name" required aria-required="true">
+                        <div class="error-message" id="signupNameError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Crayfish Email</label>
+                        <input type="email" class="form-control" id="signupEmail" placeholder="Create your crayfish ID" required aria-required="true">
+                        <div class="error-message" id="signupEmailError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Pass Code</label>
+                        <input type="password" class="form-control" id="signupPassword" placeholder="Create your shell code" required aria-required="true">
+                        <div class="password-strength">
+                            <div class="password-strength-meter" id="passwordStrengthMeter"></div>
+                        </div>
+                        <div class="error-message" id="signupPasswordError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Pass Code</label>
+                        <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm your shell code" required aria-required="true">
+                        <div class="error-message" id="confirmPasswordError"></div>
+                    </div>
+                    <button type="submit" class="btn-auth" aria-label="Join the colony"><span>Join the Colony</span></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="notification-toast" id="notificationToast" role="alert" aria-live="polite">
+        <button class="notification-close" id="notificationClose" aria-label="Close notification">&times;</button>
+        <div class="notification-title" id="notificationTitle">Notification</div>
+        <div class="notification-message" id="notificationMessage">Message</div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h3>AquaVision Pro</h3>
+                    <p>Revolutionizing aquaculture through crayfish-inspired innovation and sustainable farming practices.</p>
+                    <div class="social-links">
+                        <a title="link" href="#" aria-label="Facebook page"><i class="fab fa-facebook-f"></i></a>
+                        <a title="link" href="#" aria-label="Twitter page"><i class="fab fa-twitter"></i></a>
+                        <a title="link" href="#" aria-label="Instagram page"><i class="fab fa-instagram"></i></a>
+                        <a title="link" href="#" aria-label="LinkedIn page"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h3>Navigation</h3>
+                    <ul class="footer-links">
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#team">Team</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3>Technologies</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Temperature Monitoring</a></li>
+                        <li><a href="#">pH level Monitoring</a></li>
+                        <li><a href="#">Automated Feeding</a></li>
+                        <li><a href="#">Water Changing Filtration</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3>Crayfish Contact</h3>
+                    <div class="contact-info">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>STI COLLEGE CALAMBA</span>
+                    </div>
+                    <div class="contact-info">
+                        <i class="fas fa-phone-alt"></i>
+                        <span>+63 928 110 8137</span>
+                    </div>
+                    <div class="contact-info">
+                        <i class="fas fa-envelope"></i>
+                        <span>ivanbeernal12@gmail.com</span>
+                    </div>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2023 AquaVision Pro. All rights reserved. Advancing crayfish farming technology.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="landing.js"></script>
+</body>
+</html>
