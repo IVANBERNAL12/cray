@@ -937,6 +937,144 @@ function loadLastFeeding() {
     }
 }
 
+// Enhanced Chat functionality
+function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    
+    if (message === '') return;
+    
+    // Add user message to chat
+    addMessage(message, 'user');
+    
+    // Clear input
+    input.value = '';
+    
+    // Generate response
+    setTimeout(() => {
+        const response = generateResponse(message);
+        addMessage(response, 'system');
+    }, 500);
+}
+
+function addMessage(text, sender) {
+    const messagesContainer = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender);
+    
+    // Create message icon
+    const iconDiv = document.createElement('div');
+    iconDiv.classList.add('message-icon');
+    if (sender === 'user') {
+        iconDiv.innerHTML = '<i class="fas fa-user"></i>';
+    } else {
+        iconDiv.innerHTML = '<i class="fas fa-fish"></i>';
+    }
+    
+    // Create message content
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content');
+    contentDiv.textContent = text;
+    
+    messageDiv.appendChild(iconDiv);
+    messageDiv.appendChild(contentDiv);
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function generateResponse(message) {
+    const lowerMessage = message.toLowerCase();
+    
+    // Feeding-related responses
+    if (lowerMessage.includes('feed') || lowerMessage.includes('food')) {
+        if (lowerMessage.includes('schedule') || lowerMessage.includes('when')) {
+            return "Your current feeding schedule is twice daily at 8:00 AM and 6:00 PM with 7.5g of juvenile pellets. Would you like to modify this schedule?";
+        } else if (lowerMessage.includes('now') || lowerMessage.includes('immediate')) {
+            return "I can help you feed the crayfish now. Would you like me to initiate the feeding process?";
+        } else if (lowerMessage.includes('level') || lowerMessage.includes('amount')) {
+            const percentage = Math.round((feedData.current / feedData.capacity) * 100);
+            return `Your current feed level is ${percentage}%. This is considered ${percentage > 50 ? 'adequate' : percentage > 20 ? 'low' : 'critical'}.`;
+        } else {
+            return "I can help you with feeding! You can check feed levels, set up a feeding schedule, or feed manually. What would you like to do?";
+        }
+    }
+    
+    // Water change responses
+    if (lowerMessage.includes('water') || lowerMessage.includes('change')) {
+        if (lowerMessage.includes('schedule') || lowerMessage.includes('when')) {
+            return "Your current water change schedule is weekly on Mondays at 9:00 AM with 50% water change. Would you like to modify this schedule?";
+        } else if (lowerMessage.includes('now') || lowerMessage.includes('immediate')) {
+            return "I can help you change the water now. Would you like me to initiate the water change process?";
+        } else if (lowerMessage.includes('quality') || lowerMessage.includes('test')) {
+            return `Current water quality: Temperature is ${hardwareData.temperature.toFixed(1)}°C (${hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? 'optimal' : 'needs attention'}) and pH is ${hardwareData.ph.toFixed(1)} (${hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'optimal' : 'needs attention'}).`;
+        } else {
+            return "Water changes are important! I can help you schedule automatic water changes or do it manually. What would you prefer?";
+        }
+    }
+    
+    // Sensor data responses
+    if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
+        const status = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? 'optimal' : 
+                      hardwareData.temperature > 25 && hardwareData.temperature <= 28 ? 'warning' : 'critical';
+        return `The current water temperature is ${hardwareData.temperature.toFixed(1)}°C, which is ${status}. The optimal range is 20-25°C.`;
+    }
+    
+    if (lowerMessage.includes('ph')) {
+        const status = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'optimal' : 
+                      (hardwareData.ph > 6.0 && hardwareData.ph < 6.5) || (hardwareData.ph > 8.0 && hardwareData.ph <= 8.5) ? 'warning' : 'critical';
+        return `The current pH level is ${hardwareData.ph.toFixed(1)}, which is ${status}. The optimal range is 6.5-8.0.`;
+    }
+    
+    if (lowerMessage.includes('sensor') || lowerMessage.includes('data')) {
+        return `Current sensor readings: Temperature ${hardwareData.temperature.toFixed(1)}°C, pH ${hardwareData.ph.toFixed(1)}, Population ${hardwareData.population}, Health ${hardwareData.healthStatus.toFixed(0)}%. All systems are ${isConnected ? 'connected' : 'in demo mode'}.`;
+    }
+    
+    // Harvest-related responses
+    if (lowerMessage.includes('harvest') || lowerMessage.includes('yield')) {
+        return `Your crayfish are projected to be ready for harvest in ${hardwareData.daysToHarvest} days at an average weight of ${hardwareData.avgWeight.toFixed(1)}g. Current survival rate is 100%. Would you like to plan a harvest?`;
+    }
+    
+    // Status check
+    if (lowerMessage.includes('status') || lowerMessage.includes('how')) {
+        const connectionStatus = isConnected ? 'connected to hardware' : 'running in demo mode';
+        const waterStatus = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 && hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'good' : 'needs attention';
+        return `Your system is ${connectionStatus}. Water quality is ${waterStatus}. All crayfish appear healthy. Is there anything specific you'd like to check?`;
+    }
+    
+    // Alerts/notifications
+    if (lowerMessage.includes('alert') || lowerMessage.includes('notification')) {
+        return "You can set up alerts for low feed levels, water quality issues, or system status. Would you like to configure any alerts?";
+    }
+    
+    // Settings
+    if (lowerMessage.includes('setting') || lowerMessage.includes('configure')) {
+        return "You can adjust farm settings, measurement units, alert frequencies, and water testing schedules in the Settings section. Would you like to go there now?";
+    }
+    
+    // Knowledge base
+    if (lowerMessage.includes('help') || lowerMessage.includes('guide') || lowerMessage.includes('learn')) {
+        return "I can help you with:\n• Feeding schedules and nutrition\n• Water quality management\n• Harvest planning\n• System settings\n• Troubleshooting issues\nWhat would you like to know more about?";
+    }
+    
+    // Default response
+    return "I'm your Crayfish Assistant! I can help with feeding schedules, water changes, sensor data, harvest planning, and system settings. What would you like to know?";
+}
+
+// Toggle chat function
+function toggleChat() {
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.classList.toggle('minimized');
+    
+    const toggleIcon = document.querySelector('#chat-toggle i');
+    if (chatContainer.classList.contains('minimized')) {
+        toggleIcon.className = 'fas fa-chevron-up';
+    } else {
+        toggleIcon.className = 'fas fa-chevron-down';
+        // Focus input when opening chat
+        document.getElementById('chat-input').focus();
+    }
+}
+
 // Initialize dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     const isLoggedIn = localStorage.getItem('isLoggedIn');
@@ -1007,77 +1145,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         bioluminescence.appendChild(particle);
     }
-// Chat functionality
-function sendMessage() {
-    const input = document.getElementById('chat-input');
-    const message = input.value.trim();
     
-    if (message === '') return;
-    
-    // Add user message to chat
-    addMessage(message, 'user');
-    
-    // Clear input
-    input.value = '';
-    
-    // Generate response
-    setTimeout(() => {
-        const response = generateResponse(message);
-        addMessage(response, 'system');
-    }, 500);
-}
-
-function addMessage(text, sender) {
-    const messagesContainer = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', sender);
-    messageDiv.textContent = text;
-    messagesContainer.appendChild(messageDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-function generateResponse(message) {
-    const lowerMessage = message.toLowerCase();
-    
-    // Feeding-related responses
-    if (lowerMessage.includes('feed') || lowerMessage.includes('food')) {
-        return "I can help you with feeding! You can set up a feeding schedule or feed manually. Would you like to do that now?";
-    }
-    
-    // Water change responses
-    if (lowerMessage.includes('water') || lowerMessage.includes('change')) {
-        return "Water changes are important! I can help you schedule automatic water changes or do it manually. What would you prefer?";
-    }
-    
-    // Sensor data responses
-    if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
-        return "The current temperature is displayed on your dashboard. Is there something specific you'd like to know about temperature management?";
-    }
-    
-    if (lowerMessage.includes('ph')) {
-        return "pH levels are crucial for crayfish health. The current pH level is shown on your dashboard. Would you like pH management tips?";
-    }
-    
-    // General help
-    if (lowerMessage.includes('help') || lowerMessage.includes('how')) {
-        return "I can help you with:\n• Feeding schedules\n• Water changes\n• Sensor monitoring\n• System settings\nWhat would you like assistance with?";
-    }
-    
-    // Status check
-    if (lowerMessage.includes('status') || lowerMessage.includes('how')) {
-        return "Your system is running normally! All sensors are active and reporting data. Is there anything specific you'd like to check?";
-    }
-    
-    // Default response
-    return "I'm your Crayfish Assistant! I can help with feeding, water changes, sensor data, and system settings. What would you like to know?";
-}
-
-// Add Enter key support
-document.getElementById('chat-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        sendMessage();
-    }
-});
     // Navigation functionality
     const navLinks = document.querySelectorAll('.nav-link');
     const sections = document.querySelectorAll('.dashboard-section');
@@ -1333,6 +1401,17 @@ document.getElementById('chat-input').addEventListener('keypress', function(e) {
         
         showNotification('Alert Set', `Feed alert set at ${threshold}% with ${alertType} notifications`, 'success');
         closeModal('feed-alert-modal');
+    });
+
+    // Chat event listeners
+    document.getElementById('send-button').addEventListener('click', sendMessage);
+    document.getElementById('chat-toggle').addEventListener('click', toggleChat);
+    
+    // Add Enter key support for chat input
+    document.getElementById('chat-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
     });
 
     // Check for hardware connection on load

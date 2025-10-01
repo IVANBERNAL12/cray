@@ -623,55 +623,81 @@
         </section>
 
         <!-- Settings Section -->
-   <!-- Settings Section -->
-<section id="settings" class="dashboard-section">
-    <div class="settings-container">
-        <div class="section-header">
-            <h2 class="section-title">Farm Settings</h2>
-        </div>
+        <section id="settings" class="dashboard-section">
+            <div class="settings-container">
+                <div class="section-header">
+                    <h2 class="section-title">Farm Settings</h2>
+                </div>
 
-        <div class="settings-form">
-            <div class="form-group">
-                <label for="farm-name" class="form-label">Farm Name</label>
-                <input type="text" id="farm-name" class="form-control" value="My Crayfish Farm">
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label for="farm-name" class="form-label">Farm Name</label>
+                        <input type="text" id="farm-name" class="form-control" value="My Crayfish Farm">
+                    </div>
+                    <div class="form-group">
+                        <label for="notification-email" class="form-label">Notification Email</label>
+                        <input type="email" id="notification-email" class="form-control" value="farmer@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="notification-phone" class="form-label">Notification Phone</label>
+                        <input type="tel" id="notification-phone" class="form-control" value="+63 912 345 6789">
+                    </div>
+                    <div class="form-group">
+                        <label for="measurement-unit" class="form-label">Measurement Unit</label>
+                        <select id="measurement-unit" class="form-control">
+                            <option value="metric" selected>Metric (°C, cm, g)</option>
+                            <option value="imperial">Imperial (°F, in, oz)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="alert-frequency" class="form-label">Alert Frequency</label>
+                        <select id="alert-frequency" class="form-control">
+                            <option value="immediate" selected>Immediate</option>
+                            <option value="daily">Daily Summary</option>
+                            <option value="weekly">Weekly Summary</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="water-testing-frequency" class="form-label">Water Testing Frequency</label>
+                        <select id="water-testing-frequency" class="form-control">
+                            <option value="daily">Daily</option>
+                            <option value="twice-weekly" selected>Twice Weekly</option>
+                            <option value="weekly">Weekly</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="notification-email" class="form-label">Notification Email</label>
-                <input type="email" id="notification-email" class="form-control" value="farmer@example.com">
-            </div>
-            <div class="form-group">
-                <label for="notification-phone" class="form-label">Notification Phone</label>
-                <input type="tel" id="notification-phone" class="form-control" value="+63 912 345 6789">
-            </div>
-            <div class="form-group">
-                <label for="measurement-unit" class="form-label">Measurement Unit</label>
-                <select id="measurement-unit" class="form-control">
-                    <option value="metric" selected>Metric (°C, cm, g)</option>
-                    <option value="imperial">Imperial (°F, in, oz)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="alert-frequency" class="form-label">Alert Frequency</label>
-                <select id="alert-frequency" class="form-control">
-                    <option value="immediate" selected>Immediate</option>
-                    <option value="daily">Daily Summary</option>
-                    <option value="weekly">Weekly Summary</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="water-testing-frequency" class="form-label">Water Testing Frequency</label>
-                <select id="water-testing-frequency" class="form-control">
-                    <option value="daily">Daily</option>
-                    <option value="twice-weekly" selected>Twice Weekly</option>
-                    <option value="weekly">Weekly</option>
-                </select>
-            </div>
-            <button class="btn btn-primary" onclick="saveSettings()">
-                <i class="fas fa-save"></i> Save Settings
+        </section>
+    </div>
+
+    <!-- Enhanced Chatbot -->
+    <div class="chat-container" id="chat-container">
+        <div class="chat-header">
+            <i class="fas fa-fish"></i>
+            <h3>Crayfish Assistant</h3>
+            <button title="chat" class="chat-toggle" id="chat-toggle">
+                <i class="fas fa-chevron-down"></i>
             </button>
         </div>
-    </div>
-</section>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message system">
+                <div class="message-icon">
+                    <i class="fas fa-fish"></i>
+                </div>
+                <div class="message-content">
+                    Hello! I'm your Crayfish Assistant. How can I help you today?
+                </div>
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chat-input" placeholder="Ask me about feeding, water changes, or sensor data...">
+            <button title="button" id="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Notification -->
@@ -934,20 +960,7 @@
             </div>
         </div>
     </div>
-<div class="chat-container">
-    <div class="chat-header">
-        <h3>Crayfish Assistant</h3>
-    </div>
-    <div class="chat-messages" id="chat-messages">
-        <div class="message system">
-            Hello! I'm your Crayfish Assistant. How can I help you today?
-        </div>
-    </div>
-    <div class="chat-input">
-        <input type="text" id="chat-input" placeholder="Ask me about feeding, water changes, or sensor data...">
-        <button onclick="sendMessage()">Send</button>
-    </div>
-</div>
+
     <!-- Footer -->
     <footer>
         <div class="footer-grid">
@@ -986,7 +999,6 @@
         <div class="copyright">
             &copy; 2023 AquaVision Pro. All rights reserved.
         </div>
-        
     </footer>
 
     <!-- External JavaScript Libraries -->
