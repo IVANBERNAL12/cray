@@ -934,7 +934,20 @@
             </div>
         </div>
     </div>
-
+<div class="chat-container">
+    <div class="chat-header">
+        <h3>Crayfish Assistant</h3>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+        <div class="message system">
+            Hello! I'm your Crayfish Assistant. How can I help you today?
+        </div>
+    </div>
+    <div class="chat-input">
+        <input type="text" id="chat-input" placeholder="Ask me about feeding, water changes, or sensor data...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
     <!-- Footer -->
     <footer>
         <div class="footer-grid">
@@ -973,21 +986,9 @@
         <div class="copyright">
             &copy; 2023 AquaVision Pro. All rights reserved.
         </div>
+        
     </footer>
-<div class="chat-container">
-    <div class="chat-header">
-        <h3>Crayfish Assistant</h3>
-    </div>
-    <div class="chat-messages" id="chat-messages">
-        <div class="message system">
-            Hello! I'm your Crayfish Assistant. How can I help you today?
-        </div>
-    </div>
-    <div class="chat-input">
-        <input type="text" id="chat-input" placeholder="Ask me about feeding, water changes, or sensor data...">
-        <button onclick="sendMessage()">Send</button>
-    </div>
-</div>
+
     <!-- External JavaScript Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom JavaScript -->
