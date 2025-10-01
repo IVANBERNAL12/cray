@@ -1007,7 +1007,77 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         bioluminescence.appendChild(particle);
     }
+// Chat functionality
+function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    
+    if (message === '') return;
+    
+    // Add user message to chat
+    addMessage(message, 'user');
+    
+    // Clear input
+    input.value = '';
+    
+    // Generate response
+    setTimeout(() => {
+        const response = generateResponse(message);
+        addMessage(response, 'system');
+    }, 500);
+}
 
+function addMessage(text, sender) {
+    const messagesContainer = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender);
+    messageDiv.textContent = text;
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function generateResponse(message) {
+    const lowerMessage = message.toLowerCase();
+    
+    // Feeding-related responses
+    if (lowerMessage.includes('feed') || lowerMessage.includes('food')) {
+        return "I can help you with feeding! You can set up a feeding schedule or feed manually. Would you like to do that now?";
+    }
+    
+    // Water change responses
+    if (lowerMessage.includes('water') || lowerMessage.includes('change')) {
+        return "Water changes are important! I can help you schedule automatic water changes or do it manually. What would you prefer?";
+    }
+    
+    // Sensor data responses
+    if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
+        return "The current temperature is displayed on your dashboard. Is there something specific you'd like to know about temperature management?";
+    }
+    
+    if (lowerMessage.includes('ph')) {
+        return "pH levels are crucial for crayfish health. The current pH level is shown on your dashboard. Would you like pH management tips?";
+    }
+    
+    // General help
+    if (lowerMessage.includes('help') || lowerMessage.includes('how')) {
+        return "I can help you with:\n• Feeding schedules\n• Water changes\n• Sensor monitoring\n• System settings\nWhat would you like assistance with?";
+    }
+    
+    // Status check
+    if (lowerMessage.includes('status') || lowerMessage.includes('how')) {
+        return "Your system is running normally! All sensors are active and reporting data. Is there anything specific you'd like to check?";
+    }
+    
+    // Default response
+    return "I'm your Crayfish Assistant! I can help with feeding, water changes, sensor data, and system settings. What would you like to know?";
+}
+
+// Add Enter key support
+document.getElementById('chat-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
     // Navigation functionality
     const navLinks = document.querySelectorAll('.nav-link');
     const sections = document.querySelectorAll('.dashboard-section');
