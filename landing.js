@@ -21,7 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let mouseX = 0, mouseY = 0;
     let lastX = 0, lastY = 0;
-    let isMoving = false;
+    let velocityX = 0;
+    let velocityY = 0;
     let trailTimer = null;
     
     // Track mouse movement
@@ -29,31 +30,30 @@ document.addEventListener('DOMContentLoaded', () => {
         mouseX = e.clientX;
         mouseY = e.clientY;
         
+        // Calculate velocity
+        velocityX = mouseX - lastX;
+        velocityY = mouseY - lastY;
+        
         // Update cursor position directly
         cursor.style.left = `${mouseX}px`;
         cursor.style.top = `${mouseY}px`;
         
-        // Check if mouse is moving
-        if (mouseX !== lastX || mouseY !== lastY) {
-            isMoving = true;
-            lastX = mouseX;
-            lastY = mouseY;
-            
-            // Clear existing timer
+        // Create trail bubbles based on movement
+        const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+        
+        if (speed > 2) { // Only create trail if moving fast enough
             clearTimeout(trailTimer);
-            
-            // Set a new timer to create trail bubbles
             trailTimer = setTimeout(() => {
-                if (isMoving) {
-                    createTrailBubble(mouseX, mouseY);
-                    isMoving = false;
-                }
-            }, 10);
+                createTrailBubble(mouseX, mouseY, velocityX, velocityY);
+            }, 20);
         }
+        
+        lastX = mouseX;
+        lastY = mouseY;
     });
     
     // Create a new bubble for the trail
-    function createTrailBubble(x, y) {
+    function createTrailBubble(x, y, vx, vy) {
         const bubble = document.createElement('div');
         bubble.classList.add('bubble');
         
@@ -68,9 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
         bubble.style.backgroundColor = `hsla(${hue}, 100%, 70%, ${opacity})`;
         bubble.style.boxShadow = `0 0 ${size}px hsla(${hue}, 100%, 70%, ${opacity})`;
         
-        // Set position
-        bubble.style.left = `${x}px`;
-        bubble.style.top = `${y}px`;
+        // Calculate position behind the cursor based on movement direction
+        const angle = Math.atan2(vy, vx);
+        const distance = 15; // Distance behind cursor
+        
+        // Position bubble slightly behind the cursor movement
+        const bubbleX = x - Math.cos(angle) * distance;
+        const bubbleY = y - Math.sin(angle) * distance;
+        
+        bubble.style.left = `${bubbleX}px`;
+        bubble.style.top = `${bubbleY}px`;
         
         // Add to trail
         cursorTrail.appendChild(bubble);
@@ -84,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Limit the number of trail bubbles
         const bubbles = cursorTrail.querySelectorAll('.bubble');
-        if (bubbles.length > 20) {
+        if (bubbles.length > 30) {
             const oldestBubble = bubbles[0];
             oldestBubble.parentNode.removeChild(oldestBubble);
         }
@@ -729,60 +736,36 @@ signupForm.addEventListener('submit', async function(e) {
     const password = document.getElementById('signupPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     
-    console.log('Signup attempt:', { name, email, password: '***' });
+    console.log('Form data:', { name, email, password: '***' });
     
-    let hasError = false;
-    
-    if (!name || name.length < 2) {
-        document.getElementById('signupNameError').textContent = 'Please enter a valid name';
-        document.getElementById('signupNameError').style.display = 'block';
-        document.getElementById('signupName').parentElement.classList.add('error');
-        hasError = true;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-        document.getElementById('signupEmailError').textContent = 'Please enter a valid email';
-        document.getElementById('signupEmailError').style.display = 'block';
-        document.getElementById('signupEmail').parentElement.classList.add('error');
-        hasError = true;
-    }
-    
-    if (password.length < 6) {
-        document.getElementById('signupPasswordError').textContent = 'Password must be at least 6 characters';
-        document.getElementById('signupPasswordError').style.display = 'block';
-        document.getElementById('signupPassword').parentElement.classList.add('error');
-        hasError = true;
+    // Basic validation
+    if (!name || !email || !password) {
+        showNotification('Error', 'Please fill all fields');
+        return;
     }
     
     if (password !== confirmPassword) {
         document.getElementById('confirmPasswordError').textContent = 'Passwords do not match';
         document.getElementById('confirmPasswordError').style.display = 'block';
-        document.getElementById('confirmPassword').parentElement.classList.add('error');
-        hasError = true;
+        return;
     }
-    
-    if (hasError) return;
     
     showNotification('Creating Account', 'Please wait...');
     
-    // Sign up with Supabase
+    // Call signup function
     const result = await signUp(email, password, name);
     
     console.log('Signup result:', result);
     
     if (result.success) {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userName', name);
+        showNotification('Success', result.message);
         
-        showNotification('Registration Successful', 'Welcome to the colony!');
-        
+        // Don't redirect immediately for testing
         setTimeout(() => {
             window.location.href = 'dashboard.html';
-        }, 1500);
+        }, 2000);
     } else {
-        showNotification('Registration Failed', result.message);
+        showNotification('Error', result.message);
     }
 });
 

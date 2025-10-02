@@ -1,37 +1,44 @@
 // auth.js
 console.log('auth.js loaded');
 
-// Wait for DOM to be ready
+// Global variable to store supabase
+let supabaseClient = null;
+
+// Initialize Supabase when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, checking supabase...');
+    console.log('DOM loaded, initializing Supabase...');
     
-    // Check if supabase is available
-    if (typeof supabase === 'undefined') {
-        console.error('ERROR: Supabase is not defined. Check supabase-config.js');
-        showNotification('Configuration Error', 'Please check your internet connection and refresh the page.', 'error');
-        return;
-    }
-    
-    console.log('Supabase is available:', supabase);
-    
-    // Set up auth state change listener
-    if (supabase.auth && typeof supabase.auth.onAuthStateChange === 'function') {
-        supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Auth state changed:', event, session);
-            
-            if (event === 'SIGNED_OUT') {
-                localStorage.removeItem('supabaseSession');
-                console.log('User signed out');
-            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                if (session) {
-                    localStorage.setItem('supabaseSession', JSON.stringify(session));
-                    console.log('User signed in or token refreshed');
+    // Wait a moment to ensure supabase-config.js is loaded
+    setTimeout(() => {
+        // Check if supabase is available
+        if (typeof supabase === 'undefined') {
+            console.error('ERROR: Supabase is not defined. Check supabase-config.js');
+            showNotification('Configuration Error', 'Please check your internet connection and refresh the page.', 'error');
+            return;
+        }
+        
+        console.log('Supabase is available:', supabase);
+        supabaseClient = supabase;
+        
+        // Set up auth state change listener
+        if (supabase.auth && typeof supabase.auth.onAuthStateChange === 'function') {
+            supabase.auth.onAuthStateChange((event, session) => {
+                console.log('Auth state changed:', event, session);
+                
+                if (event === 'SIGNED_OUT') {
+                    localStorage.removeItem('supabaseSession');
+                    console.log('User signed out');
+                } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    if (session) {
+                        localStorage.setItem('supabaseSession', JSON.stringify(session));
+                        console.log('User signed in or token refreshed');
+                    }
                 }
-            }
-        });
-    } else {
-        console.error('Supabase auth not available');
-    }
+            });
+        } else {
+            console.error('Supabase auth not available');
+        }
+    }, 500); // Wait 500ms to ensure scripts are loaded
 });
 
 // Sign up function with error checking
@@ -39,16 +46,16 @@ async function signUp(email, password, name, farmName) {
     try {
         console.log('Starting signup for:', email);
         
-        // Check if supabase is available
-        if (typeof supabase === 'undefined') {
-            throw new Error('Supabase is not initialized');
+        // Check if supabase client is available
+        if (!supabaseClient) {
+            throw new Error('Supabase is not initialized. Please refresh the page.');
         }
         
-        if (!supabase.auth) {
+        if (!supabaseClient.auth) {
             throw new Error('Supabase auth is not available');
         }
         
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
@@ -68,7 +75,7 @@ async function signUp(email, password, name, farmName) {
         
         // Insert into users table
         if (data.user) {
-            const { error: insertError } = await supabase
+            const { error: insertError } = await supabaseClient
                 .from('users')
                 .insert([
                     { 
@@ -98,11 +105,11 @@ async function signIn(email, password) {
     try {
         console.log('Attempting sign in for:', email);
         
-        if (typeof supabase === 'undefined' || !supabase.auth) {
+        if (!supabaseClient || !supabaseClient.auth) {
             throw new Error('Supabase is not properly initialized');
         }
         
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password
         });
@@ -130,11 +137,11 @@ async function signOut() {
     try {
         console.log('Signing out...');
         
-        if (typeof supabase === 'undefined' || !supabase.auth) {
+        if (!supabaseClient || !supabaseClient.auth) {
             throw new Error('Supabase is not properly initialized');
         }
         
-        const { error } = await supabase.auth.signOut();
+        const { error } = await supabaseClient.auth.signOut();
         
         if (error) {
             console.error('Sign out error:', error);
@@ -156,7 +163,7 @@ async function checkAuth() {
     try {
         console.log('Checking authentication status...');
         
-        if (typeof supabase === 'undefined' || !supabase.auth) {
+        if (!supabaseClient || !supabaseClient.auth) {
             console.log('Supabase not available, user not authenticated');
             return { authenticated: false };
         }
@@ -165,9 +172,9 @@ async function checkAuth() {
         
         if (storedSession) {
             const session = JSON.parse(storedSession);
-            supabase.auth.setSession(session);
+            supabaseClient.auth.setSession(session);
             
-            const { data, error } = await supabase.auth.getUser();
+            const { data, error } = await supabaseClient.auth.getUser();
             
             if (error || !data.user) {
                 console.log('Invalid session, removing it');
@@ -190,11 +197,11 @@ async function checkAuth() {
 // Get current user
 async function getCurrentUser() {
     try {
-        if (typeof supabase === 'undefined' || !supabase.auth) {
+        if (!supabaseClient || !supabaseClient.auth) {
             return null;
         }
         
-        const { data, error } = await supabase.auth.getUser();
+        const { data, error } = await supabaseClient.auth.getUser();
         
         if (error) {
             console.error('Get user error:', error);
@@ -213,11 +220,11 @@ async function refreshSession() {
     try {
         console.log('Refreshing session...');
         
-        if (typeof supabase === 'undefined' || !supabase.auth) {
+        if (!supabaseClient || !supabaseClient.auth) {
             return { success: false, message: 'Supabase not available' };
         }
         
-        const { data, error } = await supabase.auth.refreshSession();
+        const { data, error } = await supabaseClient.auth.refreshSession();
         
         if (error) {
             console.error('Session refresh error:', error);
@@ -235,7 +242,7 @@ async function refreshSession() {
     }
 }
 
-// Show notification function (add this if not already in landing.js)
+// Show notification function
 function showNotification(title, message, type = 'info') {
     console.log('Notification:', title, message, type);
     
