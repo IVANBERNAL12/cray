@@ -1,3 +1,81 @@
+// Custom Bubble Cursor
+document.addEventListener('DOMContentLoaded', () => {
+    // Only enable cursor on desktop devices
+    if (window.innerWidth <= 768) return;
+    
+    const cursor = document.querySelector('.cursor');
+    const cursorTrail = document.querySelector('.cursor-trail');
+    
+    let mouseX = 0, mouseY = 0;
+    let cursorX = 0, cursorY = 0;
+    let trail = [];
+    const trailLength = 10; // Number of bubbles in the trail
+    
+    // Initialize trail
+    for (let i = 0; i < trailLength; i++) {
+        const bubble = document.createElement('div');
+        bubble.classList.add('bubble');
+        bubble.style.width = `${15 - i}px`;
+        bubble.style.height = `${15 - i}px`;
+        bubble.style.opacity = `${1 - (i * 0.1)}`;
+        cursorTrail.appendChild(bubble);
+        trail.push(bubble);
+    }
+    
+    // Track mouse movement
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+    
+    // Update cursor position with smooth animation
+    function animateCursor() {
+        // Smooth cursor movement
+        cursorX += (mouseX - cursorX) * 0.2;
+        cursorY += (mouseY - cursorY) * 0.2;
+        
+        cursor.style.left = `${cursorX}px`;
+        cursor.style.top = `${cursorY}px`;
+        
+        // Update trail with delay
+        for (let i = 0; i < trail.length; i++) {
+            const delay = 0.05 * (i + 1);
+            const x = cursorX - (mouseX - cursorX) * (i * 0.1);
+            const y = cursorY - (mouseY - cursorY) * (i * 0.1);
+            
+            trail[i].style.left = `${x}px`;
+            trail[i].style.top = `${y}px`;
+        }
+        
+        requestAnimationFrame(animateCursor);
+    }
+    
+    animateCursor();
+    
+    // Add hover effect to interactive elements
+    const interactiveElements = document.querySelectorAll('a, button, input, textarea, select, .team-member-front, .flip-back-btn');
+    
+    interactiveElements.forEach(element => {
+        element.addEventListener('mouseenter', () => {
+            cursor.classList.add('hover');
+        });
+        
+        element.addEventListener('mouseleave', () => {
+            cursor.classList.remove('hover');
+        });
+    });
+    
+    // Hide cursor when it leaves the window
+    document.addEventListener('mouseleave', () => {
+        cursor.style.opacity = '0';
+        cursorTrail.style.opacity = '0';
+    });
+    
+    document.addEventListener('mouseenter', () => {
+        cursor.style.opacity = '1';
+        cursorTrail.style.opacity = '1';
+    });
+});
 document.addEventListener('DOMContentLoaded', async function() {
     // Check if user is already authenticated
     const authStatus = await checkAuth();
