@@ -2043,3 +2043,12 @@ html, body {
         cursor: auto !important;
     }
 }
+/* Disable cursor effect on mobile devices */
+@media (max-width: 768px) {
+    .cursor, .cursor-trail {
+        display: none !important;
+    }
+    * {
+        cursor: auto !important;
+    }
+}

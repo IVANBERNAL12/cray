@@ -20,19 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     let mouseX = 0, mouseY = 0;
-    let trail = [];
-    const trailLength = 10; // Number of bubbles in the trail
-    
-    // Initialize trail
-    for (let i = 0; i < trailLength; i++) {
-        const bubble = document.createElement('div');
-        bubble.classList.add('bubble');
-        bubble.style.width = `${15 - i}px`;
-        bubble.style.height = `${15 - i}px`;
-        bubble.style.opacity = `${1 - (i * 0.1)}`;
-        cursorTrail.appendChild(bubble);
-        trail.push(bubble);
-    }
+    let lastX = 0, lastY = 0;
+    let isMoving = false;
+    let trailTimer = null;
     
     // Track mouse movement
     document.addEventListener('mousemove', (e) => {
@@ -43,8 +33,23 @@ document.addEventListener('DOMContentLoaded', () => {
         cursor.style.left = `${mouseX}px`;
         cursor.style.top = `${mouseY}px`;
         
-        // Create trail effect
-        createTrailBubble(mouseX, mouseY);
+        // Check if mouse is moving
+        if (mouseX !== lastX || mouseY !== lastY) {
+            isMoving = true;
+            lastX = mouseX;
+            lastY = mouseY;
+            
+            // Clear existing timer
+            clearTimeout(trailTimer);
+            
+            // Set a new timer to create trail bubbles
+            trailTimer = setTimeout(() => {
+                if (isMoving) {
+                    createTrailBubble(mouseX, mouseY);
+                    isMoving = false;
+                }
+            }, 10);
+        }
     });
     
     // Create a new bubble for the trail
@@ -56,6 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const size = 5 + Math.random() * 10;
         bubble.style.width = `${size}px`;
         bubble.style.height = `${size}px`;
+        
+        // Random color variation
+        const hue = 180 + Math.random() * 40; // Blue to cyan range
+        const opacity = 0.3 + Math.random() * 0.4;
+        bubble.style.backgroundColor = `hsla(${hue}, 100%, 70%, ${opacity})`;
+        bubble.style.boxShadow = `0 0 ${size}px hsla(${hue}, 100%, 70%, ${opacity})`;
         
         // Set position
         bubble.style.left = `${x}px`;
