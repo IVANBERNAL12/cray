@@ -1,32 +1,52 @@
 // auth.js
-// Wait for Supabase to be available
+console.log('auth.js loaded');
+
+// Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, checking supabase...');
+    
     // Check if supabase is available
     if (typeof supabase === 'undefined') {
-        console.error('Supabase not initialized. Check supabase-config.js');
+        console.error('ERROR: Supabase is not defined. Check supabase-config.js');
+        showNotification('Configuration Error', 'Please check your internet connection and refresh the page.', 'error');
         return;
     }
     
+    console.log('Supabase is available:', supabase);
+    
     // Set up auth state change listener
-    supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state changed:', event, session);
-        
-        if (event === 'SIGNED_OUT') {
-            localStorage.removeItem('supabaseSession');
-            console.log('User signed out');
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            if (session) {
-                localStorage.setItem('supabaseSession', JSON.stringify(session));
-                console.log('User signed in or token refreshed');
+    if (supabase.auth && typeof supabase.auth.onAuthStateChange === 'function') {
+        supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event, session);
+            
+            if (event === 'SIGNED_OUT') {
+                localStorage.removeItem('supabaseSession');
+                console.log('User signed out');
+            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                if (session) {
+                    localStorage.setItem('supabaseSession', JSON.stringify(session));
+                    console.log('User signed in or token refreshed');
+                }
             }
-        }
-    });
+        });
+    } else {
+        console.error('Supabase auth not available');
+    }
 });
 
-// Sign up function
+// Sign up function with error checking
 async function signUp(email, password, name, farmName) {
     try {
         console.log('Starting signup for:', email);
+        
+        // Check if supabase is available
+        if (typeof supabase === 'undefined') {
+            throw new Error('Supabase is not initialized');
+        }
+        
+        if (!supabase.auth) {
+            throw new Error('Supabase auth is not available');
+        }
         
         const { data, error } = await supabase.auth.signUp({
             email: email,
@@ -73,10 +93,14 @@ async function signUp(email, password, name, farmName) {
     }
 }
 
-// Sign in function
+// Sign in function with error checking
 async function signIn(email, password) {
     try {
         console.log('Attempting sign in for:', email);
+        
+        if (typeof supabase === 'undefined' || !supabase.auth) {
+            throw new Error('Supabase is not properly initialized');
+        }
         
         const { data, error } = await supabase.auth.signInWithPassword({
             email: email,
@@ -106,6 +130,10 @@ async function signOut() {
     try {
         console.log('Signing out...');
         
+        if (typeof supabase === 'undefined' || !supabase.auth) {
+            throw new Error('Supabase is not properly initialized');
+        }
+        
         const { error } = await supabase.auth.signOut();
         
         if (error) {
@@ -127,6 +155,11 @@ async function signOut() {
 async function checkAuth() {
     try {
         console.log('Checking authentication status...');
+        
+        if (typeof supabase === 'undefined' || !supabase.auth) {
+            console.log('Supabase not available, user not authenticated');
+            return { authenticated: false };
+        }
         
         const storedSession = localStorage.getItem('supabaseSession');
         
@@ -157,11 +190,15 @@ async function checkAuth() {
 // Get current user
 async function getCurrentUser() {
     try {
+        if (typeof supabase === 'undefined' || !supabase.auth) {
+            return null;
+        }
+        
         const { data, error } = await supabase.auth.getUser();
         
         if (error) {
             console.error('Get user error:', error);
-            throw error;
+            return null;
         }
         
         return data.user;
@@ -176,11 +213,15 @@ async function refreshSession() {
     try {
         console.log('Refreshing session...');
         
+        if (typeof supabase === 'undefined' || !supabase.auth) {
+            return { success: false, message: 'Supabase not available' };
+        }
+        
         const { data, error } = await supabase.auth.refreshSession();
         
         if (error) {
             console.error('Session refresh error:', error);
-            throw error;
+            return { success: false, message: error.message };
         }
         
         if (data.session) {
@@ -192,4 +233,41 @@ async function refreshSession() {
         console.error('Session refresh failed:', error);
         return { success: false, message: error.message };
     }
+}
+
+// Show notification function (add this if not already in landing.js)
+function showNotification(title, message, type = 'info') {
+    console.log('Notification:', title, message, type);
+    
+    // Check if notification toast exists
+    let notificationToast = document.getElementById('notificationToast');
+    
+    if (!notificationToast) {
+        notificationToast = document.createElement('div');
+        notificationToast.className = 'notification-toast';
+        notificationToast.id = 'notificationToast';
+        notificationToast.setAttribute('role', 'alert');
+        notificationToast.setAttribute('aria-live', 'polite');
+        
+        notificationToast.innerHTML = `
+            <button class="notification-close" id="notificationClose" aria-label="Close notification">&times;</button>
+            <div class="notification-title" id="notificationTitle">Notification</div>
+            <div class="notification-message" id="notificationMessage">Message</div>
+        `;
+        
+        document.body.appendChild(notificationToast);
+        
+        document.getElementById('notificationClose').addEventListener('click', () => {
+            notificationToast.classList.remove('show');
+        });
+    }
+    
+    document.getElementById('notificationTitle').textContent = title;
+    document.getElementById('notificationMessage').textContent = message;
+    
+    notificationToast.classList.add('show');
+    
+    setTimeout(() => {
+        notificationToast.classList.remove('show');
+    }, 5000);
 }
