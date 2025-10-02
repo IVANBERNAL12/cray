@@ -1986,7 +1986,7 @@ html, body {
     position: fixed;
     transform: translate(-50%, -50%);
     pointer-events: none;
-    z-index: 9999;
+    z-index: 99999; /* Increased z-index */
     transition: transform 0.1s ease, background-color 0.2s ease;
     box-shadow: 0 0 10px var(--cursor-color);
     display: block;
@@ -2002,7 +2002,7 @@ html, body {
 .cursor-trail {
     position: fixed;
     pointer-events: none;
-    z-index: 9998;
+    z-index: 99998; /* Increased z-index */
     top: 0;
     left: 0;
     width: 100%;
@@ -2016,6 +2016,7 @@ html, body {
     transform: translate(-50%, -50%);
     pointer-events: none;
     animation: fadeOut 1s ease forwards;
+    z-index: 99998; /* Added z-index to individual bubbles */
 }
 
 @keyframes fadeOut {
@@ -2029,6 +2030,15 @@ html, body {
     }
 }
 
+/* Disable cursor effect on mobile devices */
+@media (max-width: 768px) {
+    .cursor, .cursor-trail {
+        display: none !important;
+    }
+    * {
+        cursor: auto !important;
+    }
+}
 /* Disable cursor effect on mobile devices */
 @media (max-width: 768px) {
     .cursor, .cursor-trail {

@@ -1,3 +1,23 @@
+document.addEventListener('DOMContentLoaded', async function() {
+    // Wait for Supabase to be ready before checking auth
+    document.addEventListener('supabaseReady', async function() {
+        console.log('Supabase ready, checking authentication...');
+        
+        // Check if user is already authenticated
+        const authStatus = await checkAuth();
+        
+        if (authStatus.authenticated) {
+            console.log('User already logged in, redirecting to dashboard');
+            window.location.href = 'dashboard.html';
+            return;
+        }
+        
+        // Rest of your existing DOMContentLoaded code...
+        // Create crawling crayfish, bubbles, etc.
+    });
+    
+    // Your existing code continues here...
+});
 // Custom Bubble Cursor
 document.addEventListener('DOMContentLoaded', () => {
     // Only enable cursor on desktop devices
