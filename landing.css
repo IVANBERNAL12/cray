@@ -1987,9 +1987,10 @@ html, body {
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 9999;
-    transition: transform 0.1s ease;
+    transition: transform 0.1s ease, background-color 0.2s ease;
     box-shadow: 0 0 10px var(--cursor-color);
     display: block;
+    mix-blend-mode: difference;
 }
 
 .cursor.hover {
@@ -2024,6 +2025,15 @@ html, body {
     }
 }
 
+/* Disable cursor effect on mobile devices */
+@media (max-width: 768px) {
+    .cursor, .cursor-trail {
+        display: none !important;
+    }
+    * {
+        cursor: auto !important;
+    }
+}
 /* Disable cursor effect on mobile devices */
 @media (max-width: 768px) {
     .cursor, .cursor-trail {

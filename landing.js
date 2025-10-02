@@ -3,11 +3,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Only enable cursor on desktop devices
     if (window.innerWidth <= 768) return;
     
-    const cursor = document.querySelector('.cursor');
-    const cursorTrail = document.querySelector('.cursor-trail');
+    // Create cursor elements if they don't exist
+    let cursor = document.querySelector('.cursor');
+    let cursorTrail = document.querySelector('.cursor-trail');
+    
+    if (!cursor) {
+        cursor = document.createElement('div');
+        cursor.classList.add('cursor');
+        document.body.appendChild(cursor);
+    }
+    
+    if (!cursorTrail) {
+        cursorTrail = document.createElement('div');
+        cursorTrail.classList.add('cursor-trail');
+        document.body.appendChild(cursorTrail);
+    }
     
     let mouseX = 0, mouseY = 0;
-    let cursorX = 0, cursorY = 0;
     let trail = [];
     const trailLength = 10; // Number of bubbles in the trail
     
@@ -26,31 +38,46 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
+        
+        // Update cursor position directly
+        cursor.style.left = `${mouseX}px`;
+        cursor.style.top = `${mouseY}px`;
+        
+        // Create trail effect
+        createTrailBubble(mouseX, mouseY);
     });
     
-    // Update cursor position with smooth animation
-    function animateCursor() {
-        // Smooth cursor movement
-        cursorX += (mouseX - cursorX) * 0.2;
-        cursorY += (mouseY - cursorY) * 0.2;
+    // Create a new bubble for the trail
+    function createTrailBubble(x, y) {
+        const bubble = document.createElement('div');
+        bubble.classList.add('bubble');
         
-        cursor.style.left = `${cursorX}px`;
-        cursor.style.top = `${cursorY}px`;
+        // Random size variation
+        const size = 5 + Math.random() * 10;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
         
-        // Update trail with delay
-        for (let i = 0; i < trail.length; i++) {
-            const delay = 0.05 * (i + 1);
-            const x = cursorX - (mouseX - cursorX) * (i * 0.1);
-            const y = cursorY - (mouseY - cursorY) * (i * 0.1);
-            
-            trail[i].style.left = `${x}px`;
-            trail[i].style.top = `${y}px`;
+        // Set position
+        bubble.style.left = `${x}px`;
+        bubble.style.top = `${y}px`;
+        
+        // Add to trail
+        cursorTrail.appendChild(bubble);
+        
+        // Remove after animation completes
+        setTimeout(() => {
+            if (bubble.parentNode) {
+                bubble.parentNode.removeChild(bubble);
+            }
+        }, 1000);
+        
+        // Limit the number of trail bubbles
+        const bubbles = cursorTrail.querySelectorAll('.bubble');
+        if (bubbles.length > 20) {
+            const oldestBubble = bubbles[0];
+            oldestBubble.parentNode.removeChild(oldestBubble);
         }
-        
-        requestAnimationFrame(animateCursor);
     }
-    
-    animateCursor();
     
     // Add hover effect to interactive elements
     const interactiveElements = document.querySelectorAll('a, button, input, textarea, select, .team-member-front, .flip-back-btn');
