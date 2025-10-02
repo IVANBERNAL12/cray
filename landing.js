@@ -14,29 +14,37 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Rest of your existing DOMContentLoaded code...
         // Create crawling crayfish, bubbles, etc.
-    });
+ 
     
-    // Your existing code continues here...
-});
+
 // Custom Bubble Cursor
 document.addEventListener('DOMContentLoaded', () => {
     // Only enable cursor on desktop devices
     if (window.innerWidth <= 768) return;
     
-    // Create cursor elements if they don't exist
-    let cursor = document.querySelector('.cursor');
-    let cursorTrail = document.querySelector('.cursor-trail');
+    // Create cursor container if it doesn't exist
+    let cursorContainer = document.querySelector('.cursor-container');
+    
+    if (!cursorContainer) {
+        cursorContainer = document.createElement('div');
+        cursorContainer.classList.add('cursor-container');
+        document.body.appendChild(cursorContainer);
+    }
+    
+    // Create cursor elements inside the container
+    let cursor = cursorContainer.querySelector('.cursor');
+    let cursorTrail = cursorContainer.querySelector('.cursor-trail');
     
     if (!cursor) {
         cursor = document.createElement('div');
         cursor.classList.add('cursor');
-        document.body.appendChild(cursor);
+        cursorContainer.appendChild(cursor);
     }
     
     if (!cursorTrail) {
         cursorTrail = document.createElement('div');
         cursorTrail.classList.add('cursor-trail');
-        document.body.appendChild(cursorTrail);
+        cursorContainer.appendChild(cursorTrail);
     }
     
     let mouseX = 0, mouseY = 0;
@@ -860,4 +868,6 @@ const observer = new IntersectionObserver((entries) => {
 
 allAnimatedElements.forEach(element => {
     observer.observe(element);
+    })
+})
 });
