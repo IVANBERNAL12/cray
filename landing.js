@@ -1,4 +1,28 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    // Check if elements exist before adding event listeners
+    const signupForm = document.getElementById('signupForm');
+    const loginForm = document.getElementById('loginForm');
+    
+    if (!signupForm) {
+        console.error('Signup form not found!');
+        return;
+    }
+    
+    // Add event listener to signup form
+    signupForm.addEventListener('submit', async function(e) {
+        // Your existing signup code here...
+    });
+    
+    if (!loginForm) {
+        console.error('Login form not found!');
+        return;
+    }
+    
+    // Add event listener to login form
+    loginForm.addEventListener('submit', async function(e) {
+        // Your existing login code here...
+    });
+    
     // Wait for Supabase to be ready before checking auth
     document.addEventListener('supabaseReady', async function() {
         console.log('Supabase ready, checking authentication...');
@@ -11,10 +35,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             window.location.href = 'dashboard.html';
             return;
         }
-        
-        // Rest of your existing DOMContentLoaded code...
-        // Create crawling crayfish, bubbles, etc.
- 
+   
     
 
 // Custom Bubble Cursor
@@ -747,6 +768,7 @@ loginForm.addEventListener('submit', async function(e) {
 });
 
 // Signup Form Handler
+// Signup Form Handler
 signupForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -774,7 +796,7 @@ signupForm.addEventListener('submit', async function(e) {
     
     if (password !== confirmPassword) {
         document.getElementById('confirmPasswordError').textContent = 'Passwords do not match';
-        document.getElementById('confirmPasswordError').style.display = 'block';
+        document.getElementById('confirmPasswordError').style.display = 'ERROR: Passwords do not match';
         return;
     }
     
