@@ -1,4 +1,13 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Check if user is already authenticated
+    const authStatus = await checkAuth();
+    
+    if (authStatus.authenticated) {
+        // User is already logged in, redirect to dashboard
+        window.location.href = 'dashboard.html';
+        return;
+    }
+    
     // Create crawling crayfish on seabed
     createCrawlingCrayfish();
     
@@ -147,32 +156,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Only add cursor effect on non-touch devices
-    if (!('ontouchstart' in window)) {
-        // Add interactive cursor effect
-        document.addEventListener('mousemove', (e) => {
-            const cursor = document.querySelector('.cursor');
-            if (!cursor) {
-                const newCursor = document.createElement('div');
-                newCursor.className = 'cursor';
-                newCursor.style.cssText = `
-                    position: fixed;
-                    width: 32px;
-                    height: 32px;
-                    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M10,5 C10,5 5,10 5,15 C5,20 10,25 15,25 C20,25 25,20 25,15 C25,10 20,5 15,5 C15,5 12.5,7.5 10,5 Z" fill="rgba(255,127,80,0.8)" stroke="rgba(0,0,0,0.5)" stroke-width="1"/></svg>') no-repeat;
-                    pointer-events: none;
-                    z-index: 9999;
-                    transition: transform 0.1s ease;
-                `;
-                document.body.appendChild(newCursor);
-            }
-            
-            const cursorElement = document.querySelector('.cursor');
-            cursorElement.style.left = `${e.clientX - 16}px`;
-            cursorElement.style.top = `${e.clientY - 16}px`;
-        });
-    }
-    
     // Contact form submission handler with Formspree
     const contactForm = document.querySelector('.contact-form');
     if (contactForm) {
@@ -223,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Show notification function (if not already defined in the inline script)
+    // Show notification function
     function showNotification(title, message, duration = 5000) {
         // Check if notification toast exists
         let notificationToast = document.getElementById('notificationToast');
@@ -295,22 +278,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-});
-
-// Custom Crayfish Claw Cursor
-const cursor = document.getElementById('cursor');
-
-document.addEventListener('mousemove', (e) => {
-    cursor.style.left = e.clientX - 20 + 'px';
-    cursor.style.top = e.clientY - 20 + 'px';
-});
-
-document.addEventListener('mousedown', () => {
-    cursor.classList.add('clicked');
-});
-
-document.addEventListener('mouseup', () => {
-    cursor.classList.remove('clicked');
 });
 
 // DOM Elements
@@ -414,28 +381,6 @@ signupPasswordInput.addEventListener('input', () => {
         passwordStrengthMeter.classList.add('strong');
     }
 });
-
-// Hash function for passwords (simplified for demo)
-function simpleHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-    }
-    return Math.abs(hash).toString(16);
-}
-
-// Get users from localStorage
-function getUsers() {
-    const usersJSON = localStorage.getItem('aquavision_users');
-    return usersJSON ? JSON.parse(usersJSON) : [];
-}
-
-// Save users to localStorage
-function saveUsers(users) {
-    localStorage.setItem('aquavision_users', JSON.stringify(users));
-}
 
 // Show notification function
 function showNotification(title, message, duration = 5000) {
@@ -589,9 +534,9 @@ signupTab.addEventListener('keydown', (e) => {
     }
 });
 
-// Login Form Submission - FIXED
-loginForm.addEventListener('submit', function(e) {
-    e.preventDefault(); // Prevent default form submission
+// Login Form Submission
+loginForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
     
     // Reset error messages
     document.querySelectorAll('#loginForm .error-message').forEach(el => {
@@ -623,45 +568,45 @@ loginForm.addEventListener('submit', function(e) {
     
     if (hasError) return;
     
-    // Get users from localStorage
-    const users = getUsers();
+    // Sign in with Supabase
+    const result = await signIn(email, password);
     
-    // Find user by email
-    const user = users.find(u => u.email === email);
-    
-    if (!user) {
-        document.getElementById('loginEmailError').textContent = 'This Crayfish ID is not registered. Please sign up first.';
-        document.getElementById('loginEmailError').style.display = 'block';
-        document.getElementById('loginEmail').parentElement.classList.add('error');
-        return;
+    if (result.success) {
+        // Store user info in localStorage
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userEmail', email);
+        if (result.data.user.user_metadata && result.data.user.user_metadata.name) {
+            localStorage.setItem('userName', result.data.user.user_metadata.name);
+        }
+        
+        // Show success notification
+        showNotification('Login Successful', 'Welcome back to the colony!');
+        
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+            window.location.href = 'dashboard.html';
+        }, 1500);
+    } else {
+        // Show error message
+        if (result.message.includes('Invalid login credentials')) {
+            document.getElementById('loginPasswordError').textContent = 'Incorrect Shell Code. Please try again.';
+            document.getElementById('loginPasswordError').style.display = 'block';
+            document.getElementById('loginPassword').parentElement.classList.add('error');
+        } else if (result.message.includes('Email not confirmed')) {
+            document.getElementById('loginEmailError').textContent = 'Please check your email and confirm your account.';
+            document.getElementById('loginEmailError').style.display = 'block';
+            document.getElementById('loginEmail').parentElement.classList.add('error');
+        } else {
+            document.getElementById('loginEmailError').textContent = result.message;
+            document.getElementById('loginEmailError').style.display = 'block';
+            document.getElementById('loginEmail').parentElement.classList.add('error');
+        }
     }
-    
-    // Check password
-    const hashedPassword = simpleHash(password);
-    if (user.password !== hashedPassword) {
-        document.getElementById('loginPasswordError').textContent = 'Incorrect Shell Code. Please try again.';
-        document.getElementById('loginPasswordError').style.display = 'block';
-        document.getElementById('loginPassword').parentElement.classList.add('error');
-        return;
-    }
-    
-    // Set login status in localStorage
-    localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('userEmail', email);
-    localStorage.setItem('userName', user.name);
-    
-    // Show success notification
-    showNotification('Login Successful', 'Welcome back to the colony!');
-    
-    // Redirect to dashboard after a short delay
-    setTimeout(() => {
-        window.location.href = 'dashboard.html';
-    }, 1500);
 });
 
-// Sign Up Form Submission
-signupForm.addEventListener('submit', function(e) {
-    e.preventDefault(); // Prevent default form submission
+// Signup Form Submission
+signupForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
     
     // Reset error messages
     document.querySelectorAll('#signupForm .error-message').forEach(el => {
@@ -713,44 +658,32 @@ signupForm.addEventListener('submit', function(e) {
     
     if (hasError) return;
     
-    // Get users from localStorage
-    const users = getUsers();
+    // Sign up with Supabase
+    const result = await signUp(email, password, name);
     
-    // Check if user already exists
-    if (users.some(u => u.email === email)) {
-        accountExistsNotice.style.display = 'block';
-        return;
+    if (result.success) {
+        // Store user info in localStorage
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userName', name);
+        
+        // Show success notification
+        showNotification('Registration Successful', 'Welcome to the colony!');
+        
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+            window.location.href = 'dashboard.html';
+        }, 1500);
+    } else {
+        // Show error message
+        if (result.message.includes('User already registered')) {
+            accountExistsNotice.style.display = 'block';
+        } else {
+            document.getElementById('signupEmailError').textContent = result.message;
+            document.getElementById('signupEmailError').style.display = 'block';
+            document.getElementById('signupEmail').parentElement.classList.add('error');
+        }
     }
-    
-    // Hash the password
-    const hashedPassword = simpleHash(password);
-    
-    // Create new user
-    const newUser = {
-        name,
-        email,
-        password: hashedPassword,
-        createdAt: new Date().toISOString()
-    };
-    
-    // Add user to array
-    users.push(newUser);
-    
-    // Save users to localStorage
-    saveUsers(users);
-    
-    // Set login status in localStorage
-    localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('userEmail', email);
-    localStorage.setItem('userName', name);
-    
-    // Show success notification
-    showNotification('Registration Successful', 'Welcome to the colony!');
-    
-    // Redirect to dashboard after a short delay
-    setTimeout(() => {
-        window.location.href = 'dashboard.html';
-    }, 1500);
 });
 
 // Smooth scrolling for navigation links
@@ -824,37 +757,4 @@ const observer = new IntersectionObserver((entries) => {
 
 allAnimatedElements.forEach(element => {
     observer.observe(element);
-});
-// Team member card flip functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const teamMemberCards = document.querySelectorAll('.team-member-card');
-    
-    teamMemberCards.forEach(card => {
-        const front = card.querySelector('.team-member-front');
-        const flipBackBtn = card.querySelector('.flip-back-btn');
-        
-        // Flip card when clicking on the front
-        front.addEventListener('click', function(e) {
-            // Prevent flipping if clicking on social links
-            if (e.target.closest('.social-links')) {
-                return;
-            }
-            card.classList.add('flipped');
-        });
-        
-        // Flip back when clicking the back button
-        if (flipBackBtn) {
-            flipBackBtn.addEventListener('click', function(e) {
-                e.stopPropagation(); // Prevent event bubbling
-                card.classList.remove('flipped');
-            });
-        }
-        
-        // Flip back when clicking outside the card
-        document.addEventListener('click', function(e) {
-            if (card.classList.contains('flipped') && !card.contains(e.target)) {
-                card.classList.remove('flipped');
-            }
-        });
-    });
 });

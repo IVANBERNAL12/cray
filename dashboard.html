@@ -9,15 +9,8 @@
     <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
-    <!-- Custom Crayfish Claw Cursor -->
-    <div class="crayfish-cursor" id="cursor">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-            <path d="M30,50 C30,30 50,20 70,30 C80,35 85,45 85,55 C85,65 80,75 70,80 C50,90 30,80 30,60 Z" fill="#ff6b35"/>
-            <path d="M70,30 L90,20 C92,18 95,19 96,21 C97,23 96,26 94,27 L75,38 Z" fill="#ff6b35"/>
-            <path d="M70,30 L90,40 C92,42 95,41 96,39 C97,37 96,34 94,33 L75,22 Z" fill="#ff6b35"/>
-            <circle cx="55" cy="50" r="5" fill="#ff7f50"/>
-        </svg>
-    </div>
+
+  
 
     <!-- Ocean Background -->
     <div class="ocean-bg">
@@ -1000,10 +993,13 @@
             &copy; 2023 AquaVision Pro. All rights reserved.
         </div>
     </footer>
-
-    <!-- External JavaScript Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Custom JavaScript -->
-    <script src="js/dashboard.js"></script>
+<!-- External Libraries -->
+<!-- Add these scripts to dashboard.html -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth.js"></script>
+<script src="database.js"></script>
+<script src="js/dashboard.js"></script>
 </body>
 </html>
