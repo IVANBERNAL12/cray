@@ -1,3 +1,29 @@
+// Initialize dashboard when DOM is loaded
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Dashboard loaded');
+    
+    // Check if user is authenticated
+    const authStatus = await checkAuth();
+    
+    console.log('Auth status:', authStatus);
+    
+    if (!authStatus.authenticated) {
+        console.log('User not authenticated, redirecting to login');
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    console.log('User authenticated:', authStatus.user);
+    
+    // Rest of your existing dashboard initialization code...
+    // Initialize charts
+    initCharts();
+    
+    // Load data from database
+    await loadFromDatabase();
+    
+    // ... rest of your code
+});
 // Hardware data simulation and real-time updates
 let hardwareData = {
     temperature: 24.5,
@@ -64,48 +90,6 @@ async function fetchRealHardwareData() {
     });
 }
 
-// Load data from database on page load
-async function loadFromDatabase() {
-    try {
-        // Load latest sensor reading
-        const latestReading = await getLatestSensorReading();
-        if (latestReading) {
-            hardwareData = latestReading;
-        }
-        
-        // Load feed data
-        const feedDataFromDB = await getFeedData();
-        if (feedDataFromDB) {
-            feedData = feedDataFromDB;
-        }
-        
-        // Load feeding schedule
-        const feedingSchedule = await getFeedingSchedule();
-        if (feedingSchedule) {
-            updateFeedingScheduleList(
-                feedingSchedule.frequency, 
-                feedingSchedule.time, 
-                feedingSchedule.amount, 
-                feedingSchedule.type
-            );
-        }
-        
-        // Load water schedule
-        const waterSchedule = await getWaterSchedule();
-        if (waterSchedule) {
-            updateWaterScheduleList(
-                waterSchedule.frequency, 
-                waterSchedule.time, 
-                waterSchedule.percentage
-            );
-        }
-        
-        updateDashboard();
-    } catch (error) {
-        console.error('Error loading data from database:', error);
-    }
-}
-
 // Function to update hardware data based on connection status
 async function updateHardwareData() {
     if (isConnected) {
@@ -114,9 +98,6 @@ async function updateHardwareData() {
             const realData = await fetchRealHardwareData();
             hardwareData = realData;
             console.log("Using real hardware data");
-            
-            // Save to database
-            await saveSensorReading(hardwareData);
         } catch (error) {
             console.error("Error fetching hardware data:", error);
             // Fall back to demo mode if hardware fails
@@ -129,9 +110,6 @@ async function updateHardwareData() {
         // Use demo data
         generateDemoData();
         console.log("Using demo data");
-        
-        // Save demo data to database
-        await saveSensorReading(hardwareData);
     }
     
     updateDashboard();
@@ -491,32 +469,28 @@ function toggleWaterScheduleForm() {
     }
 }
 
-async function saveWaterSchedule() {
+function saveWaterSchedule() {
     const waterTime = document.getElementById('water-change-time').value;
     const waterFrequency = document.getElementById('water-frequency').value;
     const waterPercentage = document.getElementById('water-change-percentage').value;
     
     if (waterTime) {
-        // Save to database
-        const result = await saveWaterSchedule({
+        // Save to localStorage
+        localStorage.setItem('waterSchedule', JSON.stringify({
             time: waterTime,
             frequency: waterFrequency,
             percentage: waterPercentage
-        });
+        }));
         
-        if (result.success) {
-            // Update schedule list
-            updateWaterScheduleList(waterFrequency, waterTime, waterPercentage);
-            
-            // Hide form
-            document.getElementById('water-schedule-form').classList.remove('show');
-            
-            // Show notification
-            const frequencyText = waterFrequency.charAt(0).toUpperCase() + waterFrequency.slice(1);
-            showNotification('Schedule Saved', `Water change scheduled for ${frequencyText} at ${waterTime} - ${waterPercentage}% water change`, 'success');
-        } else {
-            showNotification('Error', result.message, 'warning');
-        }
+        // Update schedule list
+        updateWaterScheduleList(waterFrequency, waterTime, waterPercentage);
+        
+        // Hide form
+        document.getElementById('water-schedule-form').classList.remove('show');
+        
+        // Show notification
+        const frequencyText = waterFrequency.charAt(0).toUpperCase() + waterFrequency.slice(1);
+        showNotification('Schedule Saved', `Water change scheduled for ${frequencyText} at ${waterTime} - ${waterPercentage}% water change`, 'success');
     } else {
         showNotification('Error', 'Please select a time for water change', 'warning');
     }
@@ -561,7 +535,7 @@ function updateWaterScheduleList(frequency, time, percentage) {
 }
 
 // Feed monitoring functions
-async function updateFeedLevel() {
+function updateFeedLevel() {
     const percentage = Math.round((feedData.current / feedData.capacity) * 100);
     
     // Update dashboard stat card if it exists
@@ -619,13 +593,10 @@ async function updateFeedLevel() {
     
     // Check for alerts
     checkFeedAlerts(percentage);
-    
-    // Save to database
-    await saveFeedData(feedData);
 }
 
 // Function to simulate feed consumption
-async function consumeFeed() {
+function consumeFeed() {
     // Simulate consumption of 7.5g per feeding
     feedData.current -= 7.5;
     
@@ -639,7 +610,7 @@ async function consumeFeed() {
 }
 
 // Function to refill feed
-async function refillFeed() {
+function refillFeed() {
     feedData.current = feedData.capacity;
     feedData.lastUpdated = new Date();
     updateFeedLevel();
@@ -706,35 +677,31 @@ function toggleFeedingScheduleForm() {
     }
 }
 
-async function saveFeedingSchedule() {
+function saveFeedingSchedule() {
     const feedingTime = document.getElementById('feeding-time').value;
     const feedingFrequency = document.getElementById('feeding-frequency').value;
     const foodAmount = document.getElementById('food-amount').value;
     const foodType = document.getElementById('food-type').value;
     
     if (feedingTime && foodAmount) {
-        // Save to database
-        const result = await saveFeedingSchedule({
+        // Save to localStorage
+        localStorage.setItem('feedingSchedule', JSON.stringify({
             time: feedingTime,
             frequency: feedingFrequency,
             amount: foodAmount,
             type: foodType
-        });
+        }));
         
-        if (result.success) {
-            // Update schedule list
-            updateFeedingScheduleList(feedingFrequency, feedingTime, foodAmount, foodType);
-            
-            // Hide form
-            document.getElementById('feeding-schedule-form').classList.remove('show');
-            
-            // Show notification
-            const frequencyText = feedingFrequency.charAt(0).toUpperCase() + feedingFrequency.slice(1).replace('-', ' ');
-            const foodTypeText = foodType.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            showNotification('Schedule Saved', `Feeding scheduled for ${frequencyText} at ${feedingTime} - ${foodAmount}g of ${foodTypeText}`, 'success');
-        } else {
-            showNotification('Error', result.message, 'warning');
-        }
+        // Update schedule list
+        updateFeedingScheduleList(feedingFrequency, feedingTime, foodAmount, foodType);
+        
+        // Hide form
+        document.getElementById('feeding-schedule-form').classList.remove('show');
+        
+        // Show notification
+        const frequencyText = feedingFrequency.charAt(0).toUpperCase() + feedingFrequency.slice(1).replace('-', ' ');
+        const foodTypeText = foodType.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        showNotification('Schedule Saved', `Feeding scheduled for ${frequencyText} at ${feedingTime} - ${foodAmount}g of ${foodTypeText}`, 'success');
     } else {
         showNotification('Error', 'Please fill all required fields', 'warning');
     }
@@ -1199,23 +1166,15 @@ window.addEventListener('load', () => {
 
 // Initialize dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
-    // Check if user is authenticated
-    const authStatus = await checkAuth();
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
     
-    if (!authStatus.authenticated) {
-        // User is not authenticated, redirect to login page
+    if (!isLoggedIn) {
         window.location.href = 'index.html';
         return;
     }
     
-    // User is authenticated, continue with dashboard initialization
-    console.log('User authenticated:', authStatus.user);
-    
     // Initialize charts
     initCharts();
-    
-    // Load data from database
-    await loadFromDatabase();
     
     // Load settings and data
     loadSettings();
@@ -1323,32 +1282,40 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // Logout function
-    document.getElementById('logout-btn').addEventListener('click', async function() {
-        const result = await signOut();
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('farmSettings');
+        localStorage.removeItem('lastWaterChange');
+        localStorage.removeItem('waterSchedule');
+        localStorage.removeItem('lastFeeding');
+        localStorage.removeItem('feedingSchedule');
         
-        if (result.success) {
-            showNotification('Logout', 'You have been successfully logged out', 'info');
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1500);
-        } else {
-            showNotification('Error', result.message, 'error');
-        }
+        showNotification('Logout', 'You have been successfully logged out', 'info');
+        
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1500);
     });
 
-    // Set up periodic session refresh
-    const sessionRefreshInterval = setInterval(async () => {
-        const result = await refreshSession();
-        
-        if (!result.success) {
-            console.error('Session refresh failed:', result.message);
-            // Sign out user if refresh fails
-            await signOut();
-            window.location.href = 'index.html';
-        }
-    }, 300000); // Refresh every 5 minutes
+ // Add this to dashboard.js
+// Set up periodic session refresh
+const sessionRefreshInterval = setInterval(async () => {
+    const result = await refreshSession();
+    
+    if (!result.success) {
+        console.error('Session refresh failed:', result.message);
+        // Sign out user if refresh fails
+        await signOut();
+        window.location.href = 'index.html';
+    }
+}, 300000); // Refresh every 5 minutes
 
+// Clean up interval when page is unloaded
+window.addEventListener('beforeunload', () => {
+    clearInterval(sessionRefreshInterval);
+});
     // Add event listeners to all modal close buttons
     const closeButtons = document.querySelectorAll('.modal-close');
     closeButtons.forEach(button => {
@@ -1382,13 +1349,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
     
     // Water history modal
-    document.getElementById('apply-history-filter').addEventListener('click', async function() {
+    document.getElementById('apply-history-filter').addEventListener('click', function() {
         const period = document.getElementById('history-period').value;
         const parameter = document.getElementById('history-parameter').value;
         
-        // Fetch historical data from database
-        const historicalData = await getHistoricalSensorData(parseInt(period));
-        
+        // In a real implementation, this would fetch and display the actual history data
         showNotification('Filter Applied', `Showing ${parameter} data for the last ${period} days`, 'info');
         
         // Initialize history chart if it doesn't exist
@@ -1408,11 +1373,22 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         }
         
-        // Generate chart data from historical data
-        if (historyChartCanvas && historyChartCanvas.chart && historicalData.length > 0) {
-            const labels = historicalData.map(item => new Date(item.created_at).toLocaleDateString());
-            const tempData = historicalData.map(item => item.temperature);
-            const phData = historicalData.map(item => item.ph);
+        // Generate some sample data for the chart
+        if (historyChartCanvas && historyChartCanvas.chart) {
+            const labels = [];
+            const tempData = [];
+            const phData = [];
+            
+            const days = parseInt(period);
+            for (let i = days; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString());
+                
+                // Generate sample data
+                tempData.push(22 + Math.random() * 4);
+                phData.push(6.8 + Math.random() * 0.8);
+            }
             
             const datasets = [];
             if (parameter === 'temperature' || parameter === 'both') {
@@ -1554,6 +1530,5 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.addEventListener('beforeunload', () => {
         clearInterval(dataUpdateInterval);
         clearInterval(hardwareCheckInterval);
-        clearInterval(sessionRefreshInterval);
     });
 });

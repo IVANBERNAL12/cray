@@ -613,8 +613,11 @@ signupTab.addEventListener('keydown', (e) => {
 });
 
 // Login Form Submission
+
 loginForm.addEventListener('submit', async function(e) {
     e.preventDefault();
+    
+    console.log('Login form submitted');
     
     // Reset error messages
     document.querySelectorAll('#loginForm .error-message').forEach(el => {
@@ -626,19 +629,19 @@ loginForm.addEventListener('submit', async function(e) {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     
+    console.log('Login attempt:', { email, password: '***' });
+    
     let hasError = false;
     
-    // Validate email
     if (!email) {
-        document.getElementById('loginEmailError').textContent = 'Crayfish ID is required';
+        document.getElementById('loginEmailError').textContent = 'Email is required';
         document.getElementById('loginEmailError').style.display = 'block';
         document.getElementById('loginEmail').parentElement.classList.add('error');
         hasError = true;
     }
     
-    // Validate password
     if (!password) {
-        document.getElementById('loginPasswordError').textContent = 'Shell Code is required';
+        document.getElementById('loginPasswordError').textContent = 'Password is required';
         document.getElementById('loginPasswordError').style.display = 'block';
         document.getElementById('loginPassword').parentElement.classList.add('error');
         hasError = true;
@@ -646,45 +649,35 @@ loginForm.addEventListener('submit', async function(e) {
     
     if (hasError) return;
     
+    showNotification('Signing In', 'Please wait...');
+    
     // Sign in with Supabase
     const result = await signIn(email, password);
     
+    console.log('Login result:', result);
+    
     if (result.success) {
-        // Store user info in localStorage
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userEmail', email);
         if (result.data.user.user_metadata && result.data.user.user_metadata.name) {
             localStorage.setItem('userName', result.data.user.user_metadata.name);
         }
         
-        // Show success notification
-        showNotification('Login Successful', 'Welcome back to the colony!');
+        showNotification('Login Successful', 'Welcome back!');
         
-        // Redirect to dashboard after a short delay
         setTimeout(() => {
             window.location.href = 'dashboard.html';
         }, 1500);
     } else {
-        // Show error message
-        if (result.message.includes('Invalid login credentials')) {
-            document.getElementById('loginPasswordError').textContent = 'Incorrect Shell Code. Please try again.';
-            document.getElementById('loginPasswordError').style.display = 'block';
-            document.getElementById('loginPassword').parentElement.classList.add('error');
-        } else if (result.message.includes('Email not confirmed')) {
-            document.getElementById('loginEmailError').textContent = 'Please check your email and confirm your account.';
-            document.getElementById('loginEmailError').style.display = 'block';
-            document.getElementById('loginEmail').parentElement.classList.add('error');
-        } else {
-            document.getElementById('loginEmailError').textContent = result.message;
-            document.getElementById('loginEmailError').style.display = 'block';
-            document.getElementById('loginEmail').parentElement.classList.add('error');
-        }
+        showNotification('Login Failed', result.message);
     }
 });
 
-// Signup Form Submission
+// Signup Form Handler
 signupForm.addEventListener('submit', async function(e) {
     e.preventDefault();
+    
+    console.log('Signup form submitted');
     
     // Reset error messages
     document.querySelectorAll('#signupForm .error-message').forEach(el => {
@@ -698,9 +691,10 @@ signupForm.addEventListener('submit', async function(e) {
     const password = document.getElementById('signupPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     
+    console.log('Signup attempt:', { name, email, password: '***' });
+    
     let hasError = false;
     
-    // Validate name
     if (!name || name.length < 2) {
         document.getElementById('signupNameError').textContent = 'Please enter a valid name';
         document.getElementById('signupNameError').style.display = 'block';
@@ -708,27 +702,23 @@ signupForm.addEventListener('submit', async function(e) {
         hasError = true;
     }
     
-    // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
-        document.getElementById('signupEmailError').textContent = 'Please enter a valid email address';
+        document.getElementById('signupEmailError').textContent = 'Please enter a valid email';
         document.getElementById('signupEmailError').style.display = 'block';
         document.getElementById('signupEmail').parentElement.classList.add('error');
         hasError = true;
     }
     
-    // Validate password strength
-    const strength = checkPasswordStrength(password);
-    if (strength < 3) {
-        document.getElementById('signupPasswordError').textContent = 'Shell Code is too weak. Please use a stronger password.';
+    if (password.length < 6) {
+        document.getElementById('signupPasswordError').textContent = 'Password must be at least 6 characters';
         document.getElementById('signupPasswordError').style.display = 'block';
         document.getElementById('signupPassword').parentElement.classList.add('error');
         hasError = true;
     }
     
-    // Validate password confirmation
     if (password !== confirmPassword) {
-        document.getElementById('confirmPasswordError').textContent = 'Shell codes do not match';
+        document.getElementById('confirmPasswordError').textContent = 'Passwords do not match';
         document.getElementById('confirmPasswordError').style.display = 'block';
         document.getElementById('confirmPassword').parentElement.classList.add('error');
         hasError = true;
@@ -736,31 +726,25 @@ signupForm.addEventListener('submit', async function(e) {
     
     if (hasError) return;
     
+    showNotification('Creating Account', 'Please wait...');
+    
     // Sign up with Supabase
     const result = await signUp(email, password, name);
     
+    console.log('Signup result:', result);
+    
     if (result.success) {
-        // Store user info in localStorage
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userEmail', email);
         localStorage.setItem('userName', name);
         
-        // Show success notification
         showNotification('Registration Successful', 'Welcome to the colony!');
         
-        // Redirect to dashboard after a short delay
         setTimeout(() => {
             window.location.href = 'dashboard.html';
         }, 1500);
     } else {
-        // Show error message
-        if (result.message.includes('User already registered')) {
-            accountExistsNotice.style.display = 'block';
-        } else {
-            document.getElementById('signupEmailError').textContent = result.message;
-            document.getElementById('signupEmailError').style.display = 'block';
-            document.getElementById('signupEmail').parentElement.classList.add('error');
-        }
+        showNotification('Registration Failed', result.message);
     }
 });
 
