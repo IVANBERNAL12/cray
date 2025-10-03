@@ -1,29 +1,487 @@
-// Initialize dashboard when DOM is loaded
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Dashboard loaded');
+// dashboard.js
+console.log('dashboard.js loaded');
+
+// Wait for Supabase to be ready
+document.addEventListener('supabaseReady', function() {
+    console.log('Supabase is ready, initializing dashboard...');
+    initDashboard();
+});
+
+// Initialize dashboard
+async function initDashboard() {
+    try {
+        // Check if user is authenticated
+        const authResult = await checkAuth();
+        if (!authResult.authenticated) {
+            console.log('User not authenticated, redirecting to login...');
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        // Load initial data
+        await loadDashboardData();
+        
+        // Set up periodic data refresh
+        setInterval(refreshDashboardData, 60000); // Refresh every minute
+        
+        console.log('Dashboard initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize dashboard:', error);
+        showNotification('Error', 'Failed to initialize dashboard: ' + error.message, 'error');
+    }
+}
+
+// Load dashboard data
+async function loadDashboardData() {
+    try {
+        // Load sensor data
+        await loadSensorData();
+        
+        // Load feed data
+        await loadFeedData();
+        
+        // Load feeding schedule
+        await loadFeedingSchedule();
+        
+        // Load water schedule
+        await loadWaterSchedule();
+        
+        // Load historical data for charts
+        await loadHistoricalData();
+        
+        // Update last updated timestamp
+        updateLastUpdated();
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        showNotification('Error', 'Failed to load dashboard data: ' + error.message, 'error');
+    }
+}
+
+// Refresh dashboard data
+async function refreshDashboardData() {
+    try {
+        await loadDashboardData();
+        showNotification('Success', 'Dashboard data refreshed', 'success');
+    } catch (error) {
+        console.error('Error refreshing dashboard data:', error);
+        showNotification('Error', 'Failed to refresh dashboard data: ' + error.message, 'error');
+    }
+}
+
+// Load and display sensor data
+async function loadSensorData() {
+    try {
+        const sensorData = await getLatestSensorReading();
+        
+        if (sensorData) {
+            // Update temperature
+            document.getElementById('temp-value').textContent = `${sensorData.temperature}°C`;
+            document.getElementById('water-temp-value').textContent = `${sensorData.temperature}°C`;
+            
+            // Update pH
+            document.getElementById('ph-value').textContent = sensorData.ph;
+            document.getElementById('water-ph-value').textContent = sensorData.ph;
+            
+            // Update population
+            document.getElementById('population-value').textContent = sensorData.population;
+            
+            // Update health status
+            document.getElementById('health-value').textContent = `${sensorData.healthStatus}%`;
+            
+            // Update average weight
+            document.getElementById('weight-value').textContent = `${sensorData.avgWeight}g`;
+            
+            // Update days to harvest
+            document.getElementById('harvest-value').textContent = sensorData.daysToHarvest;
+            document.getElementById('days-harvest-value').textContent = sensorData.daysToHarvest;
+            
+            // Update water quality status
+            updateWaterQualityStatus(sensorData.temperature, sensorData.ph);
+            
+            // Update harvest projections
+            updateHarvestProjections(sensorData);
+        }
+    } catch (error) {
+        console.error('Error loading sensor data:', error);
+        throw error;
+    }
+}
+
+// Load and display feed data
+async function loadFeedData() {
+    try {
+        const feedData = await getFeedData();
+        
+        if (feedData) {
+            // Calculate feed percentage
+            const feedPercentage = Math.round((feedData.current / feedData.capacity) * 100);
+            
+            // Update feed level in dashboard
+            document.getElementById('feed-level-value').textContent = `${feedPercentage}%`;
+            document.getElementById('feeding-feed-level-value').textContent = `${feedPercentage}%`;
+            
+            // Update feed progress bar
+            const feedProgressBar = document.getElementById('feeding-feed-level-progress');
+            if (feedProgressBar) {
+                feedProgressBar.style.width = `${feedPercentage}%`;
+            }
+            
+            // Update feed status
+            const feedStatusElement = document.getElementById('feed-status');
+            const feedLevelStatusElement = document.getElementById('feed-level-status');
+            
+            let feedStatus = 'Adequate';
+            let statusClass = 'adequate';
+            
+            if (feedPercentage < 20) {
+                feedStatus = 'Critical';
+                statusClass = 'critical';
+            } else if (feedPercentage < 40) {
+                feedStatus = 'Low';
+                statusClass = 'low';
+            }
+            
+            if (feedStatusElement) {
+                feedStatusElement.textContent = feedStatus;
+                feedStatusElement.className = `feed-status ${statusClass}`;
+            }
+            
+            if (feedLevelStatusElement) {
+                feedLevelStatusElement.textContent = feedStatus;
+                feedLevelStatusElement.className = `feed-level-status ${statusClass}`;
+            }
+            
+            // Update feed stats
+            document.getElementById('feed-capacity').textContent = `${feedData.capacity}g`;
+            document.getElementById('feed-current').textContent = `${feedData.current}g`;
+            
+            // Calculate estimated days left (assuming 7.5g per day)
+            const dailyConsumption = 7.5;
+            const daysLeft = Math.round(feedData.current / dailyConsumption);
+            document.getElementById('feed-days-left').textContent = `${daysLeft} days`;
+        }
+    } catch (error) {
+        console.error('Error loading feed data:', error);
+        throw error;
+    }
+}
+
+// Load and display feeding schedule
+async function loadFeedingSchedule() {
+    try {
+        const schedule = await getFeedingSchedule();
+        
+        if (schedule) {
+            // Update feeding schedule form
+            document.getElementById('feeding-time').value = schedule.time;
+            document.getElementById('feeding-frequency').value = schedule.frequency;
+            document.getElementById('food-amount').value = schedule.amount;
+            document.getElementById('food-type').value = schedule.type;
+            
+            // Update feeding schedule list
+            updateFeedingScheduleList(schedule);
+        }
+    } catch (error) {
+        console.error('Error loading feeding schedule:', error);
+        throw error;
+    }
+}
+
+// Load and display water schedule
+async function loadWaterSchedule() {
+    try {
+        const schedule = await getWaterSchedule();
+        
+        if (schedule) {
+            // Update water schedule form
+            document.getElementById('water-change-time').value = schedule.time;
+            document.getElementById('water-frequency').value = schedule.frequency;
+            document.getElementById('water-change-percentage').value = schedule.percentage;
+            
+            // Update water schedule list
+            updateWaterScheduleList(schedule);
+        }
+    } catch (error) {
+        console.error('Error loading water schedule:', error);
+        throw error;
+    }
+}
+
+// Load historical data for charts
+async function loadHistoricalData() {
+    try {
+        const historicalData = await getHistoricalSensorData(7); // Get last 7 days
+        
+        if (historicalData && historicalData.length > 0) {
+            // Update charts using the chart manager
+            if (window.chartManager) {
+                window.chartManager.updateAllChartsFromHistory(historicalData);
+            }
+        } else {
+            // Use sample data if no historical data available
+            if (window.chartManager && window.generateSampleData) {
+                const sampleData = window.generateSampleData(7);
+                window.chartManager.updateAllChartsFromHistory(sampleData);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading historical data:', error);
+        // Use sample data on error
+        if (window.chartManager && window.generateSampleData) {
+            const sampleData = window.generateSampleData(7);
+            window.chartManager.updateAllChartsFromHistory(sampleData);
+        }
+    }
+}
+
+// Update water quality status based on sensor values
+function updateWaterQualityStatus(temperature, ph) {
+    // Temperature status
+    const tempStatusElement = document.getElementById('water-temp-status');
+    let tempStatus = 'Optimal';
+    let tempStatusClass = 'optimal';
     
-    // Check if user is authenticated
-    const authStatus = await checkAuth();
-    
-    console.log('Auth status:', authStatus);
-    
-    if (!authStatus.authenticated) {
-        console.log('User not authenticated, redirecting to login');
-        window.location.href = 'index.html';
-        return;
+    if (temperature < 20 || temperature > 25) {
+        tempStatus = 'Warning';
+        tempStatusClass = 'warning';
     }
     
-    console.log('User authenticated:', authStatus.user);
+    if (temperature < 15 || temperature > 30) {
+        tempStatus = 'Critical';
+        tempStatusClass = 'critical';
+    }
     
-    // Rest of your existing dashboard initialization code...
-    // Initialize charts
-    initCharts();
+    if (tempStatusElement) {
+        tempStatusElement.textContent = tempStatus;
+        tempStatusElement.className = `parameter-status ${tempStatusClass}`;
+    }
     
-    // Load data from database
-    await loadFromDatabase();
+    // pH status
+    const phStatusElement = document.getElementById('water-ph-status');
+    let phStatus = 'Optimal';
+    let phStatusClass = 'optimal';
     
-    // ... rest of your code
-});
+    if (ph < 6.5 || ph > 8.0) {
+        phStatus = 'Warning';
+        phStatusClass = 'warning';
+    }
+    
+    if (ph < 6.0 || ph > 8.5) {
+        phStatus = 'Critical';
+        phStatusClass = 'critical';
+    }
+    
+    if (phStatusElement) {
+        phStatusElement.textContent = phStatus;
+        phStatusElement.className = `parameter-status ${phStatusClass}`;
+    }
+    
+    // Update water status indicator
+    const waterStatusIndicator = document.getElementById('water-status-indicator');
+    const waterStatusText = document.querySelector('.water-info h3');
+    
+    if (tempStatus === 'Critical' || phStatus === 'Critical') {
+        waterStatusIndicator.className = 'status-indicator critical';
+        waterStatusText.textContent = 'Water Quality: Critical';
+    } else if (tempStatus === 'Warning' || phStatus === 'Warning') {
+        waterStatusIndicator.className = 'status-indicator warning';
+        waterStatusText.textContent = 'Water Quality: Warning';
+    } else {
+        waterStatusIndicator.className = 'status-indicator good';
+        waterStatusText.textContent = 'Water Quality: Good';
+    }
+}
+
+// Update harvest projections based on sensor data
+function updateHarvestProjections(sensorData) {
+    // Calculate projected harvest weight based on current weight and days to harvest
+    const currentWeight = sensorData.avgWeight;
+    const daysToHarvest = sensorData.daysToHarvest;
+    const population = sensorData.population;
+    
+    // Estimate growth rate (assuming linear growth for simplicity)
+    const marketSize = 40; // Target market size in grams
+    const projectedWeight = Math.min(currentWeight + (daysToHarvest * 0.3), marketSize);
+    
+    // Update harvest projections
+    document.getElementById('weight-harvest-value').textContent = `${projectedWeight}g`;
+    
+    // Calculate projected revenue
+    const marketPrice = 150; // Price per kg in PHP
+    const projectedWeightKg = (projectedWeight * population) / 1000;
+    const projectedRevenue = Math.round(projectedWeightKg * marketPrice);
+    
+    document.getElementById('revenue-harvest-value').textContent = `₱${projectedRevenue}`;
+    
+    // Update survival rate
+    const healthStatus = sensorData.healthStatus;
+    document.getElementById('survival-harvest-value').textContent = `${healthStatus}%`;
+    
+    // Update progress bars
+    const weightProgress = Math.min((projectedWeight / marketSize) * 100, 100);
+    const weightProgressBar = document.querySelector('#harvest-management .harvest-progress-bar.progress-15');
+    if (weightProgressBar) {
+        weightProgressBar.style.width = `${weightProgress}%`;
+    }
+    
+    const daysProgress = Math.max(0, 100 - (daysToHarvest / 180 * 100)); // Assuming 180 days total
+    const daysProgressBar = document.querySelector('#harvest-management .harvest-progress-bar.progress-20');
+    if (daysProgressBar) {
+        daysProgressBar.style.width = `${daysProgress}%`;
+    }
+}
+
+// Update feeding schedule list
+function updateFeedingScheduleList(schedule) {
+    const scheduleList = document.getElementById('feeding-schedule-list');
+    
+    if (scheduleList) {
+        scheduleList.innerHTML = `
+            <div class="schedule-item">
+                <div class="schedule-info">
+                    <div class="schedule-time">${formatFrequency(schedule.frequency)}</div>
+                    <div class="schedule-details">${formatTime(schedule.frequency, schedule.time)} - ${schedule.amount}g of ${formatFoodType(schedule.type)}</div>
+                </div>
+                <div class="schedule-status active">Active</div>
+            </div>
+        `;
+    }
+}
+
+// Update water schedule list
+function updateWaterScheduleList(schedule) {
+    const scheduleList = document.getElementById('water-schedule-list');
+    
+    if (scheduleList) {
+        scheduleList.innerHTML = `
+            <div class="schedule-item">
+                <div class="schedule-info">
+                    <div class="schedule-time">${formatFrequency(schedule.frequency)}</div>
+                    <div class="schedule-details">${formatWaterSchedule(schedule.frequency, schedule.time, schedule.percentage)}</div>
+                </div>
+                <div class="schedule-status active">Active</div>
+            </div>
+        `;
+    }
+}
+
+// Format frequency for display
+function formatFrequency(frequency) {
+    switch (frequency) {
+        case 'twice-daily': return 'Twice Daily';
+        case 'daily': return 'Daily';
+        case 'every-other-day': return 'Every Other Day';
+        case 'weekly': return 'Weekly';
+        case 'biweekly': return 'Bi-weekly';
+        case 'monthly': return 'Monthly';
+        default: return frequency;
+    }
+}
+
+// Format time based on frequency
+function formatTime(frequency, time) {
+    if (frequency === 'twice-daily') {
+        return `8:00 AM and 6:00 PM`;
+    } else {
+        return `at ${time}`;
+    }
+}
+
+// Format food type for display
+function formatFoodType(type) {
+    switch (type) {
+        case 'juvenile-pellets': return 'Juvenile Pellets (40%)';
+        case 'growth-pellets': return 'Growth Pellets (35%)';
+        case 'breeder-pellets': return 'Breeder Pellets (30%)';
+        default: return type;
+    }
+}
+
+// Format water schedule for display
+function formatWaterSchedule(frequency, time, percentage) {
+    const dayOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const day = dayOfWeek[new Date(time).getDay()] || 'Monday';
+    
+    return `Every ${day} at ${time} - ${percentage}% water change`;
+}
+
+// Initialize charts - this function will be handled by chart.js
+function initializeCharts() {
+    // Charts are initialized by chart.js module
+    console.log('Charts initialization delegated to chart.js module');
+}
+
+// Update temperature chart with data
+function updateTemperatureChart(data) {
+    if (window.chartManager && window.chartManager.charts['tempChart']) {
+        window.chartManager.charts['tempChart'].updateData(data);
+    }
+}
+
+// Update pH chart with data
+function updatePhChart(data) {
+    if (window.chartManager && window.chartManager.charts['phChart']) {
+        window.chartManager.charts['phChart'].updateData(data);
+    }
+}
+
+// Update charts with sample data
+function updateChartsWithSampleData() {
+    if (window.chartManager && window.generateSampleData) {
+        const sampleData = window.generateSampleData(7);
+        window.chartManager.updateAllChartsFromHistory(sampleData);
+    }
+}
+
+// Update last updated timestamp
+function updateLastUpdated() {
+    const lastUpdatedElement = document.getElementById('last-updated');
+    if (lastUpdatedElement) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        lastUpdatedElement.textContent = `Last updated: ${timeString}`;
+    }
+}
+
+// Show notification function
+function showNotification(title, message, type = 'info') {
+    const notification = document.getElementById('notification');
+    const notificationIcon = document.getElementById('notification-icon');
+    const notificationTitle = document.getElementById('notification-title');
+    const notificationMessage = document.getElementById('notification-message');
+    
+    if (notification && notificationIcon && notificationTitle && notificationMessage) {
+        // Set notification content
+        notificationTitle.textContent = title;
+        notificationMessage.textContent = message;
+        
+        // Set notification icon and color based on type
+        notificationIcon.className = 'notification-icon ' + type;
+        
+        switch (type) {
+            case 'success':
+                notificationIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                break;
+            case 'warning':
+                notificationIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                break;
+            case 'error':
+                notificationIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+                break;
+            default:
+                notificationIcon.innerHTML = '<i class="fas fa-info-circle"></i>';
+        }
+        
+        // Show notification
+        notification.classList.add('show');
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 5000);
+    }
+}
+
 // Hardware data simulation and real-time updates
 let hardwareData = {
     temperature: 24.5,
@@ -42,7 +500,6 @@ let feedData = {
     lastUpdated: new Date()
 };
 
-let tempChart, phChart;
 let isConnected = false; // Initially set to false, will be checked on load
 let hardwareCheckInterval;
 let dataUpdateInterval;
@@ -206,59 +663,6 @@ window.onclick = function(event) {
     }
 }
 
-// Initialize charts
-function initCharts() {
-    const tempCtx = document.getElementById('tempChart').getContext('2d');
-    tempChart = new Chart(tempCtx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Temperature (°C)',
-                data: [],
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    min: 15,
-                    max: 30
-                }
-            }
-        }
-    });
-
-    const phCtx = document.getElementById('phChart').getContext('2d');
-    phChart = new Chart(phCtx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'pH Level',
-                data: [],
-                borderColor: 'rgba(153, 102, 255, 1)',
-                backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    min: 6,
-                    max: 9
-                }
-            }
-        }
-    });
-}
-
 // Update dashboard with current data
 function updateDashboard() {
     // Update stat cards
@@ -341,31 +745,16 @@ function updateStatusIndicators() {
 // Update charts with new data
 function updateCharts() {
     const now = new Date();
-    const timeLabel = now.toLocaleTimeString();
     
     // Add new data to temperature chart
-    tempChart.data.labels.push(timeLabel);
-    tempChart.data.datasets[0].data.push(hardwareData.temperature);
-    
-    // Keep only the last 10 data points
-    if (tempChart.data.labels.length > 10) {
-        tempChart.data.labels.shift();
-        tempChart.data.datasets[0].data.shift();
+    if (window.chartManager && window.chartManager.charts['tempChart']) {
+        window.chartManager.streamData('tempChart', { x: now, y: hardwareData.temperature });
     }
-    
-    tempChart.update();
     
     // Add new data to pH chart
-    phChart.data.labels.push(timeLabel);
-    phChart.data.datasets[0].data.push(hardwareData.ph);
-    
-    // Keep only the last 10 data points
-    if (phChart.data.labels.length > 10) {
-        phChart.data.labels.shift();
-        phChart.data.datasets[0].data.shift();
+    if (window.chartManager && window.chartManager.charts['phChart']) {
+        window.chartManager.streamData('phChart', { x: now, y: hardwareData.ph });
     }
-    
-    phChart.update();
 }
 
 // Add alert to dashboard
@@ -498,40 +887,6 @@ function saveWaterSchedule() {
 
 function cancelWaterSchedule() {
     document.getElementById('water-schedule-form').classList.remove('show');
-}
-
-function updateWaterScheduleList(frequency, time, percentage) {
-    const scheduleList = document.getElementById('water-schedule-list');
-    
-    // Clear existing schedules
-    scheduleList.innerHTML = '';
-    
-    // Add new schedule
-    const scheduleItem = document.createElement('div');
-    scheduleItem.className = 'schedule-item';
-    
-    const frequencyText = frequency.charAt(0).toUpperCase() + frequency.slice(1);
-    let dayText = '';
-    
-    if (frequency === 'daily') {
-        dayText = 'Every day';
-    } else if (frequency === 'weekly') {
-        dayText = 'Every week';
-    } else if (frequency === 'biweekly') {
-        dayText = 'Every two weeks';
-    } else if (frequency === 'monthly') {
-        dayText = 'Every month';
-    }
-    
-    scheduleItem.innerHTML = `
-        <div class="schedule-info">
-            <div class="schedule-time">${frequencyText}</div>
-            <div class="schedule-details">${dayText} at ${time} - ${percentage}% water change</div>
-        </div>
-        <div class="schedule-status active">Active</div>
-    `;
-    
-    scheduleList.appendChild(scheduleItem);
 }
 
 // Feed monitoring functions
@@ -1136,45 +1491,260 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Chat event listeners
-document.getElementById('send-button').addEventListener('click', sendMessage);
-document.getElementById('chat-toggle').addEventListener('click', toggleChat);
-
-// Add Enter key support for chat input
-document.getElementById('chat-input').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        sendMessage();
+// Add event listeners for dashboard functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Charts are initialized by chart.js module
+    console.log('Charts will be initialized by chart.js module');
+    
+    // Refresh data button
+    const refreshBtn = document.getElementById('refresh-data');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            refreshBtn.querySelector('i').classList.add('fa-spin');
+            refreshDashboardData().finally(() => {
+                refreshBtn.querySelector('i').classList.remove('fa-spin');
+            });
+        });
+    }
+    
+    // Logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            const result = await signOut();
+            if (result.success) {
+                window.location.href = 'index.html';
+            } else {
+                showNotification('Error', result.message, 'error');
+            }
+        });
+    }
+    
+    // Feed now button
+    const feedNowBtn = document.getElementById('feed-now');
+    if (feedNowBtn) {
+        feedNowBtn.addEventListener('click', async () => {
+            try {
+                // Get current feed data
+                const feedData = await getFeedData();
+                
+                if (feedData) {
+                    // Calculate new feed amount
+                    const feedingAmount = 7.5; // Default feeding amount
+                    const newFeedAmount = Math.max(0, feedData.current - feedingAmount);
+                    
+                    // Update feed data
+                    const updatedFeedData = {
+                        ...feedData,
+                        current: newFeedAmount
+                    };
+                    
+                    const result = await saveFeedData(updatedFeedData);
+                    
+                    if (result.success) {
+                        showNotification('Success', 'Feeding completed successfully', 'success');
+                        await loadFeedData();
+                        
+                        // Update last feeding time
+                        const lastFeedingElement = document.getElementById('last-feeding');
+                        if (lastFeedingElement) {
+                            const now = new Date();
+                            const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            lastFeedingElement.textContent = `Last fed: Today at ${timeString}`;
+                        }
+                    } else {
+                        showNotification('Error', result.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error feeding now:', error);
+                showNotification('Error', 'Failed to feed: ' + error.message, 'error');
+            }
+        });
+    }
+    
+    // Refill feed button
+    const refillFeedBtn = document.querySelector('.feed-actions .btn-primary');
+    if (refillFeedBtn) {
+        refillFeedBtn.addEventListener('click', async () => {
+            try {
+                // Get current feed data
+                const feedData = await getFeedData();
+                
+                if (feedData) {
+                    // Reset feed to full capacity
+                    const updatedFeedData = {
+                        ...feedData,
+                        current: feedData.capacity
+                    };
+                    
+                    const result = await saveFeedData(updatedFeedData);
+                    
+                    if (result.success) {
+                        showNotification('Success', 'Feed refilled successfully', 'success');
+                        await loadFeedData();
+                    } else {
+                        showNotification('Error', result.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error refilling feed:', error);
+                showNotification('Error', 'Failed to refill feed: ' + error.message, 'error');
+            }
+        });
+    }
+    
+    // Save feeding schedule button
+    const saveFeedingScheduleBtn = document.getElementById('save-feeding-schedule');
+    if (saveFeedingScheduleBtn) {
+        saveFeedingScheduleBtn.addEventListener('click', async () => {
+            try {
+                const time = document.getElementById('feeding-time').value;
+                const frequency = document.getElementById('feeding-frequency').value;
+                const amount = document.getElementById('food-amount').value;
+                const type = document.getElementById('food-type').value;
+                
+                if (!time || !amount) {
+                    showNotification('Error', 'Please fill in all required fields', 'error');
+                    return;
+                }
+                
+                const schedule = {
+                    time,
+                    frequency,
+                    amount: parseFloat(amount),
+                    type
+                };
+                
+                const result = await saveFeedingSchedule(schedule);
+                
+                if (result.success) {
+                    showNotification('Success', 'Feeding schedule saved successfully', 'success');
+                    await loadFeedingSchedule();
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving feeding schedule:', error);
+                showNotification('Error', 'Failed to save feeding schedule: ' + error.message, 'error');
+            }
+        });
+    }
+    
+    // Save water schedule button
+    const saveWaterScheduleBtn = document.getElementById('save-water-schedule');
+    if (saveWaterScheduleBtn) {
+        saveWaterScheduleBtn.addEventListener('click', async () => {
+            try {
+                const time = document.getElementById('water-change-time').value;
+                const frequency = document.getElementById('water-frequency').value;
+                const percentage = document.getElementById('water-change-percentage').value;
+                
+                if (!time) {
+                    showNotification('Error', 'Please select a time for water change', 'error');
+                    return;
+                }
+                
+                const schedule = {
+                    time,
+                    frequency,
+                    percentage: parseInt(percentage)
+                };
+                
+                const result = await saveWaterSchedule(schedule);
+                
+                if (result.success) {
+                    showNotification('Success', 'Water schedule saved successfully', 'success');
+                    await loadWaterSchedule();
+                } else {
+                    showNotification('Error', result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving water schedule:', error);
+                showNotification('Error', 'Failed to save water schedule: ' + error.message, 'error');
+            }
+        });
+    }
+    
+    // Change water now button
+    const changeWaterBtn = document.getElementById('change-water-now');
+    if (changeWaterBtn) {
+        changeWaterBtn.addEventListener('click', () => {
+            showNotification('Success', 'Water change initiated', 'success');
+            updateLastWaterChange();
+        });
+    }
+    
+    // Toggle feeding schedule form
+    const setFeedingScheduleBtn = document.getElementById('set-feeding-schedule');
+    if (setFeedingScheduleBtn) {
+        setFeedingScheduleBtn.addEventListener('click', () => {
+            const form = document.getElementById('feeding-schedule-form');
+            if (form) {
+                form.classList.toggle('show');
+            }
+        });
+    }
+    
+    // Toggle water schedule form
+    const setWaterScheduleBtn = document.getElementById('set-water-schedule');
+    if (setWaterScheduleBtn) {
+        setWaterScheduleBtn.addEventListener('click', () => {
+            const form = document.getElementById('water-schedule-form');
+            if (form) {
+                form.classList.toggle('show');
+            }
+        });
+    }
+    
+    // Cancel buttons for schedule forms
+    const cancelFeedingScheduleBtn = document.querySelector('#feeding-schedule-form .btn-secondary');
+    if (cancelFeedingScheduleBtn) {
+        cancelFeedingScheduleBtn.addEventListener('click', () => {
+            const form = document.getElementById('feeding-schedule-form');
+            if (form) {
+                form.classList.remove('show');
+            }
+        });
+    }
+    
+    const cancelWaterScheduleBtn = document.querySelector('#water-schedule-form .btn-secondary');
+    if (cancelWaterScheduleBtn) {
+        cancelWaterScheduleBtn.addEventListener('click', () => {
+            const form = document.getElementById('water-schedule-form');
+            if (form) {
+                form.classList.remove('show');
+            }
+        });
     }
 });
 
-// Add a subtle pulse to the chat header when there are new messages
-function pulseChatHeader() {
-    const chatHeader = document.querySelector('.chat-header');
-    chatHeader.style.animation = 'pulse 0.5s ease';
-    setTimeout(() => {
-        chatHeader.style.animation = '';
-    }, 500);
+// Update last water change
+function updateLastWaterChange() {
+    const lastWaterChangeElement = document.getElementById('last-water-change');
+    if (lastWaterChangeElement) {
+        const now = new Date();
+        const dateString = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        lastWaterChangeElement.textContent = `Last changed: ${dateString}`;
+    }
 }
-
-// Add a welcome message when the page loads
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        addMessage("Hello! I'm your Crayfish Assistant. How can I help you today?", 'system');
-        pulseChatHeader();
-    }, 1000);
-});
 
 // Initialize dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    console.log('Dashboard loaded');
     
-    if (!isLoggedIn) {
+    // Check if user is authenticated
+    const authStatus = await checkAuth();
+    
+    console.log('Auth status:', authStatus);
+    
+    if (!authStatus.authenticated) {
+        console.log('User not authenticated, redirecting to login');
         window.location.href = 'index.html';
         return;
     }
     
-    // Initialize charts
-    initCharts();
+    console.log('User authenticated:', authStatus.user);
     
     // Load settings and data
     loadSettings();
@@ -1299,23 +1869,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         }, 1500);
     });
 
- // Add this to dashboard.js
-// Set up periodic session refresh
-const sessionRefreshInterval = setInterval(async () => {
-    const result = await refreshSession();
-    
-    if (!result.success) {
-        console.error('Session refresh failed:', result.message);
-        // Sign out user if refresh fails
-        await signOut();
-        window.location.href = 'index.html';
-    }
-}, 300000); // Refresh every 5 minutes
+    // Set up periodic session refresh
+    const sessionRefreshInterval = setInterval(async () => {
+        const result = await refreshSession();
+        
+        if (!result.success) {
+            console.error('Session refresh failed:', result.message);
+            // Sign out user if refresh fails
+            await signOut();
+            window.location.href = 'index.html';
+        }
+    }, 300000); // Refresh every 5 minutes
 
-// Clean up interval when page is unloaded
-window.addEventListener('beforeunload', () => {
-    clearInterval(sessionRefreshInterval);
-});
+    // Clean up interval when page is unloaded
+    window.addEventListener('beforeunload', () => {
+        clearInterval(sessionRefreshInterval);
+    });
+
     // Add event listeners to all modal close buttons
     const closeButtons = document.querySelectorAll('.modal-close');
     closeButtons.forEach(button => {
