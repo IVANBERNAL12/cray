@@ -229,9 +229,7 @@ async function refreshSession() {
 
 // Show notification function
 function showNotification(title, message, type = 'info') {
-    console.log('Notification:', title, message, type);
-    
-    // Wait for DOM to be ready if it's not already
+    // Only show notifications when there's a proper notification toast element
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             createAndShowNotification(title, message, type);
@@ -241,12 +239,13 @@ function showNotification(title, message, type = 'info') {
     }
 }
 
-// Helper function to create and show notification
 function createAndShowNotification(title, message, type) {
-    // Check if notification toast exists
     let notificationToast = document.getElementById('notificationToast');
     
     if (!notificationToast) {
+        // Don't create notification for configuration errors during load
+        if (title === 'Configuration Error') return;
+        
         notificationToast = document.createElement('div');
         notificationToast.className = 'notification-toast';
         notificationToast.id = 'notificationToast';
@@ -261,7 +260,6 @@ function createAndShowNotification(title, message, type) {
         
         document.body.appendChild(notificationToast);
         
-        // Fixed the typo here: getElemmyentById -> getElementById
         document.getElementById('notificationClose').addEventListener('click', () => {
             notificationToast.classList.remove('show');
         });

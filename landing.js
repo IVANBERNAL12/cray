@@ -1,33 +1,74 @@
-// landing.js - FIXED VERSION (Works without Supabase)
+// landing.js - MODIFIED VERSION
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Landing page loaded');
     
-    // Initialize all UI elements immediately
+    // Initialize UI elements immediately, don't wait for Supabase
     initializeNonAuthUI();
     initializeUI();
     
-    // Optional: Check for Supabase authentication if available
-    setTimeout(async () => {
+    // Set a timeout for Supabase initialization
+    let supabaseTimeout = setTimeout(() => {
+        console.log('Supabase initialization timed out, proceeding without authentication');
+        window.dispatchEvent(new CustomEvent('supabaseReady'));
+    }, 3000); // 3 second timeout
+    
+    // Wait for Supabase to be ready
+    document.addEventListener('supabaseReady', async function() {
+        clearTimeout(supabaseTimeout);
+        console.log('Supabase ready in landing.js, checking authentication...');
+        
+        // Only check authentication if supabase is properly initialized
         if (window.supabase && typeof window.supabase.auth !== 'undefined') {
             try {
+                // Check if user is already authenticated
                 const authStatus = await checkAuth();
+                
                 if (authStatus.authenticated) {
                     console.log('User already logged in, redirecting to dashboard');
                     window.location.href = 'dashboard.html';
+                    return;
                 }
             } catch (error) {
                 console.error('Error checking authentication:', error);
             }
         } else {
-            console.log('Supabase not available - authentication disabled');
+            console.log('Supabase not properly initialized, skipping authentication check');
         }
-    }, 500);
+    });
 });
+
+// Keep all your existing functions (initializeNonAuthUI, initializeUI, etc.) the same
+// Just paste them below this modified code
+
+// Separate function for UI elements that don't require authentication
+function initializeNonAuthUI() {
+    // Custom Bubble Cursor
+    if (window.innerWidth > 768) {
+        initializeCursor();
+    }
+    
+    // Create ocean elements
+    createCrawlingCrayfish();
+    createBubbles();
+    createJellyfish();
+    createBioluminescentParticles();
+    
+    // Mobile menu toggle
+    initializeMobileMenu();
+    
+    // Parallax effect
+    initializeParallax();
+    
+    // Contact form
+    initializeContactForm();
+    
+    // Team member cards
+    initializeTeamCards();
+}
 
 // Function to initialize cursor
 function initializeCursor() {
-    if (window.innerWidth <= 768) return; // Skip on mobile
-    
+    // Create cursor container if it doesn't exist
     let cursorContainer = document.querySelector('.cursor-container');
     
     if (!cursorContainer) {
@@ -36,6 +77,7 @@ function initializeCursor() {
         document.body.appendChild(cursorContainer);
     }
     
+    // Create cursor elements inside the container
     let cursor = cursorContainer.querySelector('.cursor');
     let cursorTrail = cursorContainer.querySelector('.cursor-trail');
     
@@ -57,19 +99,23 @@ function initializeCursor() {
     let velocityY = 0;
     let trailTimer = null;
     
+    // Track mouse movement
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
         
+        // Calculate velocity
         velocityX = mouseX - lastX;
         velocityY = mouseY - lastY;
         
+        // Update cursor position directly
         cursor.style.left = `${mouseX}px`;
         cursor.style.top = `${mouseY}px`;
         
+        // Create trail bubbles based on movement
         const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
         
-        if (speed > 2) {
+        if (speed > 2) { // Only create trail if moving fast enough
             clearTimeout(trailTimer);
             trailTimer = setTimeout(() => {
                 createTrailBubble(mouseX, mouseY, velocityX, velocityY);
@@ -80,36 +126,44 @@ function initializeCursor() {
         lastY = mouseY;
     });
     
+    // Create a new bubble for the trail
     function createTrailBubble(x, y, vx, vy) {
         const bubble = document.createElement('div');
         bubble.classList.add('bubble');
         
+        // Random size variation
         const size = 5 + Math.random() * 10;
         bubble.style.width = `${size}px`;
         bubble.style.height = `${size}px`;
         
-        const hue = 180 + Math.random() * 40;
+        // Random color variation
+        const hue = 180 + Math.random() * 40; // Blue to cyan range
         const opacity = 0.3 + Math.random() * 0.4;
         bubble.style.backgroundColor = `hsla(${hue}, 100%, 70%, ${opacity})`;
         bubble.style.boxShadow = `0 0 ${size}px hsla(${hue}, 100%, 70%, ${opacity})`;
         
+        // Calculate position behind the cursor based on movement direction
         const angle = Math.atan2(vy, vx);
-        const distance = 15;
+        const distance = 15; // Distance behind cursor
         
+        // Position bubble slightly behind the cursor movement
         const bubbleX = x - Math.cos(angle) * distance;
         const bubbleY = y - Math.sin(angle) * distance;
         
         bubble.style.left = `${bubbleX}px`;
         bubble.style.top = `${bubbleY}px`;
         
+        // Add to trail
         cursorTrail.appendChild(bubble);
         
+        // Remove after animation completes
         setTimeout(() => {
             if (bubble.parentNode) {
                 bubble.parentNode.removeChild(bubble);
             }
         }, 1000);
         
+        // Limit the number of trail bubbles
         const bubbles = cursorTrail.querySelectorAll('.bubble');
         if (bubbles.length > 30) {
             const oldestBubble = bubbles[0];
@@ -117,6 +171,7 @@ function initializeCursor() {
         }
     }
     
+    // Add hover effect to interactive elements
     const interactiveElements = document.querySelectorAll('a, button, input, textarea, select, .team-member-front, .flip-back-btn');
     
     interactiveElements.forEach(element => {
@@ -129,6 +184,7 @@ function initializeCursor() {
         });
     });
     
+    // Hide cursor when it leaves the window
     document.addEventListener('mouseleave', () => {
         cursor.style.opacity = '0';
         cursorTrail.style.opacity = '0';
@@ -140,6 +196,7 @@ function initializeCursor() {
     });
 }
 
+// Function to create crawling crayfish
 function createCrawlingCrayfish() {
     const seabed = document.querySelector('.seabed');
     if (!seabed) return;
@@ -155,6 +212,7 @@ function createCrawlingCrayfish() {
     }
 }
 
+// Function to create bubbles
 function createBubbles() {
     const oceanElements = document.getElementById('ocean-elements');
     if (!oceanElements) return;
@@ -165,21 +223,26 @@ function createBubbles() {
         const bubble = document.createElement('div');
         bubble.className = 'ocean-element ocean-bubble';
         
+        // Random size
         const size = 5 + Math.random() * 15;
         bubble.style.width = `${size}px`;
         bubble.style.height = `${size}px`;
         
+        // Random position
         bubble.style.left = `${Math.random() * 100}%`;
         
+        // Random animation duration
         const duration = 10 + Math.random() * 20;
         bubble.style.animationDuration = `${duration}s`;
         
+        // Random delay
         bubble.style.animationDelay = `${Math.random() * 10}s`;
         
         oceanElements.appendChild(bubble);
     }
 }
 
+// Function to create jellyfish
 function createJellyfish() {
     const oceanElements = document.getElementById('ocean-elements');
     if (!oceanElements) return;
@@ -190,17 +253,21 @@ function createJellyfish() {
         const jellyfish = document.createElement('div');
         jellyfish.className = 'ocean-element ocean-jellyfish';
         
+        // Random position
         jellyfish.style.left = `${Math.random() * 100}%`;
         
+        // Random animation duration
         const duration = 15 + Math.random() * 15;
         jellyfish.style.animationDuration = `${duration}s`;
         
+        // Random delay
         jellyfish.style.animationDelay = `${Math.random() * 5}s`;
         
         oceanElements.appendChild(jellyfish);
     }
 }
 
+// Function to create bioluminescent particles
 function createBioluminescentParticles() {
     const bioluminescence = document.getElementById('bioluminescence');
     if (!bioluminescence) return;
@@ -211,18 +278,23 @@ function createBioluminescentParticles() {
         const particle = document.createElement('div');
         particle.className = 'bio-particle';
         
+        // Random size
         const size = 2 + Math.random() * 6;
         particle.style.width = `${size}px`;
         particle.style.height = `${size}px`;
         
+        // Random position
         particle.style.left = `${Math.random() * 100}%`;
         
+        // Random animation duration
         const duration = 10 + Math.random() * 20;
         particle.style.animationDuration = `${duration}s`;
         
+        // Random delay
         particle.style.animationDelay = `${Math.random() * 10}s`;
         
-        const hue = 180 + Math.random() * 40;
+        // Random color
+        const hue = 180 + Math.random() * 40; // Blue to cyan range
         particle.style.background = `hsl(${hue}, 100%, 70%)`;
         particle.style.boxShadow = `0 0 ${size * 2}px hsl(${hue}, 100%, 70%)`;
         
@@ -230,6 +302,7 @@ function createBioluminescentParticles() {
     }
 }
 
+// Function to initialize mobile menu
 function initializeMobileMenu() {
     const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
     const navLinks = document.querySelector('.nav-links');
@@ -237,6 +310,7 @@ function initializeMobileMenu() {
     if (mobileMenuBtn) {
         mobileMenuBtn.addEventListener('click', function() {
             navLinks.classList.toggle('active');
+            // Change icon to close when menu is open
             const icon = mobileMenuBtn.querySelector('i');
             if (navLinks.classList.contains('active')) {
                 icon.classList.remove('fa-bars');
@@ -248,11 +322,13 @@ function initializeMobileMenu() {
         });
     }
     
+    // Close mobile menu when clicking on a link
     const navItems = document.querySelectorAll('.nav-links a');
     navItems.forEach(item => {
         item.addEventListener('click', function() {
             if (navLinks.classList.contains('active')) {
                 navLinks.classList.remove('active');
+                // Reset icon to bars
                 const icon = mobileMenuBtn.querySelector('i');
                 icon.classList.remove('fa-times');
                 icon.classList.add('fa-bars');
@@ -261,6 +337,7 @@ function initializeMobileMenu() {
     });
 }
 
+// Function to initialize parallax effect
 function initializeParallax() {
     window.addEventListener('scroll', () => {
         const scrollPosition = window.pageYOffset;
@@ -271,16 +348,59 @@ function initializeParallax() {
     });
 }
 
+// Function to initialize contact form
 function initializeContactForm() {
     const contactForm = document.querySelector('.contact-form');
     if (contactForm) {
         contactForm.addEventListener('submit', function(e) {
-            // Let Formspree handle the submission naturally
+            e.preventDefault();
+            
+            // Get form values
+            const name = document.getElementById('contactName').value.trim();
+            const email = document.getElementById('contactEmail').value.trim();
+            const message = document.getElementById('contactMessage').value.trim();
+            
+            // Basic validation
+            if (!name || !email || !message) {
+                showNotification('Error', 'Please fill in all fields');
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showNotification('Error', 'Please enter a valid email address');
+                return;
+            }
+            
+            // Show loading notification
             showNotification('Sending', 'Please wait while we send your message...');
+            
+            // Submit form using Formspree
+            fetch(contactForm.action, {
+                method: 'POST',
+                body: new FormData(contactForm),
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    showNotification('Message Sent', 'Thank you for contacting us! We\'ll get back to you soon.');
+                    contactForm.reset();
+                } else {
+                    throw new Error('Network response was not ok');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error', 'Failed to send message. Please try again later.');
+            });
         });
     }
 }
 
+// Function to initialize team cards
 function initializeTeamCards() {
     const teamMemberCards = document.querySelectorAll('.team-member-card');
     
@@ -289,20 +409,24 @@ function initializeTeamCards() {
         const back = card.querySelector('.team-member-back');
         const flipBackBtn = card.querySelector('.flip-back-btn');
         
+        // Flip card when clicking on the front
         front.addEventListener('click', function(e) {
+            // Prevent flipping if clicking on social links
             if (e.target.closest('.social-links')) {
                 return;
             }
             card.classList.add('flipped');
         });
         
+        // Flip back when clicking the back button
         if (flipBackBtn) {
             flipBackBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
+                e.stopPropagation(); // Prevent event bubbling
                 card.classList.remove('flipped');
             });
         }
         
+        // Flip back when clicking outside the card
         document.addEventListener('click', function(e) {
             if (card.classList.contains('flipped') && !card.contains(e.target)) {
                 card.classList.remove('flipped');
@@ -311,22 +435,9 @@ function initializeTeamCards() {
     });
 }
 
-function initializeNonAuthUI() {
-    if (window.innerWidth > 768) {
-        initializeCursor();
-    }
-    
-    createCrawlingCrayfish();
-    createBubbles();
-    createJellyfish();
-    createBioluminescentParticles();
-    initializeMobileMenu();
-    initializeParallax();
-    initializeContactForm();
-    initializeTeamCards();
-}
-
+// Function to initialize UI elements that require authentication
 function initializeUI() {
+    // DOM Elements
     const desktopLoginBtn = document.getElementById('desktopLoginBtn');
     const desktopSignupBtn = document.getElementById('desktopSignupBtn');
     const mobileLoginBtn = document.getElementById('mobileLoginBtn');
@@ -339,18 +450,25 @@ function initializeUI() {
     const loginForm = document.getElementById('loginForm');
     const signupForm = document.getElementById('signupForm');
     const notificationToast = document.getElementById('notificationToast');
+    const notificationTitle = document.getElementById('notificationTitle');
+    const notificationMessage = document.getElementById('notificationMessage');
+    const notificationClose = document.getElementById('notificationClose');
     const oceanCoreContainer = document.querySelector('.ocean-core-container');
     const accountExistsNotice = document.getElementById('accountExistsNotice');
     const switchToLogin = document.getElementById('switchToLogin');
+
+    // Password strength meter
     const passwordStrengthMeter = document.getElementById('passwordStrengthMeter');
     const signupPasswordInput = document.getElementById('signupPassword');
 
+    // 3D Ocean Core Interaction
     let isMouseDown = false;
     let mouseX = 0;
     let mouseY = 0;
     let rotateX = 10;
     let rotateY = 0;
 
+    // Only enable 3D interaction on larger screens
     if (window.innerWidth > 768 && oceanCoreContainer) {
         oceanCoreContainer.addEventListener('mousedown', (e) => {
             isMouseDown = true;
@@ -368,6 +486,7 @@ function initializeUI() {
             rotateY += deltaX * 0.5;
             rotateX -= deltaY * 0.5;
             
+            // Limit rotation on X axis
             rotateX = Math.max(-30, Math.min(30, rotateX));
             
             oceanCoreContainer.style.transform = `rotateY(${rotateY}deg) rotateX(${rotateX}deg)`;
@@ -379,6 +498,7 @@ function initializeUI() {
         document.addEventListener('mouseup', () => {
             if (isMouseDown) {
                 isMouseDown = false;
+                // Resume animation after interaction
                 setTimeout(() => {
                     oceanCoreContainer.style.animation = 'rotate 30s infinite linear';
                 }, 1000);
@@ -386,12 +506,15 @@ function initializeUI() {
         });
     }
 
+    // Password strength checker
     function checkPasswordStrength(password) {
         let strength = 0;
         
+        // Length check
         if (password.length >= 8) strength += 1;
         if (password.length >= 12) strength += 1;
         
+        // Character variety
         if (/[A-Z]/.test(password)) strength += 1;
         if (/[a-z]/.test(password)) strength += 1;
         if (/[0-9]/.test(password)) strength += 1;
@@ -400,6 +523,7 @@ function initializeUI() {
         return strength;
     }
 
+    // Update password strength meter
     if (signupPasswordInput && passwordStrengthMeter) {
         signupPasswordInput.addEventListener('input', () => {
             const password = signupPasswordInput.value;
@@ -417,32 +541,31 @@ function initializeUI() {
         });
     }
 
-    window.showNotification = function(title, message, duration = 5000) {
-        if (notificationToast) {
-            const titleEl = document.getElementById('notificationTitle');
-            const messageEl = document.getElementById('notificationMessage');
-            if (titleEl && messageEl) {
-                titleEl.textContent = title;
-                messageEl.textContent = message;
-                notificationToast.classList.add('show');
-                
-                setTimeout(() => {
-                    notificationToast.classList.remove('show');
-                }, duration);
-            }
+    // Show notification function
+    function showNotification(title, message, duration = 5000) {
+        if (notificationTitle && notificationMessage && notificationToast) {
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            notificationToast.classList.add('show');
+            
+            setTimeout(() => {
+                notificationToast.classList.remove('show');
+            }, duration);
         }
     }
 
-    const notificationClose = document.getElementById('notificationClose');
+    // Close notification
     if (notificationClose) {
         notificationClose.addEventListener('click', () => {
             notificationToast.classList.remove('show');
         });
     }
 
+    // Open Modal
     function openAuthModal(tab) {
         if (authModal) {
             authModal.classList.add('active');
+            // Reset forms and errors when opening modal
             resetForms();
             
             if (tab === 'signup') {
@@ -451,6 +574,12 @@ function initializeUI() {
                     loginTab.classList.remove('active');
                     signupForm.classList.add('active');
                     loginForm.classList.remove('active');
+                    signupTab.setAttribute('aria-selected', 'true');
+                    loginTab.setAttribute('aria-selected', 'false');
+                    signupTab.setAttribute('tabindex', '0');
+                    loginTab.setAttribute('tabindex', '-1');
+                    signupForm.setAttribute('tabindex', '0');
+                    loginForm.setAttribute('tabindex', '-1');
                 }
             } else {
                 if (loginTab && signupTab && loginForm && signupForm) {
@@ -458,11 +587,18 @@ function initializeUI() {
                     signupTab.classList.remove('active');
                     loginForm.classList.add('active');
                     signupForm.classList.remove('active');
+                    loginTab.setAttribute('aria-selected', 'true');
+                    signupTab.setAttribute('aria-selected', 'false');
+                    loginTab.setAttribute('tabindex', '0');
+                    signupTab.setAttribute('tabindex', '-1');
+                    loginForm.setAttribute('tabindex', '0');
+                    signupForm.setAttribute('tabindex', '-1');
                 }
             }
         }
     }
 
+    // Close Modal
     function closeAuthModal() {
         if (authModal) {
             authModal.classList.remove('active');
@@ -472,7 +608,9 @@ function initializeUI() {
         }
     }
 
+    // Reset forms and errors
     function resetForms() {
+        // Reset login form
         if (loginForm) {
             loginForm.reset();
             document.querySelectorAll('#loginForm .error-message').forEach(el => {
@@ -484,6 +622,7 @@ function initializeUI() {
             });
         }
         
+        // Reset signup form
         if (signupForm) {
             signupForm.reset();
             document.querySelectorAll('#signupForm .error-message').forEach(el => {
@@ -494,16 +633,19 @@ function initializeUI() {
                 el.classList.remove('error');
             });
             
+            // Reset password strength meter
             if (passwordStrengthMeter) {
                 passwordStrengthMeter.className = 'password-strength-meter';
             }
         }
         
+        // Hide account exists notice
         if (accountExistsNotice) {
             accountExistsNotice.style.display = 'none';
         }
     }
 
+    // Event Listeners
     if (desktopLoginBtn) desktopLoginBtn.addEventListener('click', () => openAuthModal('login'));
     if (desktopSignupBtn) desktopSignupBtn.addEventListener('click', () => openAuthModal('signup'));
     if (mobileLoginBtn) mobileLoginBtn.addEventListener('click', () => openAuthModal('login'));
@@ -511,12 +653,14 @@ function initializeUI() {
     if (getStartedBtn) getStartedBtn.addEventListener('click', () => openAuthModal('signup'));
     if (closeModal) closeModal.addEventListener('click', closeAuthModal);
 
+    // Switch to login from account exists notice
     if (switchToLogin) {
         switchToLogin.addEventListener('click', () => {
             if (loginTab) loginTab.click();
         });
     }
 
+    // Close modal when clicking outside
     if (authModal) {
         authModal.addEventListener('click', (e) => {
             if (e.target === authModal) {
@@ -525,6 +669,7 @@ function initializeUI() {
         });
     }
 
+    // Tab Switching
     if (loginTab && signupTab && loginForm && signupForm) {
         loginTab.addEventListener('click', () => {
             resetForms();
@@ -532,6 +677,12 @@ function initializeUI() {
             signupTab.classList.remove('active');
             loginForm.classList.add('active');
             signupForm.classList.remove('active');
+            loginTab.setAttribute('aria-selected', 'true');
+            signupTab.setAttribute('aria-selected', 'false');
+            loginTab.setAttribute('tabindex', '0');
+            signupTab.setAttribute('tabindex', '-1');
+            loginForm.setAttribute('tabindex', '0');
+            signupForm.setAttribute('tabindex', '-1');
         });
 
         signupTab.addEventListener('click', () => {
@@ -540,11 +691,42 @@ function initializeUI() {
             loginTab.classList.remove('active');
             signupForm.classList.add('active');
             loginForm.classList.remove('active');
+            signupTab.setAttribute('aria-selected', 'true');
+            loginTab.setAttribute('aria-selected', 'false');
+            signupTab.setAttribute('tabindex', '0');
+            loginTab.setAttribute('tabindex', '-1');
+            signupForm.setAttribute('tabindex', '0');
+            loginForm.setAttribute('tabindex', '-1');
         });
 
+        // Keyboard navigation for tabs
+        loginTab.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                loginTab.click();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                signupTab.focus();
+            }
+        });
+
+        signupTab.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                signupTab.click();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                loginTab.focus();
+            }
+        });
+
+        // Login Form Submission
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            console.log('Login form submitted');
+            
+            // Reset error messages
             document.querySelectorAll('#loginForm .error-message').forEach(el => {
                 el.textContent = '';
                 el.style.display = 'none';
@@ -554,17 +736,57 @@ function initializeUI() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
             
-            if (!email || !password) {
-                showNotification('Error', 'Please fill in all fields');
-                return;
+            console.log('Login attempt:', { email, password: '***' });
+            
+            let hasError = false;
+            
+            if (!email) {
+                document.getElementById('loginEmailError').textContent = 'Email is required';
+                document.getElementById('loginEmailError').style.display = 'block';
+                document.getElementById('loginEmail').parentElement.classList.add('error');
+                hasError = true;
             }
             
-            showNotification('Info', 'Supabase authentication is not configured. Please add your Supabase credentials.');
+            if (!password) {
+                document.getElementById('loginPasswordError').textContent = 'Password is required';
+                document.getElementById('loginPasswordError').style.display = 'block';
+                document.getElementById('loginPassword').parentElement.classList.add('error');
+                hasError = true;
+            }
+            
+            if (hasError) return;
+            
+            showNotification('Signing In', 'Please wait...');
+            
+            // Sign in with Supabase
+            const result = await signIn(email, password);
+            
+            console.log('Login result:', result);
+            
+            if (result.success) {
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userEmail', email);
+                if (result.data.user.user_metadata && result.data.user.user_metadata.name) {
+                    localStorage.setItem('userName', result.data.user.user_metadata.name);
+                }
+                
+                showNotification('Login Successful', 'Welcome back!');
+                
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
+            } else {
+                showNotification('Login Failed', result.message);
+            }
         });
 
+        // Signup Form Handler
         signupForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            console.log('Signup form submitted');
+            
+            // Reset error messages
             document.querySelectorAll('#signupForm .error-message').forEach(el => {
                 el.textContent = '';
                 el.style.display = 'none';
@@ -576,6 +798,9 @@ function initializeUI() {
             const password = document.getElementById('signupPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             
+            console.log('Form data:', { name, email, password: '***' });
+            
+            // Basic validation
             if (!name || !email || !password) {
                 showNotification('Error', 'Please fill all fields');
                 return;
@@ -587,10 +812,27 @@ function initializeUI() {
                 return;
             }
             
-            showNotification('Info', 'Supabase authentication is not configured. Please add your Supabase credentials.');
+            showNotification('Creating Account', 'Please wait...');
+            
+            // Call signup function
+            const result = await signUp(email, password, name);
+            
+            console.log('Signup result:', result);
+            
+            if (result.success) {
+                showNotification('Success', result.message);
+                
+                // Don't redirect immediately for testing
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+            } else {
+                showNotification('Error', result.message);
+            }
         });
     }
 
+    // Smooth scrolling for navigation links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
@@ -604,6 +846,7 @@ function initializeUI() {
         });
     });
 
+    // Add scroll effect to navigation
     window.addEventListener('scroll', () => {
         const nav = document.querySelector('nav');
         if (nav) {
@@ -619,6 +862,7 @@ function initializeUI() {
         }
     });
 
+    // Highlight active navigation link based on scroll position
     const sections = document.querySelectorAll('section');
     const navLinks = document.querySelectorAll('.nav-links a');
 
@@ -641,8 +885,9 @@ function initializeUI() {
         });
     });
 
+    // Add scroll animations to sections and footer
     const footer = document.getElementById('footer');
-    const allAnimatedElements = [...sections, footer];
+    const allAnimatedElements = [...sections, footer]; // Include footer in the animation
 
     const observerOptions = {
         root: null,
