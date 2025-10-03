@@ -1,27 +1,44 @@
-// landing.js
+// landing.js - MODIFIED VERSION
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Landing page loaded');
     
-    // Don't check auth immediately, wait for Supabase to be ready
+    // Initialize UI elements immediately, don't wait for Supabase
+    initializeNonAuthUI();
+    initializeUI();
+    
+    // Set a timeout for Supabase initialization
+    let supabaseTimeout = setTimeout(() => {
+        console.log('Supabase initialization timed out, proceeding without authentication');
+        window.dispatchEvent(new CustomEvent('supabaseReady'));
+    }, 3000); // 3 second timeout
+    
+    // Wait for Supabase to be ready
     document.addEventListener('supabaseReady', async function() {
+        clearTimeout(supabaseTimeout);
         console.log('Supabase ready in landing.js, checking authentication...');
         
-        // Check if user is already authenticated
-        const authStatus = await checkAuth();
-        
-        if (authStatus.authenticated) {
-            console.log('User already logged in, redirecting to dashboard');
-            window.location.href = 'dashboard.html';
-            return;
+        // Only check authentication if supabase is properly initialized
+        if (window.supabase && typeof window.supabase.auth !== 'undefined') {
+            try {
+                // Check if user is already authenticated
+                const authStatus = await checkAuth();
+                
+                if (authStatus.authenticated) {
+                    console.log('User already logged in, redirecting to dashboard');
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking authentication:', error);
+            }
+        } else {
+            console.log('Supabase not properly initialized, skipping authentication check');
         }
-        
-        // Only initialize UI elements if user is not authenticated
-        initializeUI();
     });
-    
-    // Initialize UI elements that don't depend on authentication
-    initializeNonAuthUI();
 });
+
+// Keep all your existing functions (initializeNonAuthUI, initializeUI, etc.) the same
+// Just paste them below this modified code
 
 // Separate function for UI elements that don't require authentication
 function initializeNonAuthUI() {
