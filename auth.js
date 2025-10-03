@@ -127,8 +127,9 @@ async function signOut() {
         
         const { error } = await window.supabase.auth.signOut();
         
-        if (showNotification) {
-            showNotification('Logout', 'You have been successfully logged out', 'info');
+        if (error) {
+            console.error('Sign out error:', error);
+            throw error;
         }
         
         localStorage.removeItem('supabaseSession');
@@ -193,11 +194,6 @@ async function getCurrentUser() {
         
         return data.user;
     } catch (error) {
-        console.error('favicon.ico:1 Failed to load resource: the server responded with a.ico: 404 ()
-    }
-    
-    return data.user;
-} catch (error) {
         console.error('Failed to get current user:', error);
         return null;
     }
@@ -220,76 +216,50 @@ async function refreshSession() {
         }
         
         if (data.session) {
-            localStorage.setItem('supabase.ico:1 Failed to load resource: the server responded with a status of 404 ()
-    }
-        
-        if (data.session) {
             localStorage.setItem('supabaseSession', JSON.stringify(data.session));
         }
         
         return { success: true, session: data.session };
     } catch (error) {
         console.error('Session refresh failed:', error);
-        return { success: false, message: disableEmailConfirmations: false
-    }
-}
-
-// Disable email confirmations for testing
-async function disableEmailConfirmations() {
-    try {
-        if (!window.supabase || !window.supabase.auth) {
-            console.error('Supabase not available');
-            return { success: false, message: 'Supabase not available' };
-        }
-        
-        const { error } = await window.supabase.auth.updateUser({
-            data: {
-                email_confirm: false
-            }
-        });
-        
-        if (error) {
-            console.error('Failed to disable email confirmations:', error);
-            return { success: false, message: error.message };
-        }
-        
-        console.log('Email confirmations disabled');
-        return { success: true };
-    } catch (error) {
-        console.error('Failed to disable email confirmations:', error);
         return { success: false, message: error.message };
     }
 }
 
-// Call this function when DOM is ready
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('DOM loaded');
+// Show notification function
+function showNotification(title, message, type = 'info') {
+    console.log('Notification:', title, message, type);
     
-    // Disable email confirmations for testing
-    disableEmailConfirmations().then(result => {
-        if (result.success) {
-            console.log('Email confirmations disabled for testing');
-        } else {
-            console.error('Failed to disable email confirmations:', result.message);
-        }
-    });
+    // Check if notification toast exists
+    let notificationToast = document.getElementById('notificationToast');
     
-    // Wait for Supabase to be ready before checking auth
-    document.addEventListener('supabaseReady', async function() {
-        console.log('Supabase ready, checking authentication...');
+    if (!notificationToast) {
+        notificationToast = document.createElement('div');
+        notificationToast.className = 'notification-toast';
+        notificationToast.id = 'notificationToast';
+        notificationToast.setAttribute('role', 'alert');
+        notificationToast.setAttribute('aria-live', 'polite');
         
-        // Check if user is already authenticated
-        const authStatus = await checkAuth();
+        notificationToast.innerHTML = `
+            <button class="notification-close" id="notificationClose" aria-label="Close notification">&times;</button>
+            <div class="notification-title" id="notificationTitle">Notification</div>
+            <div class="notification-message" id="notificationMessage">Message</div>
+        `;
         
-        if (authStatus.authenticated) {
-            console.log('User already logged in, redirecting to dashboard');
-            window.location.href = 'dashboard.html';
-            return;
-        }
+        document.body.appendChild(notificationToast);
         
-        // Rest of your existing DOMContentLoaded code...
-        // Create crawling crayfish, bubbles, etc.
-    });
+        // Fixed the typo here: getElemmyentById -> getElementById
+        document.getElementById('notificationClose').addEventListener('click', () => {
+            notificationToast.classList.remove('show');
+        });
+    }
     
-    // Your existing code continues here...
-});
+    document.getElementById('notificationTitle').textContent = title;
+    document.getElementById('notificationMessage').textContent = message;
+    
+    notificationToast.classList.add('show');
+    
+    setTimeout(() => {
+        notificationToast.classList.remove('show');
+    }, 5000);
+}
