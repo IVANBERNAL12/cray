@@ -226,10 +226,23 @@ async function refreshSession() {
     }
 }
 
+
 // Show notification function
 function showNotification(title, message, type = 'info') {
     console.log('Notification:', title, message, type);
     
+    // Wait for DOM to be ready if it's not already
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            createAndShowNotification(title, message, type);
+        });
+    } else {
+        createAndShowNotification(title, message, type);
+    }
+}
+
+// Helper function to create and show notification
+function createAndShowNotification(title, message, type) {
     // Check if notification toast exists
     let notificationToast = document.getElementById('notificationToast');
     

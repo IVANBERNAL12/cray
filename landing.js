@@ -1,31 +1,10 @@
-document.addEventListener('DOMContentLoaded', async function() {
-    // Check if elements exist before adding event listeners
-    const signupForm = document.getElementById('signupForm');
-    const loginForm = document.getElementById('loginForm');
+// landing.js
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Landing page loaded');
     
-    if (!signupForm) {
-        console.error('Signup form not found!');
-        return;
-    }
-    
-    // Add event listener to signup form
-    signupForm.addEventListener('submit', async function(e) {
-        // Your existing signup code here...
-    });
-    
-    if (!loginForm) {
-        console.error('Login form not found!');
-        return;
-    }
-    
-    // Add event listener to login form
-    loginForm.addEventListener('submit', async function(e) {
-        // Your existing login code here...
-    });
-    
-    // Wait for Supabase to be ready before checking auth
+    // Don't check auth immediately, wait for Supabase to be ready
     document.addEventListener('supabaseReady', async function() {
-        console.log('Supabase ready, checking authentication...');
+        console.log('Supabase ready in landing.js, checking authentication...');
         
         // Check if user is already authenticated
         const authStatus = await checkAuth();
@@ -35,14 +14,43 @@ document.addEventListener('DOMContentLoaded', async function() {
             window.location.href = 'dashboard.html';
             return;
         }
-   
+        
+        // Only initialize UI elements if user is not authenticated
+        initializeUI();
+    });
     
+    // Initialize UI elements that don't depend on authentication
+    initializeNonAuthUI();
+});
 
-// Custom Bubble Cursor
-document.addEventListener('DOMContentLoaded', () => {
-    // Only enable cursor on desktop devices
-    if (window.innerWidth <= 768) return;
+// Separate function for UI elements that don't require authentication
+function initializeNonAuthUI() {
+    // Custom Bubble Cursor
+    if (window.innerWidth > 768) {
+        initializeCursor();
+    }
     
+    // Create ocean elements
+    createCrawlingCrayfish();
+    createBubbles();
+    createJellyfish();
+    createBioluminescentParticles();
+    
+    // Mobile menu toggle
+    initializeMobileMenu();
+    
+    // Parallax effect
+    initializeParallax();
+    
+    // Contact form
+    initializeContactForm();
+    
+    // Team member cards
+    initializeTeamCards();
+}
+
+// Function to initialize cursor
+function initializeCursor() {
     // Create cursor container if it doesn't exist
     let cursorContainer = document.querySelector('.cursor-container');
     
@@ -169,124 +177,116 @@ document.addEventListener('DOMContentLoaded', () => {
         cursor.style.opacity = '1';
         cursorTrail.style.opacity = '1';
     });
-});
-document.addEventListener('DOMContentLoaded', async function() {
-    // Check if user is already authenticated
-    const authStatus = await checkAuth();
+}
+
+// Function to create crawling crayfish
+function createCrawlingCrayfish() {
+    const seabed = document.querySelector('.seabed');
+    if (!seabed) return;
     
-    if (authStatus.authenticated) {
-        // User is already logged in, redirect to dashboard
-        window.location.href = 'dashboard.html';
-        return;
+    const numCrawling = 5;
+    
+    for (let i = 0; i < numCrawling; i++) {
+        const crayfish = document.createElement('div');
+        crayfish.className = 'crawling-crayfish';
+        crayfish.style.animationDelay = `${i * 6}s`;
+        crayfish.style.bottom = `${10 + Math.random() * 30}px`;
+        seabed.appendChild(crayfish);
     }
+}
+
+// Function to create bubbles
+function createBubbles() {
+    const oceanElements = document.getElementById('ocean-elements');
+    if (!oceanElements) return;
     
-    // Create crawling crayfish on seabed
-    createCrawlingCrayfish();
+    const numBubbles = 15;
     
-    function createCrawlingCrayfish() {
-        const seabed = document.querySelector('.seabed');
-        const numCrawling = 5;
+    for (let i = 0; i < numBubbles; i++) {
+        const bubble = document.createElement('div');
+        bubble.className = 'ocean-element ocean-bubble';
         
-        for (let i = 0; i < numCrawling; i++) {
-            const crayfish = document.createElement('div');
-            crayfish.className = 'crawling-crayfish';
-            crayfish.style.animationDelay = `${i * 6}s`;
-            crayfish.style.bottom = `${10 + Math.random() * 30}px`;
-            seabed.appendChild(crayfish);
-        }
-    }
-    
-    // Create bubbles
-    createBubbles();
-    
-    function createBubbles() {
-        const oceanElements = document.getElementById('ocean-elements');
-        const numBubbles = 15;
+        // Random size
+        const size = 5 + Math.random() * 15;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
         
-        for (let i = 0; i < numBubbles; i++) {
-            const bubble = document.createElement('div');
-            bubble.className = 'ocean-element ocean-bubble';
-            
-            // Random size
-            const size = 5 + Math.random() * 15;
-            bubble.style.width = `${size}px`;
-            bubble.style.height = `${size}px`;
-            
-            // Random position
-            bubble.style.left = `${Math.random() * 100}%`;
-            
-            // Random animation duration
-            const duration = 10 + Math.random() * 20;
-            bubble.style.animationDuration = `${duration}s`;
-            
-            // Random delay
-            bubble.style.animationDelay = `${Math.random() * 10}s`;
-            
-            oceanElements.appendChild(bubble);
-        }
-    }
-    
-    // Create jellyfish
-    createJellyfish();
-    
-    function createJellyfish() {
-        const oceanElements = document.getElementById('ocean-elements');
-        const numJellyfish = 3;
+        // Random position
+        bubble.style.left = `${Math.random() * 100}%`;
         
-        for (let i = 0; i < numJellyfish; i++) {
-            const jellyfish = document.createElement('div');
-            jellyfish.className = 'ocean-element ocean-jellyfish';
-            
-            // Random position
-            jellyfish.style.left = `${Math.random() * 100}%`;
-            
-            // Random animation duration
-            const duration = 15 + Math.random() * 15;
-            jellyfish.style.animationDuration = `${duration}s`;
-            
-            // Random delay
-            jellyfish.style.animationDelay = `${Math.random() * 5}s`;
-            
-            oceanElements.appendChild(jellyfish);
-        }
-    }
-    
-    // Create bioluminescent particles
-    createBioluminescentParticles();
-    
-    function createBioluminescentParticles() {
-        const bioluminescence = document.getElementById('bioluminescence');
-        const numParticles = 30;
+        // Random animation duration
+        const duration = 10 + Math.random() * 20;
+        bubble.style.animationDuration = `${duration}s`;
         
-        for (let i = 0; i < numParticles; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'bio-particle';
-            
-            // Random size
-            const size = 2 + Math.random() * 6;
-            particle.style.width = `${size}px`;
-            particle.style.height = `${size}px`;
-            
-            // Random position
-            particle.style.left = `${Math.random() * 100}%`;
-            
-            // Random animation duration
-            const duration = 10 + Math.random() * 20;
-            particle.style.animationDuration = `${duration}s`;
-            
-            // Random delay
-            particle.style.animationDelay = `${Math.random() * 10}s`;
-            
-            // Random color
-            const hue = 180 + Math.random() * 40; // Blue to cyan range
-            particle.style.background = `hsl(${hue}, 100%, 70%)`;
-            particle.style.boxShadow = `0 0 ${size * 2}px hsl(${hue}, 100%, 70%)`;
-            
-            bioluminescence.appendChild(particle);
-        }
+        // Random delay
+        bubble.style.animationDelay = `${Math.random() * 10}s`;
+        
+        oceanElements.appendChild(bubble);
     }
+}
+
+// Function to create jellyfish
+function createJellyfish() {
+    const oceanElements = document.getElementById('ocean-elements');
+    if (!oceanElements) return;
     
-    // Mobile menu toggle
+    const numJellyfish = 3;
+    
+    for (let i = 0; i < numJellyfish; i++) {
+        const jellyfish = document.createElement('div');
+        jellyfish.className = 'ocean-element ocean-jellyfish';
+        
+        // Random position
+        jellyfish.style.left = `${Math.random() * 100}%`;
+        
+        // Random animation duration
+        const duration = 15 + Math.random() * 15;
+        jellyfish.style.animationDuration = `${duration}s`;
+        
+        // Random delay
+        jellyfish.style.animationDelay = `${Math.random() * 5}s`;
+        
+        oceanElements.appendChild(jellyfish);
+    }
+}
+
+// Function to create bioluminescent particles
+function createBioluminescentParticles() {
+    const bioluminescence = document.getElementById('bioluminescence');
+    if (!bioluminescence) return;
+    
+    const numParticles = 30;
+    
+    for (let i = 0; i < numParticles; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'bio-particle';
+        
+        // Random size
+        const size = 2 + Math.random() * 6;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        // Random position
+        particle.style.left = `${Math.random() * 100}%`;
+        
+        // Random animation duration
+        const duration = 10 + Math.random() * 20;
+        particle.style.animationDuration = `${duration}s`;
+        
+        // Random delay
+        particle.style.animationDelay = `${Math.random() * 10}s`;
+        
+        // Random color
+        const hue = 180 + Math.random() * 40; // Blue to cyan range
+        particle.style.background = `hsl(${hue}, 100%, 70%)`;
+        particle.style.boxShadow = `0 0 ${size * 2}px hsl(${hue}, 100%, 70%)`;
+        
+        bioluminescence.appendChild(particle);
+    }
+}
+
+// Function to initialize mobile menu
+function initializeMobileMenu() {
     const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
     const navLinks = document.querySelector('.nav-links');
     
@@ -318,8 +318,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     });
-    
-    // Add parallax effect to hero section
+}
+
+// Function to initialize parallax effect
+function initializeParallax() {
     window.addEventListener('scroll', () => {
         const scrollPosition = window.pageYOffset;
         const heroVisual = document.querySelector('.hero-visual');
@@ -327,8 +329,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             heroVisual.style.transform = `translateY(${scrollPosition * 0.5}px)`;
         }
     });
-    
-    // Contact form submission handler with Formspree
+}
+
+// Function to initialize contact form
+function initializeContactForm() {
     const contactForm = document.querySelector('.contact-form');
     if (contactForm) {
         contactForm.addEventListener('submit', function(e) {
@@ -377,48 +381,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         });
     }
-    
-    // Show notification function
-    function showNotification(title, message, duration = 5000) {
-        // Check if notification toast exists
-        let notificationToast = document.getElementById('notificationToast');
-        
-        // If not, create it (in case it's not in the DOM yet)
-        if (!notificationToast) {
-            notificationToast = document.createElement('div');
-            notificationToast.className = 'notification-toast';
-            notificationToast.id = 'notificationToast';
-            notificationToast.setAttribute('role', 'alert');
-            notificationToast.setAttribute('aria-live', 'polite');
-            
-            notificationToast.innerHTML = `
-                <button class="notification-close" id="notificationClose" aria-label="Close notification">&times;</button>
-                <div class="notification-title" id="notificationTitle">Notification</div>
-                <div class="notification-message" id="notificationMessage">Message</div>
-            `;
-            
-            document.body.appendChild(notificationToast);
-            
-            // Add close functionality
-            document.getElementById('notificationClose').addEventListener('click', () => {
-                notificationToast.classList.remove('show');
-            });
-        }
-        
-        // Set content
-        document.getElementById('notificationTitle').textContent = title;
-        document.getElementById('notificationMessage').textContent = message;
-        
-        // Show notification
-        notificationToast.classList.add('show');
-        
-        // Auto-hide after duration
-        setTimeout(() => {
-            notificationToast.classList.remove('show');
-        }, duration);
-    }
-    
-    // Team member card flip functionality
+}
+
+// Function to initialize team cards
+function initializeTeamCards() {
     const teamMemberCards = document.querySelectorAll('.team-member-card');
     
     teamMemberCards.forEach(card => {
@@ -450,446 +416,477 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     });
-});
+}
 
-// DOM Elements
-const desktopLoginBtn = document.getElementById('desktopLoginBtn');
-const desktopSignupBtn = document.getElementById('desktopSignupBtn');
-const mobileLoginBtn = document.getElementById('mobileLoginBtn');
-const mobileSignupBtn = document.getElementById('mobileSignupBtn');
-const getStartedBtn = document.getElementById('getStartedBtn');
-const authModal = document.getElementById('authModal');
-const closeModal = document.getElementById('closeModal');
-const loginTab = document.getElementById('loginTab');
-const signupTab = document.getElementById('signupTab');
-const loginForm = document.getElementById('loginForm');
-const signupForm = document.getElementById('signupForm');
-const notificationToast = document.getElementById('notificationToast');
-const notificationTitle = document.getElementById('notificationTitle');
-const notificationMessage = document.getElementById('notificationMessage');
-const notificationClose = document.getElementById('notificationClose');
-const oceanCoreContainer = document.querySelector('.ocean-core-container');
-const accountExistsNotice = document.getElementById('accountExistsNotice');
-const switchToLogin = document.getElementById('switchToLogin');
+// Function to initialize UI elements that require authentication
+function initializeUI() {
+    // DOM Elements
+    const desktopLoginBtn = document.getElementById('desktopLoginBtn');
+    const desktopSignupBtn = document.getElementById('desktopSignupBtn');
+    const mobileLoginBtn = document.getElementById('mobileLoginBtn');
+    const mobileSignupBtn = document.getElementById('mobileSignupBtn');
+    const getStartedBtn = document.getElementById('getStartedBtn');
+    const authModal = document.getElementById('authModal');
+    const closeModal = document.getElementById('closeModal');
+    const loginTab = document.getElementById('loginTab');
+    const signupTab = document.getElementById('signupTab');
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const notificationToast = document.getElementById('notificationToast');
+    const notificationTitle = document.getElementById('notificationTitle');
+    const notificationMessage = document.getElementById('notificationMessage');
+    const notificationClose = document.getElementById('notificationClose');
+    const oceanCoreContainer = document.querySelector('.ocean-core-container');
+    const accountExistsNotice = document.getElementById('accountExistsNotice');
+    const switchToLogin = document.getElementById('switchToLogin');
 
-// Password strength meter
-const passwordStrengthMeter = document.getElementById('passwordStrengthMeter');
-const signupPasswordInput = document.getElementById('signupPassword');
+    // Password strength meter
+    const passwordStrengthMeter = document.getElementById('passwordStrengthMeter');
+    const signupPasswordInput = document.getElementById('signupPassword');
 
-// 3D Ocean Core Interaction
-let isMouseDown = false;
-let mouseX = 0;
-let mouseY = 0;
-let rotateX = 10;
-let rotateY = 0;
+    // 3D Ocean Core Interaction
+    let isMouseDown = false;
+    let mouseX = 0;
+    let mouseY = 0;
+    let rotateX = 10;
+    let rotateY = 0;
 
-// Only enable 3D interaction on larger screens
-if (window.innerWidth > 768) {
-    oceanCoreContainer.addEventListener('mousedown', (e) => {
-        isMouseDown = true;
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-        oceanCoreContainer.style.animation = 'none';
-    });
+    // Only enable 3D interaction on larger screens
+    if (window.innerWidth > 768 && oceanCoreContainer) {
+        oceanCoreContainer.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            oceanCoreContainer.style.animation = 'none';
+        });
 
-    document.addEventListener('mousemove', (e) => {
-        if (!isMouseDown) return;
+        document.addEventListener('mousemove', (e) => {
+            if (!isMouseDown) return;
+            
+            const deltaX = e.clientX - mouseX;
+            const deltaY = e.clientY - mouseY;
+            
+            rotateY += deltaX * 0.5;
+            rotateX -= deltaY * 0.5;
+            
+            // Limit rotation on X axis
+            rotateX = Math.max(-30, Math.min(30, rotateX));
+            
+            oceanCoreContainer.style.transform = `rotateY(${rotateY}deg) rotateX(${rotateX}deg)`;
+            
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isMouseDown) {
+                isMouseDown = false;
+                // Resume animation after interaction
+                setTimeout(() => {
+                    oceanCoreContainer.style.animation = 'rotate 30s infinite linear';
+                }, 1000);
+            }
+        });
+    }
+
+    // Password strength checker
+    function checkPasswordStrength(password) {
+        let strength = 0;
         
-        const deltaX = e.clientX - mouseX;
-        const deltaY = e.clientY - mouseY;
+        // Length check
+        if (password.length >= 8) strength += 1;
+        if (password.length >= 12) strength += 1;
         
-        rotateY += deltaX * 0.5;
-        rotateX -= deltaY * 0.5;
+        // Character variety
+        if (/[A-Z]/.test(password)) strength += 1;
+        if (/[a-z]/.test(password)) strength += 1;
+        if (/[0-9]/.test(password)) strength += 1;
+        if (/[^A-Za-z0-9]/.test(password)) strength += 1;
         
-        // Limit rotation on X axis
-        rotateX = Math.max(-30, Math.min(30, rotateX));
-        
-        oceanCoreContainer.style.transform = `rotateY(${rotateY}deg) rotateX(${rotateX}deg)`;
-        
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-    });
+        return strength;
+    }
 
-    document.addEventListener('mouseup', () => {
-        if (isMouseDown) {
-            isMouseDown = false;
-            // Resume animation after interaction
+    // Update password strength meter
+    if (signupPasswordInput && passwordStrengthMeter) {
+        signupPasswordInput.addEventListener('input', () => {
+            const password = signupPasswordInput.value;
+            const strength = checkPasswordStrength(password);
+            
+            passwordStrengthMeter.className = 'password-strength-meter';
+            
+            if (strength <= 2) {
+                passwordStrengthMeter.classList.add('weak');
+            } else if (strength <= 4) {
+                passwordStrengthMeter.classList.add('medium');
+            } else {
+                passwordStrengthMeter.classList.add('strong');
+            }
+        });
+    }
+
+    // Show notification function
+    function showNotification(title, message, duration = 5000) {
+        if (notificationTitle && notificationMessage && notificationToast) {
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            notificationToast.classList.add('show');
+            
             setTimeout(() => {
-                oceanCoreContainer.style.animation = 'rotate 30s infinite linear';
-            }, 1000);
+                notificationToast.classList.remove('show');
+            }, duration);
         }
-    });
-}
-
-// Password strength checker
-function checkPasswordStrength(password) {
-    let strength = 0;
-    
-    // Length check
-    if (password.length >= 8) strength += 1;
-    if (password.length >= 12) strength += 1;
-    
-    // Character variety
-    if (/[A-Z]/.test(password)) strength += 1;
-    if (/[a-z]/.test(password)) strength += 1;
-    if (/[0-9]/.test(password)) strength += 1;
-    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-    
-    return strength;
-}
-
-// Update password strength meter
-signupPasswordInput.addEventListener('input', () => {
-    const password = signupPasswordInput.value;
-    const strength = checkPasswordStrength(password);
-    
-    passwordStrengthMeter.className = 'password-strength-meter';
-    
-    if (strength <= 2) {
-        passwordStrengthMeter.classList.add('weak');
-    } else if (strength <= 4) {
-        passwordStrengthMeter.classList.add('medium');
-    } else {
-        passwordStrengthMeter.classList.add('strong');
     }
-});
 
-// Show notification function
-function showNotification(title, message, duration = 5000) {
-    notificationTitle.textContent = title;
-    notificationMessage.textContent = message;
-    notificationToast.classList.add('show');
-    
-    setTimeout(() => {
-        notificationToast.classList.remove('show');
-    }, duration);
-}
-
-// Close notification
-notificationClose.addEventListener('click', () => {
-    notificationToast.classList.remove('show');
-});
-
-// Open Modal
-function openAuthModal(tab) {
-    authModal.classList.add('active');
-    // Reset forms and errors when opening modal
-    resetForms();
-    
-    if (tab === 'signup') {
-        signupTab.classList.add('active');
-        loginTab.classList.remove('active');
-        signupForm.classList.add('active');
-        loginForm.classList.remove('active');
-        signupTab.setAttribute('aria-selected', 'true');
-        loginTab.setAttribute('aria-selected', 'false');
-        signupTab.setAttribute('tabindex', '0');
-        loginTab.setAttribute('tabindex', '-1');
-        signupForm.setAttribute('tabindex', '0');
-        loginForm.setAttribute('tabindex', '-1');
-    } else {
-        loginTab.classList.add('active');
-        signupTab.classList.remove('active');
-        loginForm.classList.add('active');
-        signupForm.classList.remove('active');
-        loginTab.setAttribute('aria-selected', 'true');
-        signupTab.setAttribute('aria-selected', 'false');
-        loginTab.setAttribute('tabindex', '0');
-        signupTab.setAttribute('tabindex', '-1');
-        loginForm.setAttribute('tabindex', '0');
-        signupForm.setAttribute('tabindex', '-1');
+    // Close notification
+    if (notificationClose) {
+        notificationClose.addEventListener('click', () => {
+            notificationToast.classList.remove('show');
+        });
     }
-}
 
-// Close Modal
-function closeAuthModal() {
-    authModal.classList.remove('active');
-    accountExistsNotice.style.display = 'none';
-}
-
-// Reset forms and errors
-function resetForms() {
-    // Reset login form
-    loginForm.reset();
-    document.querySelectorAll('#loginForm .error-message').forEach(el => {
-        el.textContent = '';
-        el.style.display = 'none';
-    });
-    document.querySelectorAll('#loginForm .form-group').forEach(el => {
-        el.classList.remove('error');
-    });
-    
-    // Reset signup form
-    signupForm.reset();
-    document.querySelectorAll('#signupForm .error-message').forEach(el => {
-        el.textContent = '';
-        el.style.display = 'none';
-    });
-    document.querySelectorAll('#signupForm .form-group').forEach(el => {
-        el.classList.remove('error');
-    });
-    
-    // Reset password strength meter
-    passwordStrengthMeter.className = 'password-strength-meter';
-    
-    // Hide account exists notice
-    accountExistsNotice.style.display = 'none';
-}
-
-// Event Listeners
-desktopLoginBtn.addEventListener('click', () => openAuthModal('login'));
-desktopSignupBtn.addEventListener('click', () => openAuthModal('signup'));
-mobileLoginBtn.addEventListener('click', () => openAuthModal('login'));
-mobileSignupBtn.addEventListener('click', () => openAuthModal('signup'));
-getStartedBtn.addEventListener('click', () => openAuthModal('signup'));
-closeModal.addEventListener('click', closeAuthModal);
-
-// Switch to login from account exists notice
-switchToLogin.addEventListener('click', () => {
-    loginTab.click();
-});
-
-// Close modal when clicking outside
-authModal.addEventListener('click', (e) => {
-    if (e.target === authModal) {
-        closeAuthModal();
-    }
-});
-
-// Tab Switching
-loginTab.addEventListener('click', () => {
-    resetForms();
-    loginTab.classList.add('active');
-    signupTab.classList.remove('active');
-    loginForm.classList.add('active');
-    signupForm.classList.remove('active');
-    loginTab.setAttribute('aria-selected', 'true');
-    signupTab.setAttribute('aria-selected', 'false');
-    loginTab.setAttribute('tabindex', '0');
-    signupTab.setAttribute('tabindex', '-1');
-    loginForm.setAttribute('tabindex', '0');
-    signupForm.setAttribute('tabindex', '-1');
-});
-
-signupTab.addEventListener('click', () => {
-    resetForms();
-    signupTab.classList.add('active');
-    loginTab.classList.remove('active');
-    signupForm.classList.add('active');
-    loginForm.classList.remove('active');
-    signupTab.setAttribute('aria-selected', 'true');
-    loginTab.setAttribute('aria-selected', 'false');
-    signupTab.setAttribute('tabindex', '0');
-    loginTab.setAttribute('tabindex', '-1');
-    signupForm.setAttribute('tabindex', '0');
-    loginForm.setAttribute('tabindex', '-1');
-});
-
-// Keyboard navigation for tabs
-loginTab.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        loginTab.click();
-    } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        signupTab.focus();
-    }
-});
-
-signupTab.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        signupTab.click();
-    } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        loginTab.focus();
-    }
-});
-
-// Login Form Submission
-
-loginForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    console.log('Login form submitted');
-    
-    // Reset error messages
-    document.querySelectorAll('#loginForm .error-message').forEach(el => {
-        el.textContent = '';
-        el.style.display = 'none';
-    });
-    document.querySelectorAll('#loginForm .form-group').forEach(el => el.classList.remove('error'));
-    
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    
-    console.log('Login attempt:', { email, password: '***' });
-    
-    let hasError = false;
-    
-    if (!email) {
-        document.getElementById('loginEmailError').textContent = 'Email is required';
-        document.getElementById('loginEmailError').style.display = 'block';
-        document.getElementById('loginEmail').parentElement.classList.add('error');
-        hasError = true;
-    }
-    
-    if (!password) {
-        document.getElementById('loginPasswordError').textContent = 'Password is required';
-        document.getElementById('loginPasswordError').style.display = 'block';
-        document.getElementById('loginPassword').parentElement.classList.add('error');
-        hasError = true;
-    }
-    
-    if (hasError) return;
-    
-    showNotification('Signing In', 'Please wait...');
-    
-    // Sign in with Supabase
-    const result = await signIn(email, password);
-    
-    console.log('Login result:', result);
-    
-    if (result.success) {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userEmail', email);
-        if (result.data.user.user_metadata && result.data.user.user_metadata.name) {
-            localStorage.setItem('userName', result.data.user.user_metadata.name);
+    // Open Modal
+    function openAuthModal(tab) {
+        if (authModal) {
+            authModal.classList.add('active');
+            // Reset forms and errors when opening modal
+            resetForms();
+            
+            if (tab === 'signup') {
+                if (signupTab && loginTab && signupForm && loginForm) {
+                    signupTab.classList.add('active');
+                    loginTab.classList.remove('active');
+                    signupForm.classList.add('active');
+                    loginForm.classList.remove('active');
+                    signupTab.setAttribute('aria-selected', 'true');
+                    loginTab.setAttribute('aria-selected', 'false');
+                    signupTab.setAttribute('tabindex', '0');
+                    loginTab.setAttribute('tabindex', '-1');
+                    signupForm.setAttribute('tabindex', '0');
+                    loginForm.setAttribute('tabindex', '-1');
+                }
+            } else {
+                if (loginTab && signupTab && loginForm && signupForm) {
+                    loginTab.classList.add('active');
+                    signupTab.classList.remove('active');
+                    loginForm.classList.add('active');
+                    signupForm.classList.remove('active');
+                    loginTab.setAttribute('aria-selected', 'true');
+                    signupTab.setAttribute('aria-selected', 'false');
+                    loginTab.setAttribute('tabindex', '0');
+                    signupTab.setAttribute('tabindex', '-1');
+                    loginForm.setAttribute('tabindex', '0');
+                    signupForm.setAttribute('tabindex', '-1');
+                }
+            }
         }
-        
-        showNotification('Login Successful', 'Welcome back!');
-        
-        setTimeout(() => {
-            window.location.href = 'dashboard.html';
-        }, 1500);
-    } else {
-        showNotification('Login Failed', result.message);
     }
-});
 
-// Signup Form Handler
-// Signup Form Handler
-signupForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    console.log('Signup form submitted');
-    
-    // Reset error messages
-    document.querySelectorAll('#signupForm .error-message').forEach(el => {
-        el.textContent = '';
-        el.style.display = 'none';
-    });
-    document.querySelectorAll('#signupForm .form-group').forEach(el => el.classList.remove('error'));
-    
-    const name = document.getElementById('signupName').value.trim();
-    const email = document.getElementById('signupEmail').value.trim();
-    const password = document.getElementById('signupPassword').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    
-    console.log('Form data:', { name, email, password: '***' });
-    
-    // Basic validation
-    if (!name || !email || !password) {
-        showNotification('Error', 'Please fill all fields');
-        return;
+    // Close Modal
+    function closeAuthModal() {
+        if (authModal) {
+            authModal.classList.remove('active');
+            if (accountExistsNotice) {
+                accountExistsNotice.style.display = 'none';
+            }
+        }
     }
-    
-    if (password !== confirmPassword) {
-        document.getElementById('confirmPasswordError').textContent = 'Passwords do not match';
-        document.getElementById('confirmPasswordError').style.display = 'ERROR: Passwords do not match';
-        return;
-    }
-    
-    showNotification('Creating Account', 'Please wait...');
-    
-    // Call signup function
-    const result = await signUp(email, password, name);
-    
-    console.log('Signup result:', result);
-    
-    if (result.success) {
-        showNotification('Success', result.message);
-        
-        // Don't redirect immediately for testing
-        setTimeout(() => {
-            window.location.href = 'dashboard.html';
-        }, 2000);
-    } else {
-        showNotification('Error', result.message);
-    }
-});
 
-// Smooth scrolling for navigation links
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
+    // Reset forms and errors
+    function resetForms() {
+        // Reset login form
+        if (loginForm) {
+            loginForm.reset();
+            document.querySelectorAll('#loginForm .error-message').forEach(el => {
+                el.textContent = '';
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('#loginForm .form-group').forEach(el => {
+                el.classList.remove('error');
             });
         }
-    });
-});
-
-// Add scroll effect to navigation
-window.addEventListener('scroll', () => {
-    const nav = document.querySelector('nav');
-    if (window.scrollY > 100) {
-        nav.style.padding = '10px 0';
-        nav.style.background = 'rgba(0, 31, 63, 0.9)';
-        nav.style.boxShadow = '0 5px 20px rgba(0, 0, 0, 0.3)';
-    } else {
-        nav.style.padding = '15px 0';
-        nav.style.background = 'rgba(0, 31, 63, 0.7)';
-        nav.style.boxShadow = 'none';
+        
+        // Reset signup form
+        if (signupForm) {
+            signupForm.reset();
+            document.querySelectorAll('#signupForm .error-message').forEach(el => {
+                el.textContent = '';
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('#signupForm .form-group').forEach(el => {
+                el.classList.remove('error');
+            });
+            
+            // Reset password strength meter
+            if (passwordStrengthMeter) {
+                passwordStrengthMeter.className = 'password-strength-meter';
+            }
+        }
+        
+        // Hide account exists notice
+        if (accountExistsNotice) {
+            accountExistsNotice.style.display = 'none';
+        }
     }
-});
 
-// Highlight active navigation link based on scroll position
-const sections = document.querySelectorAll('section');
-const navLinks = document.querySelectorAll('.nav-links a');
+    // Event Listeners
+    if (desktopLoginBtn) desktopLoginBtn.addEventListener('click', () => openAuthModal('login'));
+    if (desktopSignupBtn) desktopSignupBtn.addEventListener('click', () => openAuthModal('signup'));
+    if (mobileLoginBtn) mobileLoginBtn.addEventListener('click', () => openAuthModal('login'));
+    if (mobileSignupBtn) mobileSignupBtn.addEventListener('click', () => openAuthModal('signup'));
+    if (getStartedBtn) getStartedBtn.addEventListener('click', () => openAuthModal('signup'));
+    if (closeModal) closeModal.addEventListener('click', closeAuthModal);
 
-window.addEventListener('scroll', () => {
-    let current = '';
-    
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        if (pageYOffset >= sectionTop - 100) {
-            current = section.getAttribute('id');
+    // Switch to login from account exists notice
+    if (switchToLogin) {
+        switchToLogin.addEventListener('click', () => {
+            if (loginTab) loginTab.click();
+        });
+    }
+
+    // Close modal when clicking outside
+    if (authModal) {
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) {
+                closeAuthModal();
+            }
+        });
+    }
+
+    // Tab Switching
+    if (loginTab && signupTab && loginForm && signupForm) {
+        loginTab.addEventListener('click', () => {
+            resetForms();
+            loginTab.classList.add('active');
+            signupTab.classList.remove('active');
+            loginForm.classList.add('active');
+            signupForm.classList.remove('active');
+            loginTab.setAttribute('aria-selected', 'true');
+            signupTab.setAttribute('aria-selected', 'false');
+            loginTab.setAttribute('tabindex', '0');
+            signupTab.setAttribute('tabindex', '-1');
+            loginForm.setAttribute('tabindex', '0');
+            signupForm.setAttribute('tabindex', '-1');
+        });
+
+        signupTab.addEventListener('click', () => {
+            resetForms();
+            signupTab.classList.add('active');
+            loginTab.classList.remove('active');
+            signupForm.classList.add('active');
+            loginForm.classList.remove('active');
+            signupTab.setAttribute('aria-selected', 'true');
+            loginTab.setAttribute('aria-selected', 'false');
+            signupTab.setAttribute('tabindex', '0');
+            loginTab.setAttribute('tabindex', '-1');
+            signupForm.setAttribute('tabindex', '0');
+            loginForm.setAttribute('tabindex', '-1');
+        });
+
+        // Keyboard navigation for tabs
+        loginTab.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                loginTab.click();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                signupTab.focus();
+            }
+        });
+
+        signupTab.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                signupTab.click();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                loginTab.focus();
+            }
+        });
+
+        // Login Form Submission
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            console.log('Login form submitted');
+            
+            // Reset error messages
+            document.querySelectorAll('#loginForm .error-message').forEach(el => {
+                el.textContent = '';
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('#loginForm .form-group').forEach(el => el.classList.remove('error'));
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            console.log('Login attempt:', { email, password: '***' });
+            
+            let hasError = false;
+            
+            if (!email) {
+                document.getElementById('loginEmailError').textContent = 'Email is required';
+                document.getElementById('loginEmailError').style.display = 'block';
+                document.getElementById('loginEmail').parentElement.classList.add('error');
+                hasError = true;
+            }
+            
+            if (!password) {
+                document.getElementById('loginPasswordError').textContent = 'Password is required';
+                document.getElementById('loginPasswordError').style.display = 'block';
+                document.getElementById('loginPassword').parentElement.classList.add('error');
+                hasError = true;
+            }
+            
+            if (hasError) return;
+            
+            showNotification('Signing In', 'Please wait...');
+            
+            // Sign in with Supabase
+            const result = await signIn(email, password);
+            
+            console.log('Login result:', result);
+            
+            if (result.success) {
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userEmail', email);
+                if (result.data.user.user_metadata && result.data.user.user_metadata.name) {
+                    localStorage.setItem('userName', result.data.user.user_metadata.name);
+                }
+                
+                showNotification('Login Successful', 'Welcome back!');
+                
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
+            } else {
+                showNotification('Login Failed', result.message);
+            }
+        });
+
+        // Signup Form Handler
+        signupForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            console.log('Signup form submitted');
+            
+            // Reset error messages
+            document.querySelectorAll('#signupForm .error-message').forEach(el => {
+                el.textContent = '';
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('#signupForm .form-group').forEach(el => el.classList.remove('error'));
+            
+            const name = document.getElementById('signupName').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            console.log('Form data:', { name, email, password: '***' });
+            
+            // Basic validation
+            if (!name || !email || !password) {
+                showNotification('Error', 'Please fill all fields');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                document.getElementById('confirmPasswordError').textContent = 'Passwords do not match';
+                document.getElementById('confirmPasswordError').style.display = 'block';
+                return;
+            }
+            
+            showNotification('Creating Account', 'Please wait...');
+            
+            // Call signup function
+            const result = await signUp(email, password, name);
+            
+            console.log('Signup result:', result);
+            
+            if (result.success) {
+                showNotification('Success', result.message);
+                
+                // Don't redirect immediately for testing
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+            } else {
+                showNotification('Error', result.message);
+            }
+        });
+    }
+
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Add scroll effect to navigation
+    window.addEventListener('scroll', () => {
+        const nav = document.querySelector('nav');
+        if (nav) {
+            if (window.scrollY > 100) {
+                nav.style.padding = '10px 0';
+                nav.style.background = 'rgba(0, 31, 63, 0.9)';
+                nav.style.boxShadow = '0 5px 20px rgba(0, 0, 0, 0.3)';
+            } else {
+                nav.style.padding = '15px 0';
+                nav.style.background = 'rgba(0, 31, 63, 0.7)';
+                nav.style.boxShadow = 'none';
+            }
         }
     });
-    
-    navLinks.forEach(link => {
-        link.classList.remove('active-link');
-        if (link.getAttribute('href').slice(1) === current) {
-            link.classList.add('active-link');
-        }
+
+    // Highlight active navigation link based on scroll position
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.nav-links a');
+
+    window.addEventListener('scroll', () => {
+        let current = '';
+        
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.clientHeight;
+            if (pageYOffset >= sectionTop - 100) {
+                current = section.getAttribute('id');
+            }
+        });
+        
+        navLinks.forEach(link => {
+            link.classList.remove('active-link');
+            if (link.getAttribute('href').slice(1) === current) {
+                link.classList.add('active-link');
+            }
+        });
     });
-});
 
-// Add scroll animations to sections and footer
-const footer = document.getElementById('footer');
-const allAnimatedElements = [...sections, footer]; // Include footer in the animation
+    // Add scroll animations to sections and footer
+    const footer = document.getElementById('footer');
+    const allAnimatedElements = [...sections, footer]; // Include footer in the animation
 
-const observerOptions = {
-    root: null,
-    rootMargin: "0px",
-    threshold: 0.1
-};
+    const observerOptions = {
+        root: null,
+        rootMargin: "0px",
+        threshold: 0.1
+    };
 
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('animate-in');
-        }
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate-in');
+            }
+        });
+    }, observerOptions);
+
+    allAnimatedElements.forEach(element => {
+        observer.observe(element);
     });
-}, observerOptions);
-
-allAnimatedElements.forEach(element => {
-    observer.observe(element);
-    })
-})
-});
+}
