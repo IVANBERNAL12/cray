@@ -2295,3 +2295,679 @@ footer {
         margin-bottom: 1rem;
     }
 }
+/* Enhanced Mobile Responsive Styles */
+
+/* Navigation for Mobile */
+@media (max-width: 992px) {
+    .nav-container {
+        padding: 0 15px;
+    }
+    
+    .logo {
+        font-size: 20px;
+    }
+    
+    .nav-links {
+        display: none;
+        position: fixed;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        height: calc(100vh - 70px);
+        background: rgba(0, 31, 63, 0.95);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 0;
+        transform: translateY(-100%);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+        overflow-y: auto;
+        z-index: 999;
+    }
+    
+    .nav-links.active {
+        display: flex;
+        transform: translateY(0);
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .nav-links li {
+        margin: 10px 0;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .nav-links a {
+        display: block;
+        padding: 15px 0;
+        font-size: 18px;
+    }
+    
+    .mobile-menu-btn {
+        display: block;
+    }
+    
+    .nav-actions {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .btn-logout {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+}
+
+/* Dashboard Container for Mobile */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 0 15px;
+        margin-top: 1rem;
+    }
+    
+    .dashboard-title {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .dashboard-subtitle {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .refresh-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    #last-updated {
+        font-size: 0.9rem;
+    }
+}
+
+/* Stats Grid for Mobile */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-title {
+        font-size: 0.9rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .stat-change {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Guidelines Section for Mobile */
+@media (max-width: 768px) {
+    .guidelines-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .guideline-card {
+        padding: 1rem;
+    }
+    
+    .guideline-title {
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .guideline-range {
+        font-size: 1.1rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .guideline-desc {
+        font-size: 0.9rem;
+    }
+}
+
+/* Charts Section for Mobile */
+@media (max-width: 768px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .chart-card {
+        margin-bottom: 1rem;
+    }
+    
+    .chart-header {
+        padding: 0.8rem;
+    }
+    
+    .chart-title {
+        font-size: 1rem;
+    }
+    
+    .chart-container {
+        height: 250px;
+        padding: 0.8rem;
+    }
+}
+
+/* Alerts Section for Mobile */
+@media (max-width: 768px) {
+    .alerts-container {
+        margin-bottom: 1rem;
+    }
+    
+    .alerts-header {
+        padding: 0.8rem;
+    }
+    
+    .alerts-title {
+        font-size: 1rem;
+    }
+    
+    .alert-item {
+        padding: 0.8rem;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .alert-icon {
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+    
+    .alert-content {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .alert-time {
+        align-self: flex-end;
+        font-size: 0.7rem;
+    }
+}
+
+/* Water Quality Section for Mobile */
+@media (max-width: 768px) {
+    .quality-parameters {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .parameter-card {
+        padding: 1rem;
+    }
+    
+    .parameter-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .parameter-name {
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .parameter-value {
+        font-size: 1.5rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .water-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.8rem 1rem;
+    }
+}
+
+/* Water Management Section for Mobile */
+@media (max-width: 768px) {
+    .water-status {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+    }
+    
+    .status-indicator {
+        margin-right: 0;
+        margin-bottom: 0.5rem;
+    }
+    
+    .schedule-form {
+        padding: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .form-control {
+        padding: 0.8rem;
+        font-size: 1rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .schedule-item {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+    }
+    
+    .schedule-status {
+        margin-top: 0.5rem;
+        align-self: flex-end;
+    }
+}
+
+/* Feeding Section for Mobile */
+@media (max-width: 768px) {
+    .feeding-status {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+    }
+    
+    .feed-level-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 1rem;
+    }
+    
+    .feed-level-info {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    .feed-level-percentage {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .feed-level-bar {
+        height: 12px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .feed-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .feed-stats {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .feed-stat {
+        padding: 0.8rem;
+    }
+}
+
+/* Harvest Management Section for Mobile */
+@media (max-width: 768px) {
+    .harvest-info {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .harvest-card {
+        padding: 1rem;
+    }
+    
+    .harvest-value {
+        font-size: 1.5rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .harvest-label {
+        font-size: 0.9rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .harvest-progress {
+        height: 8px;
+        margin-bottom: 0.3rem;
+    }
+    
+    .harvest-change {
+        font-size: 0.8rem;
+    }
+    
+    .harvest-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .harvest-planning {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .planning-item {
+        padding: 1rem;
+    }
+    
+    .planning-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .planning-content h4 {
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .planning-content p {
+        font-size: 0.9rem;
+    }
+}
+
+/* Knowledge Base Section for Mobile */
+@media (max-width: 768px) {
+    .knowledge-categories {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .knowledge-category {
+        padding: 1rem;
+    }
+    
+    .category-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .category-title {
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .category-desc {
+        font-size: 0.9rem;
+    }
+}
+
+/* Settings Section for Mobile */
+@media (max-width: 768px) {
+    .settings-form {
+        max-width: 100%;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .form-control {
+        padding: 0.8rem;
+        font-size: 1rem;
+    }
+}
+
+/* Modal for Mobile */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 5% auto;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        padding: 1rem;
+    }
+    
+    .modal-header h3 {
+        font-size: 1.2rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    .modal-footer {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .history-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .history-controls .form-group {
+        width: 100%;
+    }
+    
+    .harvest-history-table {
+        font-size: 0.8rem;
+    }
+    
+    .harvest-history-table th, 
+    .harvest-history-table td {
+        padding: 0.5rem;
+    }
+}
+
+/* Chat Container for Mobile */
+@media (max-width: 768px) {
+    .chat-container {
+        width: calc(100% - 30px);
+        height: 350px;
+        left: 15px;
+        right: 15px;
+        bottom: 15px;
+    }
+    
+    .chat-header {
+        padding: 10px;
+    }
+    
+    .chat-header h3 {
+        font-size: 1rem;
+    }
+    
+    .chat-messages {
+        padding: 10px;
+    }
+    
+    .message-content {
+        max-width: 80%;
+        font-size: 0.9rem;
+    }
+    
+    .chat-input {
+        padding: 10px;
+    }
+    
+    .chat-input input {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+    
+    .chat-input button {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* Footer for Mobile */
+@media (max-width: 768px) {
+    footer {
+        padding: 2rem 0 1rem;
+    }
+    
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .footer-col h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .footer-links li {
+        margin-bottom: 0.3rem;
+    }
+    
+    .footer-links a {
+        font-size: 0.9rem;
+    }
+    
+    .copyright {
+        padding: 1rem 15px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Notification for Mobile */
+@media (max-width: 768px) {
+    .notification {
+        width: calc(100% - 30px);
+        left: 15px;
+        right: 15px;
+        bottom: 15px;
+    }
+    
+    .notification-header {
+        padding: 0.8rem;
+    }
+    
+    .notification-title {
+        font-size: 1rem;
+    }
+    
+    .notification-message {
+        padding: 0.8rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Connection Status for Mobile */
+@media (max-width: 768px) {
+    .connection-status {
+        bottom: 10px;
+        right: 10px;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Touch-friendly adjustments */
+@media (max-width: 768px) {
+    .btn {
+        min-height: 44px; /* Recommended minimum touch target size */
+        padding: 10px 15px;
+    }
+    
+    .chart-action {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .modal-close {
+        font-size: 20px;
+        width: 30px;
+        height: 30px;
+    }
+    
+    .notification-close {
+        font-size: 18px;
+        width: 28px;
+        height: 28px;
+    }
+    
+    .chat-toggle {
+        width: 30px;
+        height: 30px;
+    }
+    
+    /* Make form inputs easier to use on mobile */
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="date"],
+    input[type="time"],
+    select,
+    textarea {
+        min-height: 44px;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+/* Landscape mode adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+    .chat-container {
+        height: 250px;
+    }
+    
+    .modal-content {
+        margin: 2% auto;
+        max-height: 95vh;
+    }
+}
