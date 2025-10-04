@@ -191,8 +191,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - **John Paul Santonia** - Leader
 - **Ivan James L. Bernal** - Lead Developer
-- **Dereck Larino** - Hardware Specialist
-- **Angelo Manuel** - UI/UX Designer
+- **Dereck Larino** - Team Member
+- **Angelo Manuel** - Team Member
 
 ## 📧 Contact
 
