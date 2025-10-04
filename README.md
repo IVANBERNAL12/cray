@@ -1,6 +1,6 @@
 # AquaVision Pro - Crayfish Monitoring System
 
-![AquaVision Pro Logo](./assets/logo.png)
+![AquaVision Pro Logo](./image/logo.jpg)
 
 ## 🦞 Overview
 
@@ -127,7 +127,7 @@ const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
 - **[Setup Guide](./SETUP.md)** - Complete installation and setup instructions
 - **[User Manual](./USER_MANUAL.md)** - How to use the system
 - **[Schematic Diagram](./SCHEMATIC.md)** - Hardware wiring and PCB design
-- **[API Documentation](./API.md)** - Backend API reference
+- **[API Documentation](./api.md)** - Backend API reference
 
 ## 🎯 Usage
 
