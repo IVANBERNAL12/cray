@@ -1491,321 +1491,6 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Mobile menu toggle functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    const navLinks = document.querySelector('.nav-links');
-    
-    if (mobileMenuBtn && navLinks) {
-        mobileMenuBtn.addEventListener('click', function() {
-            navLinks.classList.toggle('active');
-            
-            // Toggle icon
-            const icon = this.querySelector('i');
-            if (icon) {
-                if (navLinks.classList.contains('active')) {
-                    icon.classList.remove('fa-bars');
-                    icon.classList.add('fa-times');
-                } else {
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            }
-        });
-        
-        // Close menu when clicking on a link
-        const navItems = navLinks.querySelectorAll('a');
-        navItems.forEach(item => {
-            item.addEventListener('click', function() {
-                navLinks.classList.remove('active');
-                const icon = mobileMenuBtn.querySelector('i');
-                if (icon) {
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            });
-        });
-        
-        // Close menu when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!navLinks.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
-                navLinks.classList.remove('active');
-                const icon = mobileMenuBtn.querySelector('i');
-                if (icon) {
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            }
-        });
-    }
-    
-    // Improve modal behavior on mobile
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        modal.addEventListener('click', function(event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-    });
-    
-    // Handle orientation changes
-    window.addEventListener('orientationchange', function() {
-        // Adjust chart sizes after orientation change
-        setTimeout(() => {
-            if (window.chartManager) {
-                Object.keys(window.chartManager.charts).forEach(chartId => {
-                    window.chartManager.charts[chartId].resize();
-                });
-            }
-        }, 200);
-    });
-    
-    // Improve touch interactions for mobile
-    if ('ontouchstart' in window) {
-        document.body.classList.add('touch-device');
-        
-        // Add touch feedback to buttons
-        const buttons = document.querySelectorAll('.btn');
-        buttons.forEach(button => {
-            button.addEventListener('touchstart', function() {
-                this.style.transform = 'scale(0.95)';
-            });
-            
-            button.addEventListener('touchend', function() {
-                this.style.transform = '';
-            });
-        });
-    }
-});
-// Add event listeners for dashboard functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Charts are initialized by chart.js module
-    console.log('Charts will be initialized by chart.js module');
-    
-    // Refresh data button
-    const refreshBtn = document.getElementById('refresh-data');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
-            refreshBtn.querySelector('i').classList.add('fa-spin');
-            refreshDashboardData().finally(() => {
-                refreshBtn.querySelector('i').classList.remove('fa-spin');
-            });
-        });
-    }
-    
-    // Logout button
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            const result = await signOut();
-            if (result.success) {
-                window.location.href = 'index.html';
-            } else {
-                showNotification('Error', result.message, 'error');
-            }
-        });
-    }
-    
-    // Feed now button
-    const feedNowBtn = document.getElementById('feed-now');
-    if (feedNowBtn) {
-        feedNowBtn.addEventListener('click', async () => {
-            try {
-                // Get current feed data
-                const feedData = await getFeedData();
-                
-                if (feedData) {
-                    // Calculate new feed amount
-                    const feedingAmount = 7.5; // Default feeding amount
-                    const newFeedAmount = Math.max(0, feedData.current - feedingAmount);
-                    
-                    // Update feed data
-                    const updatedFeedData = {
-                        ...feedData,
-                        current: newFeedAmount
-                    };
-                    
-                    const result = await saveFeedData(updatedFeedData);
-                    
-                    if (result.success) {
-                        showNotification('Success', 'Feeding completed successfully', 'success');
-                        await loadFeedData();
-                        
-                        // Update last feeding time
-                        const lastFeedingElement = document.getElementById('last-feeding');
-                        if (lastFeedingElement) {
-                            const now = new Date();
-                            const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                            lastFeedingElement.textContent = `Last fed: Today at ${timeString}`;
-                        }
-                    } else {
-                        showNotification('Error', result.message, 'error');
-                    }
-                }
-            } catch (error) {
-                console.error('Error feeding now:', error);
-                showNotification('Error', 'Failed to feed: ' + error.message, 'error');
-            }
-        });
-    }
-    
-    // Refill feed button
-    const refillFeedBtn = document.querySelector('.feed-actions .btn-primary');
-    if (refillFeedBtn) {
-        refillFeedBtn.addEventListener('click', async () => {
-            try {
-                // Get current feed data
-                const feedData = await getFeedData();
-                
-                if (feedData) {
-                    // Reset feed to full capacity
-                    const updatedFeedData = {
-                        ...feedData,
-                        current: feedData.capacity
-                    };
-                    
-                    const result = await saveFeedData(updatedFeedData);
-                    
-                    if (result.success) {
-                        showNotification('Success', 'Feed refilled successfully', 'success');
-                        await loadFeedData();
-                    } else {
-                        showNotification('Error', result.message, 'error');
-                    }
-                }
-            } catch (error) {
-                console.error('Error refilling feed:', error);
-                showNotification('Error', 'Failed to refill feed: ' + error.message, 'error');
-            }
-        });
-    }
-    
-    // Save feeding schedule button
-    const saveFeedingScheduleBtn = document.getElementById('save-feeding-schedule');
-    if (saveFeedingScheduleBtn) {
-        saveFeedingScheduleBtn.addEventListener('click', async () => {
-            try {
-                const time = document.getElementById('feeding-time').value;
-                const frequency = document.getElementById('feeding-frequency').value;
-                const amount = document.getElementById('food-amount').value;
-                const type = document.getElementById('food-type').value;
-                
-                if (!time || !amount) {
-                    showNotification('Error', 'Please fill in all required fields', 'error');
-                    return;
-                }
-                
-                const schedule = {
-                    time,
-                    frequency,
-                    amount: parseFloat(amount),
-                    type
-                };
-                
-                const result = await saveFeedingSchedule(schedule);
-                
-                if (result.success) {
-                    showNotification('Success', 'Feeding schedule saved successfully', 'success');
-                    await loadFeedingSchedule();
-                } else {
-                    showNotification('Error', result.message, 'error');
-                }
-            } catch (error) {
-                console.error('Error saving feeding schedule:', error);
-                showNotification('Error', 'Failed to save feeding schedule: ' + error.message, 'error');
-            }
-        });
-    }
-    
-    // Save water schedule button
-    const saveWaterScheduleBtn = document.getElementById('save-water-schedule');
-    if (saveWaterScheduleBtn) {
-        saveWaterScheduleBtn.addEventListener('click', async () => {
-            try {
-                const time = document.getElementById('water-change-time').value;
-                const frequency = document.getElementById('water-frequency').value;
-                const percentage = document.getElementById('water-change-percentage').value;
-                
-                if (!time) {
-                    showNotification('Error', 'Please select a time for water change', 'error');
-                    return;
-                }
-                
-                const schedule = {
-                    time,
-                    frequency,
-                    percentage: parseInt(percentage)
-                };
-                
-                const result = await saveWaterSchedule(schedule);
-                
-                if (result.success) {
-                    showNotification('Success', 'Water schedule saved successfully', 'success');
-                    await loadWaterSchedule();
-                } else {
-                    showNotification('Error', result.message, 'error');
-                }
-            } catch (error) {
-                console.error('Error saving water schedule:', error);
-                showNotification('Error', 'Failed to save water schedule: ' + error.message, 'error');
-            }
-        });
-    }
-    
-    // Change water now button
-    const changeWaterBtn = document.getElementById('change-water-now');
-    if (changeWaterBtn) {
-        changeWaterBtn.addEventListener('click', () => {
-            showNotification('Success', 'Water change initiated', 'success');
-            updateLastWaterChange();
-        });
-    }
-    
-    // Toggle feeding schedule form
-    const setFeedingScheduleBtn = document.getElementById('set-feeding-schedule');
-    if (setFeedingScheduleBtn) {
-        setFeedingScheduleBtn.addEventListener('click', () => {
-            const form = document.getElementById('feeding-schedule-form');
-            if (form) {
-                form.classList.toggle('show');
-            }
-        });
-    }
-    
-    // Toggle water schedule form
-    const setWaterScheduleBtn = document.getElementById('set-water-schedule');
-    if (setWaterScheduleBtn) {
-        setWaterScheduleBtn.addEventListener('click', () => {
-            const form = document.getElementById('water-schedule-form');
-            if (form) {
-                form.classList.toggle('show');
-            }
-        });
-    }
-    
-    // Cancel buttons for schedule forms
-    const cancelFeedingScheduleBtn = document.querySelector('#feeding-schedule-form .btn-secondary');
-    if (cancelFeedingScheduleBtn) {
-        cancelFeedingScheduleBtn.addEventListener('click', () => {
-            const form = document.getElementById('feeding-schedule-form');
-            if (form) {
-                form.classList.remove('show');
-            }
-        });
-    }
-    
-    const cancelWaterScheduleBtn = document.querySelector('#water-schedule-form .btn-secondary');
-    if (cancelWaterScheduleBtn) {
-        cancelWaterScheduleBtn.addEventListener('click', () => {
-            const form = document.getElementById('water-schedule-form');
-            if (form) {
-                form.classList.remove('show');
-            }
-        });
-    }
-});
-
 // Update last water change
 function updateLastWaterChange() {
     const lastWaterChangeElement = document.getElementById('last-water-change');
@@ -1897,6 +1582,39 @@ document.addEventListener('DOMContentLoaded', async function() {
     const sections = document.querySelectorAll('.dashboard-section');
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     
+    // Mobile menu toggle
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', function() {
+            const navLinksMenu = document.querySelector('.nav-links');
+            navLinksMenu.classList.toggle('active');
+            
+            // Toggle icon
+            const icon = this.querySelector('i');
+            if (icon) {
+                if (navLinksMenu.classList.contains('active')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                } else {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            }
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const navLinksMenu = document.querySelector('.nav-links');
+            if (!navLinksMenu.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
+                navLinksMenu.classList.remove('active');
+                const icon = mobileMenuBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            }
+        });
+    }
+    
     navLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1914,13 +1632,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 targetSection.classList.add('active');
             }
             
-            document.querySelector('.nav-links').classList.remove('active');
+            // Close mobile menu
+            const navLinksMenu = document.querySelector('.nav-links');
+            navLinksMenu.classList.remove('active');
+            const icon = mobileMenuBtn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fa-times');
+                icon.classList.add('fa-bars');
+            }
         });
-    });
-
-    // Mobile menu toggle
-    mobileMenuBtn.addEventListener('click', function() {
-        document.querySelector('.nav-links').classList.toggle('active');
     });
 
     // Notification close button
@@ -2188,4 +1908,33 @@ document.addEventListener('DOMContentLoaded', async function() {
         clearInterval(dataUpdateInterval);
         clearInterval(hardwareCheckInterval);
     });
+    
+    // Handle orientation changes
+    window.addEventListener('orientationchange', function() {
+        // Adjust chart sizes after orientation change
+        setTimeout(() => {
+            if (window.chartManager) {
+                Object.keys(window.chartManager.charts).forEach(chartId => {
+                    window.chartManager.charts[chartId].resize();
+                });
+            }
+        }, 200);
+    });
+    
+    // Improve touch interactions for mobile
+    if ('ontouchstart' in window) {
+        document.body.classList.add('touch-device');
+        
+        // Add touch feedback to buttons
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(button => {
+            button.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.95)';
+            });
+            
+            button.addEventListener('touchend', function() {
+                this.style.transform = '';
+            });
+        });
+    }
 });

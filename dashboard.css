@@ -1850,7 +1850,7 @@ footer {
 .chat-container {
     position: fixed;
     bottom: 20px;
-    left: 20px; /* Changed from right to left */
+    left: 20px;
     width: 350px;
     height: 450px;
     background: rgba(0, 31, 63, 0.95);
@@ -2120,6 +2120,7 @@ footer {
         right: 20px;
     }
 }
+
 /* Minimized chat state */
 .chat-container.minimized {
     height: 60px;
@@ -2143,158 +2144,6 @@ footer {
     }
 }
 
-/* Responsive */
-@media (max-width: 992px) {
-    .dashboard-container {
-        padding: 0 1rem;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-    
-    .charts-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .growth-metrics,
-    .harvest-info {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .mobile-menu-btn {
-        display: block;
-    }
-    
-    .nav-links {
-        position: fixed;
-        top: 70px;
-        left: 0;
-        width: 100%;
-        background: rgba(0, 31, 63, 0.95);
-        -webkit-backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
-        flex-direction: column;
-        align-items: center;
-        padding: 20px 0;
-        transform: translateY(-100%);
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
-        border-bottom: 1px solid rgba(0, 212, 255, 0.3);
-        overflow-y: auto;
-        max-height: calc(100vh - 70px);
-        z-index: 999;
-    }
-    
-    .nav-links.active {
-        transform: translateY(0);
-        opacity: 1;
-        visibility: visible;
-    }
-    
-    .nav-links li {
-        margin: 10px 0;
-        width: 100%;
-        text-align: center;
-    }
-    
-    .nav-links a {
-        display: block;
-        padding: 10px 0;
-    }
-    
-    .nav-actions {
-        flex-direction: column;
-        gap: 5px;
-    }
-    
-    .btn-logout {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .dashboard-title {
-        font-size: 2rem;
-    }
-    
-    .charts-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .notification {
-        width: calc(100% - 40px);
-        left: 20px;
-        right: 20px;
-    }
-    
-    .schedule-table {
-        font-size: 0.9rem;
-    }
-    
-    .schedule-table th, 
-    .schedule-table td {
-        padding: 0.5rem;
-    }
-    
-    .feed-level-card {
-        flex-direction: column;
-    }
-    
-    .feed-actions {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 576px) {
-    .dashboard-container {
-        padding: 0 0.5rem;
-    }
-    
-    .dashboard-title {
-        font-size: 1.8rem;
-    }
-    
-    .stat-value,
-    .growth-value,
-    .harvest-value {
-        font-size: 1.5rem;
-    }
-    
-    .guidelines-grid,
-    .quality-parameters,
-    .growth-metrics,
-    .harvest-info,
-    .knowledge-categories {
-        grid-template-columns: 1fr;
-    }
-    
-    .water-controls,
-    .feeding-controls,
-    .growth-controls,
-    .harvest-controls {
-        flex-direction: column;
-    }
-    
-    .btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .footer-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-    
-    .footer-col {
-        margin-bottom: 1rem;
-    }
-}
 /* Enhanced Mobile Responsive Styles */
 
 /* Navigation for Mobile */
@@ -2307,8 +2156,11 @@ footer {
         font-size: 20px;
     }
     
+    .mobile-menu-btn {
+        display: block;
+    }
+    
     .nav-links {
-        display: none;
         position: fixed;
         top: 70px;
         left: 0;
@@ -2330,7 +2182,6 @@ footer {
     }
     
     .nav-links.active {
-        display: flex;
         transform: translateY(0);
         opacity: 1;
         visibility: visible;
@@ -2346,10 +2197,6 @@ footer {
         display: block;
         padding: 15px 0;
         font-size: 18px;
-    }
-    
-    .mobile-menu-btn {
-        display: block;
     }
     
     .nav-actions {
@@ -2969,5 +2816,63 @@ footer {
     .modal-content {
         margin: 2% auto;
         max-height: 95vh;
+    }
+}
+
+@media (max-width: 576px) {
+    .nav-container {
+        padding: 0 10px;
+    }
+    
+    .logo {
+        font-size: 18px;
+    }
+    
+    .nav-links a {
+        font-size: 16px;
+        padding: 12px 0;
+    }
+    
+    .dashboard-container {
+        padding: 0 0.5rem;
+    }
+    
+    .dashboard-title {
+        font-size: 1.8rem;
+    }
+    
+    .stat-value,
+    .growth-value,
+    .harvest-value {
+        font-size: 1.5rem;
+    }
+    
+    .guidelines-grid,
+    .quality-parameters,
+    .growth-metrics,
+    .harvest-info,
+    .knowledge-categories {
+        grid-template-columns: 1fr;
+    }
+    
+    .water-controls,
+    .feeding-controls,
+    .growth-controls,
+    .harvest-controls {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .footer-col {
+        margin-bottom: 1rem;
     }
 }
