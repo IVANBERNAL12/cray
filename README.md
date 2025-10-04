@@ -1,6 +1,6 @@
 # AquaVision Pro - Crayfish Monitoring System
 
-![AquaVision Pro Logo](./assets/logo.png)
+![AquaVision Pro Logo](./image/logo.jpg)
 
 ## 🦞 Overview
 
