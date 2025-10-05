@@ -258,11 +258,11 @@ nav {
     position: fixed;
     top: 0;
     width: 100%;
-    background: rgba(0, 31, 63, 0.7);
+    background: rgba(0, 31, 63, 0.9);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     z-index: 1000;
-    padding: 15px 0;
+    padding: 10px 0;
     transition: all 0.3s ease;
     border-bottom: 1px solid rgba(0, 212, 255, 0.3);
 }
@@ -391,10 +391,13 @@ nav {
     z-index: 1001;
     flex-shrink: 0;
     transition: transform 0.3s ease;
+    padding: 5px;
+    border-radius: 5px;
 }
 
 .mobile-menu-btn:hover {
     transform: scale(1.1);
+    background-color: rgba(0, 212, 255, 0.1);
 }
 
 /* Dashboard Container */
@@ -2112,41 +2115,11 @@ footer {
     }
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .chat-container {
-        width: calc(100% - 40px);
-        left: 20px;
-        right: 20px;
-    }
-}
+/* ======================= */
+/* ===== RESPONSIVE CSS ===== */
+/* ======================= */
 
-/* Minimized chat state */
-.chat-container.minimized {
-    height: 60px;
-}
-
-.chat-container.minimized .chat-messages,
-.chat-container.minimized .chat-input {
-    display: none;
-}
-
-.chat-container.minimized .chat-toggle i {
-    transform: rotate(180deg);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .chat-container {
-        width: calc(100% - 40px);
-        right: 20px;
-        left: 20px;
-    }
-}
-
-/* Enhanced Mobile Responsive Styles */
-
-/* Navigation for Mobile */
+/* Tablet Styles */
 @media (max-width: 992px) {
     .nav-container {
         padding: 0 15px;
@@ -2212,8 +2185,43 @@ footer {
     }
 }
 
-/* Dashboard Container for Mobile */
+/* Mobile Styles */
 @media (max-width: 768px) {
+    body {
+        padding-top: 60px;
+    }
+    
+    nav {
+        padding: 8px 0;
+    }
+    
+    .nav-container {
+        padding: 0 10px;
+    }
+    
+    .logo {
+        font-size: 18px;
+    }
+    
+    .mobile-menu-btn {
+        font-size: 20px;
+    }
+    
+    .nav-links {
+        top: 60px;
+        height: calc(100vh - 60px);
+    }
+    
+    .nav-links a {
+        font-size: 16px;
+        padding: 12px 0;
+    }
+    
+    .btn-logout {
+        padding: 10px 15px;
+        font-size: 16px;
+    }
+
     .dashboard-container {
         padding: 0 15px;
         margin-top: 1rem;
@@ -2244,10 +2252,7 @@ footer {
     #last-updated {
         font-size: 0.9rem;
     }
-}
 
-/* Stats Grid for Mobile */
-@media (max-width: 768px) {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
@@ -2275,16 +2280,7 @@ footer {
     .stat-change {
         font-size: 0.8rem;
     }
-}
 
-@media (max-width: 480px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Guidelines Section for Mobile */
-@media (max-width: 768px) {
     .guidelines-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
@@ -2307,10 +2303,7 @@ footer {
     .guideline-desc {
         font-size: 0.9rem;
     }
-}
 
-/* Charts Section for Mobile */
-@media (max-width: 768px) {
     .charts-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
@@ -2332,10 +2325,7 @@ footer {
         height: 250px;
         padding: 0.8rem;
     }
-}
 
-/* Alerts Section for Mobile */
-@media (max-width: 768px) {
     .alerts-container {
         margin-bottom: 1rem;
     }
@@ -2368,10 +2358,7 @@ footer {
         align-self: flex-end;
         font-size: 0.7rem;
     }
-}
 
-/* Water Quality Section for Mobile */
-@media (max-width: 768px) {
     .quality-parameters {
         grid-template-columns: 1fr;
         gap: 1rem;
@@ -2406,10 +2393,7 @@ footer {
         justify-content: center;
         padding: 0.8rem 1rem;
     }
-}
 
-/* Water Management Section for Mobile */
-@media (max-width: 768px) {
     .water-status {
         flex-direction: column;
         align-items: flex-start;
@@ -2454,10 +2438,7 @@ footer {
         margin-top: 0.5rem;
         align-self: flex-end;
     }
-}
 
-/* Feeding Section for Mobile */
-@media (max-width: 768px) {
     .feeding-status {
         flex-direction: column;
         align-items: flex-start;
@@ -2500,10 +2481,7 @@ footer {
     .feed-stat {
         padding: 0.8rem;
     }
-}
 
-/* Harvest Management Section for Mobile */
-@media (max-width: 768px) {
     .harvest-info {
         grid-template-columns: 1fr;
         gap: 1rem;
@@ -2559,10 +2537,7 @@ footer {
     .planning-content p {
         font-size: 0.9rem;
     }
-}
 
-/* Knowledge Base Section for Mobile */
-@media (max-width: 768px) {
     .knowledge-categories {
         grid-template-columns: 1fr;
         gap: 1rem;
@@ -2585,10 +2560,7 @@ footer {
     .category-desc {
         font-size: 0.9rem;
     }
-}
 
-/* Settings Section for Mobile */
-@media (max-width: 768px) {
     .settings-form {
         max-width: 100%;
     }
@@ -2606,10 +2578,7 @@ footer {
         padding: 0.8rem;
         font-size: 1rem;
     }
-}
 
-/* Modal for Mobile */
-@media (max-width: 768px) {
     .modal-content {
         width: 95%;
         margin: 5% auto;
@@ -2657,10 +2626,7 @@ footer {
     .harvest-history-table td {
         padding: 0.5rem;
     }
-}
 
-/* Chat Container for Mobile */
-@media (max-width: 768px) {
     .chat-container {
         width: calc(100% - 30px);
         height: 350px;
@@ -2699,40 +2665,7 @@ footer {
         width: 40px;
         height: 40px;
     }
-}
 
-/* Footer for Mobile */
-@media (max-width: 768px) {
-    footer {
-        padding: 2rem 0 1rem;
-    }
-    
-    .footer-grid {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-    
-    .footer-col h3 {
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .footer-links li {
-        margin-bottom: 0.3rem;
-    }
-    
-    .footer-links a {
-        font-size: 0.9rem;
-    }
-    
-    .copyright {
-        padding: 1rem 15px;
-        font-size: 0.8rem;
-    }
-}
-
-/* Notification for Mobile */
-@media (max-width: 768px) {
     .notification {
         width: calc(100% - 30px);
         left: 15px;
@@ -2752,22 +2685,16 @@ footer {
         padding: 0.8rem;
         font-size: 0.9rem;
     }
-}
 
-/* Connection Status for Mobile */
-@media (max-width: 768px) {
     .connection-status {
         bottom: 10px;
         right: 10px;
         padding: 8px 12px;
         font-size: 0.8rem;
     }
-}
 
-/* Touch-friendly adjustments */
-@media (max-width: 768px) {
     .btn {
-        min-height: 44px; /* Recommended minimum touch target size */
+        min-height: 44px;
         padding: 10px 15px;
     }
     
@@ -2793,7 +2720,6 @@ footer {
         height: 30px;
     }
     
-    /* Make form inputs easier to use on mobile */
     input[type="text"],
     input[type="email"],
     input[type="tel"],
@@ -2803,23 +2729,12 @@ footer {
     select,
     textarea {
         min-height: 44px;
-        font-size: 16px; /* Prevents zoom on iOS */
+        font-size: 16px;
     }
 }
 
-/* Landscape mode adjustments */
-@media (max-width: 768px) and (orientation: landscape) {
-    .chat-container {
-        height: 250px;
-    }
-    
-    .modal-content {
-        margin: 2% auto;
-        max-height: 95vh;
-    }
-}
-
-@media (max-width: 576px) {
+/* Small Mobile Styles */
+@media (max-width: 480px) {
     .nav-container {
         padding: 0 10px;
     }
@@ -2828,9 +2743,13 @@ footer {
         font-size: 18px;
     }
     
+    .mobile-menu-btn {
+        font-size: 18px;
+    }
+    
     .nav-links a {
-        font-size: 16px;
-        padding: 12px 0;
+        font-size: 15px;
+        padding: 10px 0;
     }
     
     .dashboard-container {
@@ -2874,5 +2793,17 @@ footer {
     
     .footer-col {
         margin-bottom: 1rem;
+    }
+}
+
+/* Landscape mode adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+    .chat-container {
+        height: 250px;
+    }
+    
+    .modal-content {
+        margin: 2% auto;
+        max-height: 95vh;
     }
 }
