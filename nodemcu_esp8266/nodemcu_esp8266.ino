@@ -1,38 +1,35 @@
 /*
- * Crayfish Monitoring System - NodeMCU ESP8266 Server (UPDATED)
- * Receives data from Arduino Mega and forwards to Node.js server + provides web API
- * File: nodemcu_server.ino
- * 
- * Wiring:
- * Arduino Mega TX3(Pin 14) -> NodeMCU D6 (GPIO12)
- * Arduino Mega RX3(Pin 15) -> NodeMCU D7 (GPIO13)
- * NodeMCU GND -> Arduino GND (common ground essential!)
+ * Crayfish Monitoring System - NodeMCU ESP8266 to Supabase
+ * Sends sensor data directly to Supabase backend
+ * File: nodemcu_to_supabase.ino
  */
 
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
+#include <ArduinoJson.h>
 #include <SoftwareSerial.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <base64.h>
 
-// ================================
-// CONFIGURATION - UPDATE THESE!
-// ================================
-const char* WIFI_SSID = "PLDT_Home_0D8BB";         // Change this!
-const char* WIFI_PASSWORD = "JUNE122002"; // Change this!
-const char* DEVICE_NAME = "crayfish-monitor";     // mDNS name
-const int WEB_SERVER_PORT = 80;
+// WiFi Configuration
+const char* WIFI_SSID = "PLDT_Home_0D8BB";
+const char* WIFI_PASSWORD = "JUNE122002";
 
-// CRITICAL: Update this with your Node.js server IP and port
-const char* NODE_SERVER_URL = "http://192.168.1.103:3000/api/data"; // Change this IP!
+// Supabase Configuration
+const char* SUPABASE_URL = "https://qleubfvmydnitmsylqxo.supabase.co";
+const char* SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsZXViZnZteWRuaXRtc3lscXhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODg2MjksImV4cCI6MjA3NDk2NDYyOX0.1LtaFFXPadqUZM7iaN-0fJbLcDvbkYZkhdLYpfBBReA";
+
+// User ID - You'll need to get this from authentication
+String USER_ID = "YOUR_USER_ID"; // Replace with actual user ID from auth
 
 // Serial communication with Arduino Mega
-// NodeMCU D6 (GPIO12) = RX, D7 (GPIO13) = TX
 SoftwareSerial arduinoSerial(12, 13); // RX, TX
 
-// Web server
-ESP8266WebServer server(WEB_SERVER_PORT);
+// NTP for time synchronization
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000);
 
 // Data structures
 struct SensorData {
@@ -42,119 +39,59 @@ struct SensorData {
   int errors;
   String status;
   bool valid;
-  unsigned long lastUpdate;
-};
-
-struct SystemInfo {
-  unsigned long startTime;
-  int requestCount;
-  int dataPacketsReceived;
-  int forwardingAttempts;
-  int forwardingSuccesses;
-  int forwardingFailures;
-  bool arduinoConnected;
-  bool nodeServerConnected;
-  unsigned long lastArduinoHeartbeat;
-  unsigned long lastServerForward;
-  String lastError;
-  String lastServerResponse;
+  bool temp_sensor_ok;
+  bool ph_sensor_ok;
 };
 
 // Global variables
-SensorData currentData = {0.0, 7.0, 0, 0, "initializing", false, 0};
-SensorData dataHistory[60]; // Store last 60 readings
-int historyIndex = 0;
-int historyCount = 0;
-
-SystemInfo systemInfo = {0, 0, 0, 0, 0, 0, false, false, 0, 0, "", ""};
-
-// Timing constants
-const unsigned long DATA_TIMEOUT = 10000;      // 10 seconds
-const unsigned long HEARTBEAT_INTERVAL = 5000; // 5 seconds
-const unsigned long HISTORY_INTERVAL = 30000;  // 30 seconds
-const unsigned long SERVER_RETRY_INTERVAL = 5000; // 5 seconds
-
-unsigned long lastHeartbeat = 0;
-unsigned long lastHistoryUpdate = 0;
-unsigned long lastServerRetry = 0;
+SensorData currentData = {0.0, 7.0, 0, 0, "initializing", false, false, false};
+unsigned long lastDataSend = 0;
+unsigned long lastCommandCheck = 0;
+const unsigned long SEND_INTERVAL = 10000; // Send data every 10 seconds
+const unsigned long COMMAND_CHECK_INTERVAL = 5000; // Check for commands every 5 seconds
 
 void setup() {
   Serial.begin(115200);
   arduinoSerial.begin(9600);
   
-  systemInfo.startTime = millis();
-  
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH); // LED off initially (inverted)
+  digitalWrite(LED_BUILTIN, HIGH); // LED off initially
   
-  Serial.println();
-  Serial.println("=== Crayfish Monitoring - NodeMCU ESP8266 (UPDATED) ===");
-  Serial.print("Chip ID: ");
-  Serial.println(ESP.getChipId(), HEX);
-  Serial.print("Flash Size: ");
-  Serial.println(ESP.getFlashChipSize());
-  Serial.print("Free Heap: ");
-  Serial.println(ESP.getFreeHeap());
-  Serial.println("Node.js Server URL: " + String(NODE_SERVER_URL));
+  Serial.println("=== Crayfish Monitoring - NodeMCU to Supabase ===");
   
   // Connect to WiFi
   connectToWiFi();
   
-  // Test connection to Node.js server
-  testNodeServerConnection();
+  // Initialize NTP client
+  timeClient.begin();
   
-  // Setup mDNS
-  if (MDNS.begin(DEVICE_NAME)) {
-    Serial.printf("mDNS started: http://%s.local\n", DEVICE_NAME);
-    MDNS.addService("http", "tcp", WEB_SERVER_PORT);
-  }
-  
-  // Setup web server routes
-  setupWebServer();
-  
-  // Start web server
-  server.begin();
-  
-  Serial.println("=== System Ready ===");
-  Serial.printf("Local Web interface: http://%s\n", WiFi.localIP().toString().c_str());
-  Serial.printf("Local mDNS access: http://%s.local\n", DEVICE_NAME);
-  Serial.println("Data forwarding to Node.js server: " + String(NODE_SERVER_URL));
-  Serial.println("Waiting for Arduino data...");
+  // Get user ID from local storage or authentication
+  // In a real implementation, you would authenticate and get the user ID
+  // For now, we'll use a placeholder
+  USER_ID = "00000000-0000-0000-0000-000000000000"; // Replace with actual user ID
   
   // Signal ready
   blinkLED(3, 200);
 }
 
 void loop() {
-  // Handle web server
-  server.handleClient();
-  MDNS.update();
-  
   // Handle Arduino communication
   handleArduinoData();
   
-  // Send heartbeat to Arduino
-  if (millis() - lastHeartbeat > HEARTBEAT_INTERVAL) {
-    sendHeartbeatToArduino();
-    lastHeartbeat = millis();
+  // Send data to Supabase at intervals
+  if (millis() - lastDataSend > SEND_INTERVAL && currentData.valid) {
+    sendDataToSupabase();
+    lastDataSend = millis();
   }
   
-  // Check for data timeout
-  checkDataTimeout();
-  
-  // Update historical data
-  updateHistoricalData();
-  
-  // Test Node.js server connection periodically
-  if (millis() - lastServerRetry > SERVER_RETRY_INTERVAL) {
-    if (!systemInfo.nodeServerConnected) {
-      testNodeServerConnection();
-    }
-    lastServerRetry = millis();
+  // Check for commands from Supabase
+  if (millis() - lastCommandCheck > COMMAND_CHECK_INTERVAL) {
+    checkForCommands();
+    lastCommandCheck = millis();
   }
   
-  // Update connection status LED
-  updateStatusLED();
+  // Update time
+  timeClient.update();
   
   // Yield to prevent watchdog reset
   yield();
@@ -165,7 +102,6 @@ void connectToWiFi() {
   Serial.println(WIFI_SSID);
   
   WiFi.mode(WIFI_STA);
-  WiFi.hostname(DEVICE_NAME);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   
   int attempts = 0;
@@ -181,14 +117,10 @@ void connectToWiFi() {
     Serial.println("WiFi connected successfully!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
-    Serial.print("Signal Strength: ");
-    Serial.print(WiFi.RSSI());
-    Serial.println(" dBm");
     digitalWrite(LED_BUILTIN, HIGH); // Turn off LED
   } else {
     Serial.println();
     Serial.println("WiFi connection failed!");
-    Serial.println("Please check your credentials and try again.");
     
     // Flash LED to indicate error
     while (true) {
@@ -200,46 +132,6 @@ void connectToWiFi() {
   }
 }
 
-void testNodeServerConnection() {
-  if (WiFi.status() != WL_CONNECTED) {
-    systemInfo.nodeServerConnected = false;
-    return;
-  }
-  
-  Serial.println("Testing Node.js server connection...");
-  
-  WiFiClient client;
-  HTTPClient http;
-  
-  // Test with a simple GET request to /api/status
-  String testURL = String(NODE_SERVER_URL);
-  testURL.replace("/api/data", "/api/status");
-  
-  http.begin(client, testURL);
-  http.setTimeout(5000); // 5 second timeout
-  
-  int httpCode = http.GET();
-  
-  if (httpCode > 0) {
-    Serial.printf("Node.js server responded with code: %d\n", httpCode);
-    if (httpCode == HTTP_CODE_OK) {
-      systemInfo.nodeServerConnected = true;
-      systemInfo.lastServerResponse = "Connection OK";
-      Serial.println("✓ Node.js server connection successful!");
-    } else {
-      systemInfo.nodeServerConnected = false;
-      systemInfo.lastError = "Server responded with error code: " + String(httpCode);
-    }
-  } else {
-    systemInfo.nodeServerConnected = false;
-    systemInfo.lastError = "Cannot reach Node.js server: " + String(http.errorToString(httpCode));
-    Serial.println("✗ Node.js server connection failed: " + String(http.errorToString(httpCode)));
-    Serial.println("Check if Node.js server is running and URL is correct");
-  }
-  
-  http.end();
-}
-
 void handleArduinoData() {
   if (arduinoSerial.available()) {
     String receivedLine = arduinoSerial.readStringUntil('\n');
@@ -248,35 +140,16 @@ void handleArduinoData() {
     Serial.print("Arduino: ");
     Serial.println(receivedLine);
     
-    systemInfo.lastArduinoHeartbeat = millis();
-    systemInfo.arduinoConnected = true;
-    
     if (receivedLine.startsWith("DATA:")) {
       parseArduinoData(receivedLine.substring(5)); // Remove "DATA:" prefix
-      systemInfo.dataPacketsReceived++;
-      
-    } else if (receivedLine.startsWith("STATUS:")) {
-      parseArduinoStatus(receivedLine.substring(7)); // Remove "STATUS:" prefix
-      
-    } else if (receivedLine.startsWith("CALIBRATING:")) {
-      Serial.println("Calibration status: " + receivedLine.substring(12));
-      
-    } else if (receivedLine.startsWith("RESETTING:")) {
-      Serial.println("Reset status: " + receivedLine.substring(10));
-      
     } else if (receivedLine == "PONG") {
       // Heartbeat response - Arduino is alive
-      systemInfo.arduinoConnected = true;
-      
-    } else if (receivedLine.startsWith("ERROR:")) {
-      systemInfo.lastError = receivedLine.substring(6);
-      Serial.println("Arduino Error: " + systemInfo.lastError);
     }
   }
 }
 
 void parseArduinoData(String jsonData) {
-  // Simple JSON parsing (basic implementation for ESP8266)
+  // Simple JSON parsing
   String cleanData = jsonData;
   cleanData.replace("{", "");
   cleanData.replace("}", "");
@@ -285,7 +158,7 @@ void parseArduinoData(String jsonData) {
   // Parse temperature
   int tempIndex = cleanData.indexOf("temperature:");
   if (tempIndex != -1) {
-    int startIndex = tempIndex + 12; // length of "temperature:"
+    int startIndex = tempIndex + 12;
     int endIndex = cleanData.indexOf(",", startIndex);
     if (endIndex == -1) endIndex = cleanData.length();
     
@@ -296,7 +169,7 @@ void parseArduinoData(String jsonData) {
   // Parse pH
   int phIndex = cleanData.indexOf("ph:");
   if (phIndex != -1) {
-    int startIndex = phIndex + 3; // length of "ph:"
+    int startIndex = phIndex + 3;
     int endIndex = cleanData.indexOf(",", startIndex);
     if (endIndex == -1) endIndex = cleanData.length();
     
@@ -307,7 +180,7 @@ void parseArduinoData(String jsonData) {
   // Parse status
   int statusIndex = cleanData.indexOf("status:");
   if (statusIndex != -1) {
-    int startIndex = statusIndex + 7; // length of "status:"
+    int startIndex = statusIndex + 7;
     int endIndex = cleanData.indexOf(",", startIndex);
     if (endIndex == -1) endIndex = cleanData.length();
     
@@ -317,7 +190,7 @@ void parseArduinoData(String jsonData) {
   // Parse errors
   int errorsIndex = cleanData.indexOf("errors:");
   if (errorsIndex != -1) {
-    int startIndex = errorsIndex + 7; // length of "errors:"
+    int startIndex = errorsIndex + 7;
     int endIndex = cleanData.indexOf(",", startIndex);
     if (endIndex == -1) endIndex = cleanData.length();
     
@@ -325,528 +198,173 @@ void parseArduinoData(String jsonData) {
     currentData.errors = errorsStr.toInt();
   }
   
+  // Parse sensor status
+  int tempSensorIndex = cleanData.indexOf("temp_sensor_ok:");
+  if (tempSensorIndex != -1) {
+    String tempSensorStatus = cleanData.substring(tempSensorIndex + 15);
+    tempSensorStatus = tempSensorStatus.substring(0, tempSensorStatus.indexOf(","));
+    currentData.temp_sensor_ok = (tempSensorStatus == "true");
+  }
+  
+  int phSensorIndex = cleanData.indexOf("ph_sensor_ok:");
+  if (phSensorIndex != -1) {
+    String phSensorStatus = cleanData.substring(phSensorIndex + 13);
+    phSensorStatus = phSensorStatus.substring(0, phSensorStatus.indexOf(","));
+    currentData.ph_sensor_ok = (phSensorStatus == "true");
+  }
+  
   // Update metadata
-  currentData.timestamp = millis();
-  currentData.lastUpdate = millis();
+  currentData.timestamp = timeClient.getEpochTime();
   currentData.valid = true;
   
   Serial.printf("Parsed - Temp: %.2f°C, pH: %.2f, Status: %s, Errors: %d\n",
                 currentData.temperature, currentData.ph, 
                 currentData.status.c_str(), currentData.errors);
-  
-  // **CRITICAL: Forward data to Node.js server**
-  forwardDataToNodeServer();
 }
 
-void forwardDataToNodeServer() {
+void sendDataToSupabase() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi not connected, cannot forward data");
+    Serial.println("WiFi not connected, cannot send data");
     return;
   }
   
-  systemInfo.forwardingAttempts++;
+  // Create JSON document
+  DynamicJsonDocument doc(1024);
   
+  // Create sensor reading object
+  JsonObject reading = doc.createNestedObject("sensor_reading");
+  
+  reading["user_id"] = USER_ID;
+  reading["temperature"] = currentData.temperature;
+  reading["ph"] = currentData.ph;
+  reading["population"] = 15; // Default value
+  reading["health_status"] = calculateHealthScore();
+  reading["avg_weight"] = 5.0; // Default value
+  reading["days_to_harvest"] = 120; // Default value
+  
+  // Serialize JSON to string
+  String jsonString;
+  serializeJson(doc, jsonString);
+  
+  // Create HTTP client
   WiFiClient client;
   HTTPClient http;
   
-  http.begin(client, NODE_SERVER_URL);
+  // Set headers
+  http.begin(client, String(SUPABASE_URL) + "/rest/v1/sensor_readings");
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(5000); // 5 second timeout
+  http.addHeader("apikey", SUPABASE_ANON_KEY);
+  http.addHeader("Prefer", "return=minimal");
   
-  // Create JSON payload for Node.js server
-  String payload = "{";
-  payload += "\"temperature\":" + String(currentData.temperature, 2) + ",";
-  payload += "\"ph\":" + String(currentData.ph, 2) + ",";
-  payload += "\"timestamp\":" + String(currentData.timestamp) + ",";
-  payload += "\"status\":\"" + currentData.status + "\",";
-  payload += "\"errors\":" + String(currentData.errors) + ",";
-  payload += "\"source\":\"nodemcu\",";
-  payload += "\"device_id\":\"" + String(ESP.getChipId(), HEX) + "\"";
-  payload += "}";
+  Serial.print("Sending to Supabase: ");
+  Serial.println(jsonString);
   
-  Serial.println("Forwarding to Node.js server: " + payload);
-  
-  int httpResponseCode = http.POST(payload);
+  // Send POST request
+  int httpResponseCode = http.POST(jsonString);
   
   if (httpResponseCode > 0) {
-    systemInfo.forwardingSuccesses++;
-    systemInfo.nodeServerConnected = true;
-    systemInfo.lastServerForward = millis();
-    
     String response = http.getString();
-    systemInfo.lastServerResponse = response;
+    Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+    Serial.println("Response: " + response);
     
-    Serial.printf("✓ Server response code: %d\n", httpResponseCode);
-    Serial.println("Server response: " + response);
-    
-    if (httpResponseCode == HTTP_CODE_OK) {
-      Serial.println("Data successfully forwarded to Node.js server");
+    if (httpResponseCode == 201) {
+      Serial.println("Data successfully sent to Supabase");
+      blinkLED(1, 100); // Success indicator
     }
   } else {
-    systemInfo.forwardingFailures++;
-    systemInfo.nodeServerConnected = false;
-    String error = http.errorToString(httpResponseCode);
-    systemInfo.lastError = "HTTP Error: " + error;
-    
-    Serial.printf("✗ Error forwarding data: %s\n", error.c_str());
-    Serial.println("Check Node.js server status and URL configuration");
+    Serial.printf("Error on sending POST: %s\n", http.errorToString(httpResponseCode).c_str());
+    blinkLED(3, 200); // Error indicator
   }
   
   http.end();
 }
 
-void parseArduinoStatus(String statusData) {
-  // Handle status information from Arduino
-  Serial.println("Arduino Status: " + statusData);
-}
-
-void sendHeartbeatToArduino() {
-  arduinoSerial.println("PING");
-}
-
-void checkDataTimeout() {
-  if (currentData.valid && (millis() - currentData.lastUpdate > DATA_TIMEOUT)) {
-    Serial.println("WARNING: Arduino data timeout!");
-    currentData.valid = false;
-    currentData.status = "timeout";
-    systemInfo.arduinoConnected = false;
-  }
+void checkForCommands() {
+  if (WiFi.status() != WL_CONNECTED) return;
   
-  // Check Arduino connection timeout
-  if (millis() - systemInfo.lastArduinoHeartbeat > (DATA_TIMEOUT * 2)) {
-    systemInfo.arduinoConnected = false;
-  }
-}
-
-void updateHistoricalData() {
-  if (millis() - lastHistoryUpdate > HISTORY_INTERVAL && currentData.valid) {
-    // Store current data in history
-    dataHistory[historyIndex] = currentData;
-    historyIndex = (historyIndex + 1) % 60;
-    if (historyCount < 60) historyCount++;
-    
-    lastHistoryUpdate = millis();
-    
-    Serial.printf("Stored data point %d in history\n", historyCount);
-  }
-}
-
-void updateStatusLED() {
-  static unsigned long lastLEDUpdate = 0;
-  static bool ledState = false;
+  WiFiClient client;
+  HTTPClient http;
   
-  if (millis() - lastLEDUpdate > 1000) { // Update every second
-    if (WiFi.status() != WL_CONNECTED) {
-      // Fast blink - WiFi disconnected
-      ledState = !ledState;
-      digitalWrite(LED_BUILTIN, ledState ? LOW : HIGH);
-    } else if (!systemInfo.arduinoConnected) {
-      // Slow blink - Arduino disconnected
-      if (millis() - lastLEDUpdate > 2000) {
-        ledState = !ledState;
-        digitalWrite(LED_BUILTIN, ledState ? LOW : HIGH);
-        lastLEDUpdate = millis();
-      }
-    } else if (!systemInfo.nodeServerConnected) {
-      // Medium blink - Node.js server disconnected
-      if (millis() - lastLEDUpdate > 1500) {
-        ledState = !ledState;
-        digitalWrite(LED_BUILTIN, ledState ? LOW : HIGH);
-        lastLEDUpdate = millis();
-      }
-    } else if (currentData.valid) {
-      // Solid off - everything working
-      digitalWrite(LED_BUILTIN, HIGH);
-    } else {
-      // Medium blink - data issues
-      if (millis() - lastLEDUpdate > 500) {
-        ledState = !ledState;
-        digitalWrite(LED_BUILTIN, ledState ? LOW : HIGH);
-        lastLEDUpdate = millis();
-      }
-    }
+  // Get pending commands for this device
+  String url = String(SUPABASE_URL) + "/rest/v1/device_commands?user_id=eq." + USER_ID + "&status=eq.pending&limit=1";
+  http.begin(client, url);
+  http.addHeader("apikey", SUPABASE_ANON_KEY);
+  
+  int httpResponseCode = http.GET();
+  
+  if (httpResponseCode == 200) {
+    String response = http.getString();
     
-    if (WiFi.status() == WL_CONNECTED && (systemInfo.arduinoConnected || currentData.valid)) {
-      lastLEDUpdate = millis();
+    // Parse JSON response
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, response);
+    
+    if (doc.size() > 0) {
+      String command = doc[0]["command"];
+      String commandId = doc[0]["id"];
+      
+      Serial.print("Received command: ");
+      Serial.println(command);
+      
+      // Execute command
+      if (command == "feed") {
+        arduinoSerial.println("FEED_NOW");
+      } else if (command == "change_water") {
+        arduinoSerial.println("CHANGE_WATER");
+      } else if (command == "test_water") {
+        arduinoSerial.println("TEST_WATER");
+      } else if (command == "test_connection") {
+        // Just acknowledge the test
+        Serial.println("Connection test received");
+      }
+      
+      // Mark command as processed
+      markCommandProcessed(commandId);
     }
   }
+  
+  http.end();
 }
 
-void setupWebServer() {
-  // Enable CORS for all routes
-  server.onNotFound([]() {
-    if (server.method() == HTTP_OPTIONS) {
-      server.sendHeader("Access-Control-Allow-Origin", "*");
-      server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-      server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
-      server.send(200, "text/plain", "");
-    } else {
-      handleNotFound();
-    }
-  });
+void markCommandProcessed(String commandId) {
+  WiFiClient client;
+  HTTPClient http;
   
-  // API Routes
-  server.on("/api/current", HTTP_GET, handleCurrentData);
-  server.on("/api/history", HTTP_GET, handleHistoryData);
-  server.on("/api/status", HTTP_GET, handleSystemStatus);
-  server.on("/api/calibrate", HTTP_POST, handleCalibration);
-  server.on("/api/reset", HTTP_POST, handleReset);
-  server.on("/api/test-server", HTTP_GET, handleTestServer);
+  String url = String(SUPABASE_URL) + "/rest/v1/device_commands?id=eq." + commandId;
+  http.begin(client, url);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("apikey", SUPABASE_ANON_KEY);
+  http.addHeader("Prefer", "return=minimal");
   
-  // Root route - Basic web interface
-  server.on("/", HTTP_GET, handleRoot);
-  
-  Serial.println("Web server routes configured");
+  String payload = "{\"status\":\"processed\",\"processed_at\":\"" + timeClient.getFormattedTime() + "\"}";
+  http.PATCH(payload);
+  http.end();
 }
 
-void handleTestServer() {
-  systemInfo.requestCount++;
+int calculateHealthScore() {
+  int score = 100;
   
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Content-Type", "application/json");
-  
-  testNodeServerConnection();
-  
-  String json = "{";
-  json += "\"node_server_connected\":" + String(systemInfo.nodeServerConnected ? "true" : "false") + ",";
-  json += "\"server_url\":\"" + String(NODE_SERVER_URL) + "\",";
-  json += "\"forwarding_attempts\":" + String(systemInfo.forwardingAttempts) + ",";
-  json += "\"forwarding_successes\":" + String(systemInfo.forwardingSuccesses) + ",";
-  json += "\"forwarding_failures\":" + String(systemInfo.forwardingFailures) + ",";
-  json += "\"last_error\":\"" + systemInfo.lastError + "\",";
-  json += "\"last_response\":\"" + systemInfo.lastServerResponse + "\"";
-  json += "}";
-  
-  server.send(200, "application/json", json);
-}
-
-void handleCurrentData() {
-  systemInfo.requestCount++;
-  
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Content-Type", "application/json");
-  server.sendHeader("Cache-Control", "no-cache");
-  
-  String json = "{";
-  json += "\"temperature\":" + String(currentData.temperature, 2) + ",";
-  json += "\"ph\":" + String(currentData.ph, 2) + ",";
-  json += "\"timestamp\":" + String(currentData.timestamp) + ",";
-  json += "\"status\":\"" + currentData.status + "\",";
-  json += "\"valid\":" + String(currentData.valid ? "true" : "false") + ",";
-  json += "\"errors\":" + String(currentData.errors) + ",";
-  json += "\"wifi_rssi\":" + String(WiFi.RSSI()) + ",";
-  json += "\"uptime\":" + String(millis()) + ",";
-  json += "\"free_heap\":" + String(ESP.getFreeHeap()) + ",";
-  json += "\"arduino_connected\":" + String(systemInfo.arduinoConnected ? "true" : "false") + ",";
-  json += "\"node_server_connected\":" + String(systemInfo.nodeServerConnected ? "true" : "false");
-  json += "}";
-  
-  server.send(200, "application/json", json);
-}
-
-void handleHistoryData() {
-  systemInfo.requestCount++;
-  
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Content-Type", "application/json");
-  
-  String json = "[";
-  
-  for (int i = 0; i < historyCount; i++) {
-    int index = (historyIndex - historyCount + i + 60) % 60;
-    
-    if (i > 0) json += ",";
-    json += "{";
-    json += "\"temperature\":" + String(dataHistory[index].temperature, 2) + ",";
-    json += "\"ph\":" + String(dataHistory[index].ph, 2) + ",";
-    json += "\"timestamp\":" + String(dataHistory[index].timestamp);
-    json += "}";
+  // Temperature health
+  if (currentData.temperature < 18 || currentData.temperature > 24) {
+    score -= 20;
+  }
+  if (currentData.temperature < 16 || currentData.temperature > 26) {
+    score -= 30;
   }
   
-  json += "]";
-  server.send(200, "application/json", json);
-}
-
-void handleSystemStatus() {
-  systemInfo.requestCount++;
+  // pH health
+  if (currentData.ph < 6.5 || currentData.ph > 8.5) {
+    score -= 20;
+  }
+  if (currentData.ph < 6.0 || currentData.ph > 9.0) {
+    score -= 30;
+  }
   
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Content-Type", "application/json");
+  // Sensor status
+  if (!currentData.temp_sensor_ok) score -= 25;
+  if (!currentData.ph_sensor_ok) score -= 25;
   
-  String json = "{";
-  json += "\"system_status\":\"running\",";
-  json += "\"wifi_connected\":" + String(WiFi.status() == WL_CONNECTED ? "true" : "false") + ",";
-  json += "\"ip_address\":\"" + WiFi.localIP().toString() + "\",";
-  json += "\"rssi\":" + String(WiFi.RSSI()) + ",";
-  json += "\"uptime\":" + String(millis() - systemInfo.startTime) + ",";
-  json += "\"free_heap\":" + String(ESP.getFreeHeap()) + ",";
-  json += "\"data_points\":" + String(historyCount) + ",";
-  json += "\"client_requests\":" + String(systemInfo.requestCount) + ",";
-  json += "\"arduino_connected\":" + String(systemInfo.arduinoConnected ? "true" : "false") + ",";
-  json += "\"node_server_connected\":" + String(systemInfo.nodeServerConnected ? "true" : "false") + ",";
-  json += "\"data_packets_received\":" + String(systemInfo.dataPacketsReceived) + ",";
-  json += "\"forwarding_attempts\":" + String(systemInfo.forwardingAttempts) + ",";
-  json += "\"forwarding_successes\":" + String(systemInfo.forwardingSuccesses) + ",";
-  json += "\"forwarding_failures\":" + String(systemInfo.forwardingFailures) + ",";
-  json += "\"last_error\":\"" + systemInfo.lastError + "\"";
-  json += "}";
-  
-  server.send(200, "application/json", json);
-}
-
-void handleCalibration() {
-  systemInfo.requestCount++;
-  
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Content-Type", "application/json");
-  
-  // Send calibration command to Arduino
-  arduinoSerial.println("CALIBRATE_PH");
-  Serial.println("pH calibration command sent to Arduino");
-  
-  String json = "{";
-  json += "\"status\":\"calibration_started\",";
-  json += "\"message\":\"pH calibration command sent to Arduino\"";
-  json += "}";
-  
-  server.send(200, "application/json", json);
-}
-
-void handleReset() {
-  systemInfo.requestCount++;
-  
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Content-Type", "application/json");
-  
-  // Send reset command to Arduino
-  arduinoSerial.println("RESET");
-  Serial.println("Reset command sent to Arduino");
-  
-  // Reset our own data
-  currentData.valid = false;
-  currentData.status = "resetting";
-  systemInfo.lastError = "";
-  
-  String json = "{";
-  json += "\"status\":\"reset_initiated\",";
-  json += "\"message\":\"Reset command sent to Arduino\"";
-  json += "}";
-  
-  server.send(200, "application/json", json);
-}
-
-void handleRoot() {
-  systemInfo.requestCount++;
-
-  String html = R"rawliteral(
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crayfish Monitor - NodeMCU Interface</title>
-    <style>
-        /* Your CSS here */
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Crayfish Monitor - NodeMCU</h1>
-            <div class="subtitle">Data Gateway & Local Interface</div>
-        </div>
-        
-        <div class="sensor-grid">
-            <div class="sensor-card">
-                <div class="sensor-title">Water Temperature</div>
-                <div class="sensor-value temp-value" id="temperature">--°C</div>
-                <div>Range: 18-24°C optimal</div>
-            </div>
-            
-            <div class="sensor-card">
-                <div class="sensor-title">pH Level</div>
-                <div class="sensor-value ph-value" id="ph">--</div>
-                <div>Range: 6.5-8.5 optimal</div>
-            </div>
-            
-            <div class="status-card" id="status">
-                <div>Loading system status...</div>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <button class="btn-primary" onclick="calibratePH()">Calibrate pH</button>
-            <button class="btn-secondary" onclick="resetSensors()">Reset System</button>
-            <button class="btn-info" onclick="testServer()">Test Server</button>
-        </div>
-        
-        <div class="info-section">
-            <h3>System Information</h3>
-            <div class="info-grid" id="systemInfo">
-                <div class="info-item"><span>Arduino:</span><span id="arduinoStatus">Loading...</span></div>
-                <div class="info-item"><span>Node.js Server:</span><span id="serverStatus">Loading...</span></div>
-                <div class="info-item"><span>WiFi Signal:</span><span id="wifiSignal">--</span></div>
-                <div class="info-item"><span>Free Memory:</span><span id="freeHeap">--</span></div>
-                <div class="info-item"><span>Uptime:</span><span id="uptime">--</span></div>
-                <div class="info-item"><span>Data Points:</span><span id="dataPoints">--</span></div>
-                <div class="info-item"><span>Forward Success:</span><span id="forwardSuccess">--</span></div>
-                <div class="info-item"><span>Forward Failures:</span><span id="forwardFailures">--</span></div>
-            </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 20px; color: #666; font-size: 0.9em;">
-            <p><strong>NodeMCU Gateway Status</strong></p>
-            <p>Server URL: )rawliteral" + String(NODE_SERVER_URL) + R"rawliteral(</p>
-            <p>Device IP: )rawliteral" + WiFi.localIP().toString() + R"rawliteral( | Chip ID: )rawliteral" + String(ESP.getChipId(), HEX) + R"rawliteral(</p>
-        </div>
-    </div>
-
-    <script>
-        let updateInterval;
-
-        function updateData() {
-            fetch("/api/current")
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("temperature").textContent =
-                        data.temperature ? data.temperature.toFixed(1) + "°C" : "--°C";
-                    document.getElementById("ph").textContent =
-                        data.ph ? data.ph.toFixed(2) : "--";
-
-                    updateStatus(data);
-                })
-                .catch(error => {
-                    console.error("Error fetching data:", error);
-                    updateStatus({valid: false, status: "error"});
-                });
-
-            fetch("/api/status")
-                .then(response => response.json())
-                .then(data => {
-                    updateSystemInfo(data);
-                })
-                .catch(error => console.error("Error fetching status:", error));
-        }
-
-        function updateStatus(data) {
-            const statusEl = document.getElementById("status");
-
-            if (data.valid && data.status === "ok" && data.arduino_connected && data.node_server_connected) {
-                statusEl.className = "status-card status-good";
-                statusEl.innerHTML = "<div>All Systems Normal - Data Forwarding</div>";
-            } else if (data.valid && data.arduino_connected && !data.node_server_connected) {
-                statusEl.className = "status-card status-warning";
-                statusEl.innerHTML = "<div>Arduino OK - Server Connection Failed</div>";
-            } else if (!data.arduino_connected) {
-                statusEl.className = "status-card status-error";
-                statusEl.innerHTML = "<div>Arduino Disconnected</div>";
-            } else {
-                statusEl.className = "status-card status-error";
-                statusEl.innerHTML = "<div>System Issues</div>";
-            }
-        }
-
-        function updateSystemInfo(data) {
-            document.getElementById("arduinoStatus").textContent =
-                data.arduino_connected ? "Connected" : "Disconnected";
-            document.getElementById("serverStatus").textContent =
-                data.node_server_connected ? "Connected" : "Disconnected";
-            document.getElementById("uptime").textContent =
-                Math.floor(data.uptime / 1000 / 60) + " minutes";
-            document.getElementById("wifiSignal").textContent = data.rssi + " dBm";
-            document.getElementById("freeHeap").textContent =
-                Math.floor(data.free_heap / 1024) + " KB";
-            document.getElementById("dataPoints").textContent = data.data_points;
-            document.getElementById("forwardSuccess").textContent = data.forwarding_successes || "0";
-            document.getElementById("forwardFailures").textContent = data.forwarding_failures || "0";
-        }
-
-        function calibratePH() {
-            if (confirm("Start pH sensor calibration? Have buffer solutions ready (pH 4.0, 7.0, 10.0).")) {
-                fetch("/api/calibrate", { method: "POST" })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert("pH calibration started. Check Arduino serial monitor for instructions.");
-                    })
-                    .catch(error => {
-                        alert("Error starting calibration: " + error);
-                    });
-            }
-        }
-
-        function resetSensors() {
-            if (confirm("Reset all sensors? This will restart the monitoring system.")) {
-                fetch("/api/reset", { method: "POST" })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert("System reset initiated. Sensors will restart in a few seconds.");
-                    })
-                    .catch(error => {
-                        alert("Error resetting system: " + error);
-                    });
-            }
-        }
-
-        function testServer() {
-            fetch("/api/test-server")
-                .then(response => response.json())
-                .then(data => {
-                    let message = "Node.js Server Connection Test:\n\n";
-                    message += "Status: " + (data.node_server_connected ? "Connected" : "Failed") + "\n";
-                    message += "Server URL: " + data.server_url + "\n";
-                    message += "Forward Attempts: " + data.forwarding_attempts + "\n";
-                    message += "Successes: " + data.forwarding_successes + "\n";
-                    message += "Failures: " + data.forwarding_failures + "\n";
-                    if (data.last_error) {
-                        message += "Last Error: " + data.last_error + "\n";
-                    }
-                    if (data.last_response) {
-                        message += "Last Response: " + data.last_response;
-                    }
-                    alert(message);
-                })
-                .catch(error => {
-                    alert("Error testing server connection: " + error);
-                });
-        }
-
-        // Start updating data
-        updateData();
-        updateInterval = setInterval(updateData, 2000); // Update every 2 seconds
-
-        // Handle page visibility changes
-        document.addEventListener("visibilitychange", function() {
-            if (document.hidden) {
-                clearInterval(updateInterval);
-            } else {
-                updateData();
-                updateInterval = setInterval(updateData, 2000);
-            }
-        });
-    </script>
-</body>
-</html>
-)rawliteral";
-
-  server.send(200, "text/html", html);
-}
-
-
-void handleNotFound() {
-  systemInfo.requestCount++;
-  
-  String message = "NodeMCU API Endpoint Not Found\n\n";
-  message += "Available endpoints:\n";
-  message += "GET  /api/current     - Current sensor data\n";
-  message += "GET  /api/history     - Historical data\n";
-  message += "GET  /api/status      - System status\n";
-  message += "GET  /api/test-server - Test Node.js server connection\n";
-  message += "POST /api/calibrate   - Start pH calibration\n";
-  message += "POST /api/reset       - Reset sensors\n";
-  message += "GET  /                - NodeMCU web interface\n";
-  message += "\nNode.js Server URL: " + String(NODE_SERVER_URL) + "\n";
-  
-  server.send(404, "text/plain", message);
+  return max(0, score);
 }
 
 void blinkLED(int times, int delayMs) {

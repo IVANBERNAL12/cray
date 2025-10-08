@@ -1,12 +1,7 @@
 /*
- * Crayfish Monitoring System - Arduino Mega 2560 Sensors (FIXED)
+ * Crayfish Monitoring System - Arduino Mega 2560 Sensors
  * Reads DS18B20 temperature and pH sensors, sends data to NodeMCU ESP8266
  * File: arduino_mega_sensors.ino
- * 
- * Wiring:
- * DS18B20: VCC->5V, GND->GND, Data->Pin 2 (with 4.7k pull-up to 5V)
- * pH Sensor: VCC->5V, GND->GND, Signal->A0
- * NodeMCU: TX(Pin 14)->ESP RX(D6), RX(Pin 15)->ESP TX(D7)
  */
 
 #include <OneWire.h>
@@ -25,7 +20,7 @@
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
-// FIXED: pH calibration constants - adjust these for your sensor!
+// pH calibration constants
 const float PH_NEUTRAL = 7.0;
 const float PH_4_VOLTAGE = 3.32;   // Typical voltage at pH 4.0
 const float PH_7_VOLTAGE = 2.50;   // Typical voltage at pH 7.0  
@@ -38,8 +33,8 @@ const unsigned long SENSOR_INTERVAL = 2000;    // Read sensors every 2 seconds
 const unsigned long SEND_INTERVAL = 5000;      // Send data every 5 seconds
 
 // Data variables
-float currentTemperature = -999.0;  // FIXED: Use invalid default
-float currentPH = -1.0;            // FIXED: Use invalid default  
+float currentTemperature = -999.0;
+float currentPH = -1.0;
 bool sensorsInitialized = false;
 int errorCount = 0;
 bool temperatureSensorWorking = false;
@@ -67,7 +62,7 @@ void setup() {
   // Initialize built-in LED for status indication
   pinMode(LED_BUILTIN, OUTPUT);
   
-  Serial.println(F("=== Crayfish Monitoring System - Arduino Mega (FIXED) ==="));
+  Serial.println(F("=== Crayfish Monitoring System - Arduino Mega ==="));
   Serial.println(F("Initializing sensors..."));
   
   // Initialize temperature sensor
@@ -82,7 +77,6 @@ void setup() {
     temperatureSensorWorking = true;
   } else {
     Serial.println(F("ERROR: No DS18B20 temperature sensors found!"));
-    Serial.println(F("Check wiring: VCC->5V, GND->GND, Data->Pin 2, 4.7k pull-up"));
     temperatureSensorWorking = false;
   }
   
@@ -95,7 +89,6 @@ void setup() {
     phSensorWorking = true;
   } else {
     Serial.println(F("ERROR: pH sensor not responding!"));
-    Serial.println(F("Check wiring: VCC->5V, GND->GND, Signal->A0"));
     phSensorWorking = false;
   }
   
@@ -152,6 +145,9 @@ void loop() {
   if (Serial.available()) {
     handleDebugCommands();
   }
+  
+  // Yield to prevent watchdog reset
+  yield();
 }
 
 void readSensors() {
@@ -197,7 +193,6 @@ void readTemperature() {
   
   float tempC = sensors.getTempCByIndex(0);
   
-  // FIXED: Better validation
   if (tempC != DEVICE_DISCONNECTED_C && tempC > -10 && tempC < 50) {
     // Valid reading - add to smoothing array
     tempReadings[tempIndex] = tempC;
@@ -223,7 +218,6 @@ void readTemperature() {
     Serial.println(tempC);
     errorCount++;
     
-    // FIXED: Don't use invalid readings
     if (errorCount > 10) {
       Serial.println(F("CRITICAL: Temperature sensor completely failed!"));
       temperatureSensorWorking = false;
@@ -239,21 +233,21 @@ void readPH() {
   
   for (int i = 0; i < 20; i++) {
     int reading = analogRead(PH_PIN);
-    if (reading > 50 && reading < 974) { // FIXED: Better range check
+    if (reading > 50 && reading < 974) {
       sum += reading;
       validReadings++;
     }
     delay(10);
   }
   
-  if (validReadings > 10) { // FIXED: Require more valid readings
+  if (validReadings > 10) {
     float averageReading = sum / (float)validReadings;
     float voltage = averageReading * (5.0 / 1024.0);
     
-    // FIXED: Convert voltage to pH using calibration curve
-    float phValue = voltageToPH(voltage); // FIXED: Function name
+    // Convert voltage to pH using calibration curve
+    float phValue = voltageToPH(voltage);
     
-    // FIXED: Validate pH range more strictly
+    // Validate pH range more strictly
     if (phValue >= 3.0 && phValue <= 11.0) {
       // Add to smoothing array
       phReadings[phIndex] = phValue;
@@ -295,7 +289,6 @@ void readPH() {
   }
 }
 
-// FIXED: Correct function name
 float voltageToPH(float voltage) {
   // 3-point linear interpolation for pH calculation
   // Uses buffer solution calibration points
@@ -312,7 +305,7 @@ float voltageToPH(float voltage) {
 }
 
 void sendDataToESP() {
-  // FIXED: Only send valid data
+  // Only send valid data
   String dataString = "DATA:{";
   
   if (currentTemperature > -900) {
@@ -330,7 +323,7 @@ void sendDataToESP() {
   dataString += "\"timestamp\":" + String(millis()) + ",";
   dataString += "\"errors\":" + String(errorCount) + ",";
   
-  // FIXED: Better status determination
+  // Better status determination
   String status = "ok";
   if (!temperatureSensorWorking || !phSensorWorking) {
     status = "sensor_failure";
@@ -360,19 +353,20 @@ void handleESPCommands() {
   
   if (command == "PING") {
     ESP_SERIAL.println("PONG");
-    
+  } else if (command == "FEED_NOW") {
+    executeFeeding();
+  } else if (command == "CHANGE_WATER") {
+    executeWaterChange();
+  } else if (command == "TEST_WATER") {
+    executeWaterTest();
   } else if (command == "STATUS") {
     sendStatusToESP();
-    
   } else if (command == "CALIBRATE_PH") {
     calibratePH();
-    
   } else if (command == "RESET") {
     resetSystem();
-    
   } else if (command == "GET_DATA") {
     sendDataToESP();
-    
   } else {
     Serial.println(F("Unknown command received"));
     ESP_SERIAL.println("ERROR:Unknown command");
@@ -386,22 +380,48 @@ void handleDebugCommands() {
   
   if (command == "STATUS") {
     printSystemStatus();
-    
   } else if (command == "CALIBRATE") {
     calibratePH();
-    
   } else if (command == "RESET") {
     resetSystem();
-    
   } else if (command == "TEST") {
     runSensorTest();
-    
   } else if (command == "HELP") {
     printHelp();
-    
   } else {
     Serial.println(F("Unknown command. Type HELP for available commands."));
   }
+}
+
+void executeFeeding() {
+  Serial.println(F("Executing feeding command..."));
+  // Add your feeding mechanism code here
+  // For example: activate a servo or motor to dispense food
+  
+  // Send confirmation back to ESP
+  ESP_SERIAL.println("FEEDING_COMPLETE");
+  Serial.println(F("Feeding command executed"));
+}
+
+void executeWaterChange() {
+  Serial.println(F("Executing water change command..."));
+  // Add your water change mechanism code here
+  // For example: activate a pump to drain and refill water
+  
+  // Send confirmation back to ESP
+  ESP_SERIAL.println("WATER_CHANGE_COMPLETE");
+  Serial.println(F("Water change command executed"));
+}
+
+void executeWaterTest() {
+  Serial.println(F("Executing water test command..."));
+  // Read current sensor values and send them immediately
+  readSensors();
+  sendDataToESP();
+  
+  // Send confirmation back to ESP
+  ESP_SERIAL.println("WATER_TEST_COMPLETE");
+  Serial.println(F("Water test command executed"));
 }
 
 void sendStatusToESP() {
@@ -419,7 +439,7 @@ void sendStatusToESP() {
 }
 
 void calibratePH() {
-  Serial.println(F("\n=== pH SENSOR CALIBRATION (FIXED) ==="));
+  Serial.println(F("\n=== pH SENSOR CALIBRATION ==="));
   Serial.println(F("This process requires pH buffer solutions (4.0, 7.0, 10.0)"));
   Serial.println(F("Make sure sensor is clean and properly connected!"));
   Serial.println(F("Calibration starting in 5 seconds..."));
@@ -521,7 +541,7 @@ void cycleSensorPower(int pin) {
 }
 
 void runSensorTest() {
-  Serial.println(F("\n=== SENSOR TEST (FIXED) ==="));
+  Serial.println(F("\n=== SENSOR TEST ==="));
   
   // Test temperature sensor
   Serial.println(F("Testing temperature sensor..."));
@@ -639,18 +659,4 @@ int freeRam() {
   extern int __heap_start, *__brkval;
   int v;
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
-}
-
-// Watchdog timer simulation
-void checkWatchdog() {
-  static unsigned long lastWatchdog = 0;
-  
-  if (millis() - lastWatchdog > 30000) { // 30 seconds
-    if (temperatureSensorWorking && phSensorWorking) {
-      Serial.println(F("Watchdog: System running normally"));
-    } else {
-      Serial.println(F("Watchdog: SENSOR FAILURES DETECTED!"));
-    }
-    lastWatchdog = millis();
-  }
 }

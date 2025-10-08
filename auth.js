@@ -12,11 +12,15 @@ document.addEventListener('supabaseReady', function() {
             
             if (event === 'SIGNED_OUT') {
                 localStorage.removeItem('supabaseSession');
+                localStorage.removeItem('userId'); // Remove user ID on sign out
                 console.log('User signed out');
             } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 if (session) {
                     localStorage.setItem('supabaseSession', JSON.stringify(session));
+                    // Store user ID for ESP8266 to use
+                    localStorage.setItem('userId', session.user.id);
                     console.log('User signed in or token refreshed');
+                    console.log('User ID stored:', session.user.id);
                 }
             }
         });
@@ -107,6 +111,9 @@ async function signIn(email, password) {
         
         if (data.session) {
             localStorage.setItem('supabaseSession', JSON.stringify(data.session));
+            // Store user ID for ESP8266 to use
+            localStorage.setItem('userId', data.user.id);
+            console.log('User ID stored:', data.user.id);
         }
         
         return { success: true, data: data };
@@ -133,6 +140,7 @@ async function signOut() {
         }
         
         localStorage.removeItem('supabaseSession');
+        localStorage.removeItem('userId'); // Remove user ID on sign out
         console.log('Sign out successful');
         
         return { success: true };
@@ -163,7 +171,13 @@ async function checkAuth() {
             if (error || !data.user) {
                 console.log('Invalid session, removing it');
                 localStorage.removeItem('supabaseSession');
+                localStorage.removeItem('userId'); // Also remove user ID
                 return { authenticated: false };
+            }
+            
+            // Store user ID if not already stored
+            if (!localStorage.getItem('userId')) {
+                localStorage.setItem('userId', data.user.id);
             }
             
             console.log('User is authenticated:', data.user);
@@ -199,6 +213,40 @@ async function getCurrentUser() {
     }
 }
 
+// Get current user ID - NEW FUNCTION
+function getCurrentUserId() {
+    // Try to get from localStorage first
+    let userId = localStorage.getItem('userId');
+    
+    // If not in localStorage, try to get from current session
+    if (!userId && window.supabase && window.supabase.auth) {
+        const { data } = window.supabase.auth.getSession();
+        if (data.session) {
+            userId = data.session.user.id;
+            localStorage.setItem('userId', userId);
+        }
+    }
+    
+    console.log('Current user ID:', userId);
+    return userId;
+}
+
+// Display user ID for ESP8266 configuration - NEW FUNCTION
+function displayUserIdForESP() {
+    const userId = getCurrentUserId();
+    if (userId) {
+        console.log('========================================');
+        console.log('YOUR USER ID FOR ESP8266:');
+        console.log(userId);
+        console.log('========================================');
+        console.log('Copy this UUID and replace YOUR_USER_ID in the ESP8266 code');
+        return userId;
+    } else {
+        console.log('User not logged in. Please log in first.');
+        return null;
+    }
+}
+
 // Refresh session
 async function refreshSession() {
     try {
@@ -217,6 +265,8 @@ async function refreshSession() {
         
         if (data.session) {
             localStorage.setItem('supabaseSession', JSON.stringify(data.session));
+            // Update user ID if it changed
+            localStorage.setItem('userId', data.session.user.id);
         }
         
         return { success: true, session: data.session };
@@ -225,7 +275,6 @@ async function refreshSession() {
         return { success: false, message: error.message };
     }
 }
-
 
 // Show notification function
 function showNotification(title, message, type = 'info') {
@@ -274,3 +323,43 @@ function createAndShowNotification(title, message, type) {
         notificationToast.classList.remove('show');
     }, 5000);
 }
+
+// Add this to your dashboard.js to display the user ID
+document.addEventListener('DOMContentLoaded', function() {
+    // Add a button to display user ID for ESP8266 configuration
+    const settingsSection = document.getElementById('settings');
+    if (settingsSection) {
+        const userIdSection = document.createElement('div');
+        userIdSection.className = 'form-group';
+        userIdSection.innerHTML = `
+            <label for="user-id-display" class="form-label">User ID for ESP8266</label>
+            <div class="user-id-container">
+                <input type="text" id="user-id-display" class="form-control" readonly value="${getCurrentUserId() || 'Not logged in'}">
+                <button type="button" class="btn btn-secondary" id="copy-user-id">Copy</button>
+                <button type="button" class="btn btn-info" id="show-user-id">Show in Console</button>
+            </div>
+            <small class="form-text">Use this ID in your ESP8266 code to connect to your account</small>
+        `;
+        
+        // Find a good place to insert it (after farm name)
+        const farmNameGroup = document.querySelector('label[for="farm-name"]')?.parentElement;
+        if (farmNameGroup) {
+            farmNameGroup.parentNode.insertBefore(userIdSection, farmNameGroup.nextSibling);
+        } else {
+            settingsSection.appendChild(userIdSection);
+        }
+        
+        // Add event listeners
+        document.getElementById('copy-user-id').addEventListener('click', function() {
+            const userIdInput = document.getElementById('user-id-display');
+            userIdInput.select();
+            document.execCommand('copy');
+            showNotification('Copied', 'User ID copied to clipboard', 'success');
+        });
+        
+        document.getElementById('show-user-id').addEventListener('click', function() {
+            displayUserIdForESP();
+            showNotification('User ID', 'Check console for your user ID', 'info');
+        });
+    }
+});
