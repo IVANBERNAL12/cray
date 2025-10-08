@@ -3574,3 +3574,69 @@ footer {
         max-height: 95vh;
     }
 }
+
+/* Device Status Styles */
+.device-status-section {
+    margin-bottom: 2rem;
+}
+
+.device-status-card {
+    background: rgba(0, 31, 63, 0.8);
+    border-radius: 15px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.status-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-indicator.online {
+    background-color: #10b981;
+    box-shadow: 0 0 10px #10b981;
+}
+
+.status-indicator.offline {
+    background-color: #ef4444;
+    box-shadow: 0 0 10px #ef4444;
+}
+
+.device-info {
+    flex-grow: 1;
+}
+
+.device-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #e0f7fa;
+    font-size: 1.1rem;
+}
+
+.device-info p {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.device-controls {
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .device-status-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .device-controls {
+        width: 100%;
+        margin-top: 1rem;
+    }
+}
