@@ -49,9 +49,9 @@ async function getLatestSensorReading() {
                 temperature: data[0].temperature,
                 ph: data[0].ph,
                 population: data[0].population,
-                health_status: data[0].health_status,
-                avg_weight: data[0].avg_weight,
-                days_to_harvest: data[0].days_to_harvest,
+                healthStatus: data[0].health_status,
+                avgWeight: data[0].avg_weight,
+                daysToHarvest: data[0].days_to_harvest,
                 lastUpdated: new Date(data[0].created_at)
             };
         }
@@ -102,7 +102,7 @@ async function getFeedData() {
             .eq('user_id', user.id)
             .single();
             
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
+        if (error && error.code !== 'PGRST116') throw error;
         
         if (data) {
             return {
@@ -112,7 +112,6 @@ async function getFeedData() {
             };
         }
         
-        // Return default values if no data found
         return {
             capacity: 500,
             current: 375,
@@ -168,7 +167,7 @@ async function getFeedingSchedule() {
             .eq('user_id', user.id)
             .single();
             
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
+        if (error && error.code !== 'PGRST116') throw error;
         
         return data;
     } catch (error) {
@@ -216,7 +215,7 @@ async function getWaterSchedule() {
             .eq('user_id', user.id)
             .single();
             
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
+        if (error && error.code !== 'PGRST116') throw error;
         
         return data;
     } catch (error) {
@@ -345,5 +344,121 @@ async function getWaterQualityTests() {
     } catch (error) {
         console.error('Error fetching water quality tests:', error);
         return [];
+    }
+}
+
+// ===== NEW FUNCTIONS FOR DEVICE COMMANDS =====
+
+// Send command to device
+async function sendDeviceCommand(command) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+        
+        console.log('Sending device command:', command);
+        
+        const { data, error } = await supabase
+            .from('device_commands')
+            .insert([
+                { 
+                    user_id: user.id,
+                    command: command,
+                    status: 'pending',
+                    created_at: new Date().toISOString()
+                }
+            ])
+            .select();
+            
+        if (error) throw error;
+        
+        console.log('Device command sent successfully:', data);
+        return { success: true, data: data };
+    } catch (error) {
+        console.error('Error sending device command:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// Get pending commands for device
+async function getPendingDeviceCommands() {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+        
+        const { data, error } = await supabase
+            .from('device_commands')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: true });
+            
+        if (error) throw error;
+        
+        return data || [];
+    } catch (error) {
+        console.error('Error fetching pending commands:', error);
+        return [];
+    }
+}
+
+// Mark command as processed
+async function markCommandProcessed(commandId) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+        
+        const { data, error } = await supabase
+            .from('device_commands')
+            .update({ 
+                status: 'processed',
+                processed_at: new Date().toISOString()
+            })
+            .eq('id', commandId)
+            .eq('user_id', user.id);
+            
+        if (error) throw error;
+        
+        return { success: true, data: data };
+    } catch (error) {
+        console.error('Error marking command as processed:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+// Check device status
+async function getDeviceStatus() {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+        
+        // Check if there are any recent sensor readings (within last 2 minutes)
+        const twoMinutesAgo = new Date();
+        twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
+        
+        const { data, error } = await supabase
+            .from('sensor_readings')
+            .select('created_at')
+            .eq('user_id', user.id)
+            .gte('created_at', twoMinutesAgo.toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+        if (error) throw error;
+        
+        const isOnline = data && data.length > 0;
+        const lastUpdate = data && data.length > 0 ? new Date(data[0].created_at) : null;
+        
+        return {
+            isOnline: isOnline,
+            lastUpdate: lastUpdate,
+            status: isOnline ? 'online' : 'offline'
+        };
+    } catch (error) {
+        console.error('Error checking device status:', error);
+        return {
+            isOnline: false,
+            lastUpdate: null,
+            status: 'error'
+        };
     }
 }

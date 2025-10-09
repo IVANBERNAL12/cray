@@ -1,17 +1,15 @@
 /*
  * Crayfish Monitoring System - NodeMCU ESP8266 to Supabase
- * Sends sensor data directly to Supabase backend
- * File: nodemcu_to_supabase.ino
+ * UPDATED VERSION with proper authentication
  */
 
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <SoftwareSerial.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
-#include <base64.h>
 
 // WiFi Configuration
 const char* WIFI_SSID = "PLDT_Home_0D8BB";
@@ -21,11 +19,12 @@ const char* WIFI_PASSWORD = "JUNE122002";
 const char* SUPABASE_URL = "https://qleubfvmydnitmsylqxo.supabase.co";
 const char* SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsZXViZnZteWRuaXRtc3lscXhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODg2MjksImV4cCI6MjA3NDk2NDYyOX0.1LtaFFXPadqUZM7iaN-0fJbLcDvbkYZkhdLYpfBBReA";
 
-// User ID - You'll need to get this from authentication
-String USER_ID = "YOUR_USER_ID"; // Replace with actual user ID from auth
+// IMPORTANT: Replace with your actual user ID from Supabase
+// You can get this from the Settings page in your dashboard
+String USER_ID = "YOUR_USER_ID_HERE";  // REPLACE THIS!
 
 // Serial communication with Arduino Mega
-SoftwareSerial arduinoSerial(12, 13); // RX, TX
+SoftwareSerial arduinoSerial(12, 13); // RX, TX (D6, D7)
 
 // NTP for time synchronization
 WiFiUDP ntpUDP;
@@ -50,6 +49,9 @@ unsigned long lastCommandCheck = 0;
 const unsigned long SEND_INTERVAL = 10000; // Send data every 10 seconds
 const unsigned long COMMAND_CHECK_INTERVAL = 5000; // Check for commands every 5 seconds
 
+// SSL fingerprint for Supabase (may need updating)
+const char* SUPABASE_FINGERPRINT = ""; // Leave empty to skip verification
+
 void setup() {
   Serial.begin(115200);
   arduinoSerial.begin(9600);
@@ -57,18 +59,38 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH); // LED off initially
   
-  Serial.println("=== Crayfish Monitoring - NodeMCU to Supabase ===");
+  Serial.println("\n\n=== Crayfish Monitoring - NodeMCU to Supabase ===");
+  Serial.println("Version: 2.0 - Updated with Device Commands");
+  
+  // Validate USER_ID
+  if (USER_ID == "YOUR_USER_ID_HERE" || USER_ID.length() < 30) {
+    Serial.println("========================================");
+    Serial.println("ERROR: USER_ID NOT CONFIGURED!");
+    Serial.println("Please update USER_ID in the code with your actual user ID");
+    Serial.println("You can find your USER_ID in the dashboard Settings page");
+    Serial.println("========================================");
+    
+    // Blink LED rapidly to indicate error
+    while (true) {
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(100);
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(100);
+    }
+  }
+  
+  Serial.print("Configured User ID: ");
+  Serial.println(USER_ID);
   
   // Connect to WiFi
   connectToWiFi();
   
   // Initialize NTP client
   timeClient.begin();
+  timeClient.update();
   
-  // Get user ID from local storage or authentication
-  // In a real implementation, you would authenticate and get the user ID
-  // For now, we'll use a placeholder
-  USER_ID = "00000000-0000-0000-0000-000000000000"; // Replace with actual user ID
+  Serial.println("System ready!");
+  Serial.println("Waiting for sensor data from Arduino...");
   
   // Signal ready
   blinkLED(3, 200);
@@ -117,6 +139,9 @@ void connectToWiFi() {
     Serial.println("WiFi connected successfully!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
+    Serial.print("Signal Strength: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
     digitalWrite(LED_BUILTIN, HIGH); // Turn off LED
   } else {
     Serial.println();
@@ -143,12 +168,21 @@ void handleArduinoData() {
     if (receivedLine.startsWith("DATA:")) {
       parseArduinoData(receivedLine.substring(5)); // Remove "DATA:" prefix
     } else if (receivedLine == "PONG") {
-      // Heartbeat response - Arduino is alive
+      Serial.println("Arduino heartbeat received");
+    } else if (receivedLine == "WATER_CHANGE_COMPLETE") {
+      Serial.println("Water change completed by Arduino");
+    } else if (receivedLine == "FEEDING_COMPLETE") {
+      Serial.println("Feeding completed by Arduino");
+    } else if (receivedLine == "WATER_TEST_COMPLETE") {
+      Serial.println("Water test completed by Arduino");
     }
   }
 }
 
 void parseArduinoData(String jsonData) {
+  Serial.print("Parsing: ");
+  Serial.println(jsonData);
+  
   // Simple JSON parsing
   String cleanData = jsonData;
   cleanData.replace("{", "");
@@ -163,7 +197,9 @@ void parseArduinoData(String jsonData) {
     if (endIndex == -1) endIndex = cleanData.length();
     
     String tempStr = cleanData.substring(startIndex, endIndex);
-    currentData.temperature = tempStr.toFloat();
+    if (tempStr != "null") {
+      currentData.temperature = tempStr.toFloat();
+    }
   }
   
   // Parse pH
@@ -174,7 +210,9 @@ void parseArduinoData(String jsonData) {
     if (endIndex == -1) endIndex = cleanData.length();
     
     String phStr = cleanData.substring(startIndex, endIndex);
-    currentData.ph = phStr.toFloat();
+    if (phStr != "null") {
+      currentData.ph = phStr.toFloat();
+    }
   }
   
   // Parse status
@@ -228,36 +266,39 @@ void sendDataToSupabase() {
     return;
   }
   
+  Serial.println("Sending data to Supabase...");
+  
   // Create JSON document
-  DynamicJsonDocument doc(1024);
+  StaticJsonDocument<512> doc;
   
-  // Create sensor reading object
-  JsonObject reading = doc.createNestedObject("sensor_reading");
-  
-  reading["user_id"] = USER_ID;
-  reading["temperature"] = currentData.temperature;
-  reading["ph"] = currentData.ph;
-  reading["population"] = 15; // Default value
-  reading["health_status"] = calculateHealthScore();
-  reading["avg_weight"] = 5.0; // Default value
-  reading["days_to_harvest"] = 120; // Default value
+  doc["user_id"] = USER_ID;
+  doc["temperature"] = currentData.temperature;
+  doc["ph"] = currentData.ph;
+  doc["population"] = 15; // Default value
+  doc["health_status"] = calculateHealthScore();
+  doc["avg_weight"] = 5.0; // Default value
+  doc["days_to_harvest"] = 120; // Default value
   
   // Serialize JSON to string
   String jsonString;
   serializeJson(doc, jsonString);
   
-  // Create HTTP client
-  WiFiClient client;
+  Serial.print("JSON: ");
+  Serial.println(jsonString);
+  
+  // Create HTTPS client
+  WiFiClientSecure client;
+  client.setInsecure(); // Skip SSL verification (not recommended for production)
+  
   HTTPClient http;
   
   // Set headers
-  http.begin(client, String(SUPABASE_URL) + "/rest/v1/sensor_readings");
+  String url = String(SUPABASE_URL) + "/rest/v1/sensor_readings";
+  http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("apikey", SUPABASE_ANON_KEY);
+  http.addHeader("Authorization", "Bearer " + String(SUPABASE_ANON_KEY));
   http.addHeader("Prefer", "return=minimal");
-  
-  Serial.print("Sending to Supabase: ");
-  Serial.println(jsonString);
   
   // Send POST request
   int httpResponseCode = http.POST(jsonString);
@@ -265,14 +306,15 @@ void sendDataToSupabase() {
   if (httpResponseCode > 0) {
     String response = http.getString();
     Serial.printf("HTTP Response code: %d\n", httpResponseCode);
-    Serial.println("Response: " + response);
     
     if (httpResponseCode == 201) {
-      Serial.println("Data successfully sent to Supabase");
+      Serial.println("✓ Data successfully sent to Supabase");
       blinkLED(1, 100); // Success indicator
+    } else {
+      Serial.println("Response: " + response);
     }
   } else {
-    Serial.printf("Error on sending POST: %s\n", http.errorToString(httpResponseCode).c_str());
+    Serial.printf("✗ Error on sending POST: %s\n", http.errorToString(httpResponseCode).c_str());
     blinkLED(3, 200); // Error indicator
   }
   
@@ -282,13 +324,17 @@ void sendDataToSupabase() {
 void checkForCommands() {
   if (WiFi.status() != WL_CONNECTED) return;
   
-  WiFiClient client;
+  // Create HTTPS client
+  WiFiClientSecure client;
+  client.setInsecure();
+  
   HTTPClient http;
   
   // Get pending commands for this device
-  String url = String(SUPABASE_URL) + "/rest/v1/device_commands?user_id=eq." + USER_ID + "&status=eq.pending&limit=1";
+  String url = String(SUPABASE_URL) + "/rest/v1/device_commands?user_id=eq." + USER_ID + "&status=eq.pending&order=created_at.asc&limit=1";
   http.begin(client, url);
   http.addHeader("apikey", SUPABASE_ANON_KEY);
+  http.addHeader("Authorization", "Bearer " + String(SUPABASE_ANON_KEY));
   
   int httpResponseCode = http.GET();
   
@@ -296,48 +342,79 @@ void checkForCommands() {
     String response = http.getString();
     
     // Parse JSON response
-    DynamicJsonDocument doc(1024);
-    deserializeJson(doc, response);
+    StaticJsonDocument<1024> doc;
+    DeserializationError error = deserializeJson(doc, response);
+    
+    if (error) {
+      Serial.print("JSON parse error: ");
+      Serial.println(error.c_str());
+      http.end();
+      return;
+    }
     
     if (doc.size() > 0) {
       String command = doc[0]["command"];
       String commandId = doc[0]["id"];
       
-      Serial.print("Received command: ");
+      Serial.print("✓ Received command: ");
       Serial.println(command);
       
       // Execute command
       if (command == "feed") {
+        Serial.println("Executing: FEED");
         arduinoSerial.println("FEED_NOW");
+        delay(100);
       } else if (command == "change_water") {
+        Serial.println("Executing: CHANGE WATER");
         arduinoSerial.println("CHANGE_WATER");
+        delay(100);
       } else if (command == "test_water") {
+        Serial.println("Executing: TEST WATER");
         arduinoSerial.println("TEST_WATER");
+        delay(100);
       } else if (command == "test_connection") {
+        Serial.println("Executing: TEST CONNECTION");
         // Just acknowledge the test
-        Serial.println("Connection test received");
       }
       
       // Mark command as processed
       markCommandProcessed(commandId);
     }
+  } else if (httpResponseCode != 200) {
+    Serial.printf("Command check failed: %d\n", httpResponseCode);
   }
   
   http.end();
 }
 
 void markCommandProcessed(String commandId) {
-  WiFiClient client;
+  WiFiClientSecure client;
+  client.setInsecure();
+  
   HTTPClient http;
   
   String url = String(SUPABASE_URL) + "/rest/v1/device_commands?id=eq." + commandId;
   http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("apikey", SUPABASE_ANON_KEY);
+  http.addHeader("Authorization", "Bearer " + String(SUPABASE_ANON_KEY));
   http.addHeader("Prefer", "return=minimal");
   
-  String payload = "{\"status\":\"processed\",\"processed_at\":\"" + timeClient.getFormattedTime() + "\"}";
-  http.PATCH(payload);
+  StaticJsonDocument<128> doc;
+  doc["status"] = "processed";
+  doc["processed_at"] = timeClient.getFormattedTime();
+  
+  String payload;
+  serializeJson(doc, payload);
+  
+  int httpResponseCode = http.PATCH(payload);
+  
+  if (httpResponseCode == 200 || httpResponseCode == 204) {
+    Serial.println("✓ Command marked as processed");
+  } else {
+    Serial.printf("✗ Failed to mark command as processed: %d\n", httpResponseCode);
+  }
+  
   http.end();
 }
 

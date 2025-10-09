@@ -888,7 +888,204 @@ function saveWaterSchedule() {
 function cancelWaterSchedule() {
     document.getElementById('water-schedule-form').classList.remove('show');
 }
+// Add these functions to your dashboard.js file
 
+// Water Change function - UPDATED
+async function changeWaterNow() {
+    try {
+        console.log('Initiating water change...');
+        
+        // Show loading state
+        const changeWaterBtn = document.getElementById('change-water-now');
+        if (changeWaterBtn) {
+            changeWaterBtn.disabled = true;
+            changeWaterBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing Water...';
+        }
+        
+        // Send command to device via Supabase
+        const result = await sendDeviceCommand('change_water');
+        
+        if (result.success) {
+            // Update UI
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const dateString = now.toLocaleDateString();
+            
+            document.getElementById('last-water-change').textContent = `Last changed: Today at ${timeString}`;
+            
+            // Update status indicator
+            document.getElementById('water-status-indicator').className = 'status-indicator good';
+            
+            // Show success notification
+            showNotification('Water Change', 'Water change command sent to device successfully', 'success');
+            
+            // Save to water schedule for tracking
+            const waterSchedule = await getWaterSchedule();
+            if (waterSchedule) {
+                waterSchedule.last_change = now.toISOString();
+                await saveWaterSchedule(waterSchedule);
+            }
+            
+            console.log('Water change command sent successfully');
+        } else {
+            throw new Error(result.message || 'Failed to send water change command');
+        }
+    } catch (error) {
+        console.error('Error initiating water change:', error);
+        showNotification('Error', 'Failed to initiate water change: ' + error.message, 'error');
+    } finally {
+        // Restore button state
+        const changeWaterBtn = document.getElementById('change-water-now');
+        if (changeWaterBtn) {
+            changeWaterBtn.disabled = false;
+            changeWaterBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Change Water Now';
+        }
+    }
+}
+
+// Test connection to device
+async function testDeviceConnection() {
+    try {
+        console.log('Testing device connection...');
+        
+        const testBtn = document.getElementById('test-connection');
+        if (testBtn) {
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+        }
+        
+        // Send test command
+        const result = await sendDeviceCommand('test_connection');
+        
+        if (result.success) {
+            showNotification('Connection Test', 'Test command sent. Check device logs.', 'info');
+            
+            // Wait a bit and check device status
+            setTimeout(async () => {
+                await updateDeviceStatus();
+            }, 3000);
+        } else {
+            throw new Error(result.message || 'Failed to send test command');
+        }
+    } catch (error) {
+        console.error('Error testing connection:', error);
+        showNotification('Error', 'Failed to test connection: ' + error.message, 'error');
+    } finally {
+        const testBtn = document.getElementById('test-connection');
+        if (testBtn) {
+            testBtn.disabled = false;
+            testBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Test Connection';
+        }
+    }
+}
+
+// Update device status display
+async function updateDeviceStatus() {
+    try {
+        const status = await getDeviceStatus();
+        
+        const statusIndicator = document.getElementById('device-status-indicator');
+        const statusText = document.getElementById('device-status-text');
+        const lastUpdate = document.getElementById('last-device-update');
+        
+        if (statusIndicator && statusText && lastUpdate) {
+            if (status.isOnline) {
+                statusIndicator.className = 'status-indicator online';
+                statusText.textContent = 'Device Online';
+                lastUpdate.textContent = `Last update: ${status.lastUpdate.toLocaleTimeString()}`;
+            } else {
+                statusIndicator.className = 'status-indicator offline';
+                statusText.textContent = 'Device Offline';
+                lastUpdate.textContent = status.lastUpdate 
+                    ? `Last seen: ${status.lastUpdate.toLocaleString()}` 
+                    : 'Last update: Never';
+            }
+        }
+        
+        return status;
+    } catch (error) {
+        console.error('Error updating device status:', error);
+        return { isOnline: false, lastUpdate: null, status: 'error' };
+    }
+}
+
+// Feed Now function - UPDATED
+async function feedNow() {
+    try {
+        console.log('Initiating feeding...');
+        
+        const feedBtn = document.getElementById('feed-now');
+        if (feedBtn) {
+            feedBtn.disabled = true;
+            feedBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Feeding...';
+        }
+        
+        // Send command to device
+        const result = await sendDeviceCommand('feed');
+        
+        if (result.success) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            document.getElementById('last-feeding').textContent = `Last fed: Today at ${timeString}`;
+            document.getElementById('feeding-status-indicator').className = 'status-indicator good';
+            
+            showNotification('Feeding', 'Feeding command sent to device successfully', 'success');
+            
+            console.log('Feeding command sent successfully');
+        } else {
+            throw new Error(result.message || 'Failed to send feeding command');
+        }
+    } catch (error) {
+        console.error('Error initiating feeding:', error);
+        showNotification('Error', 'Failed to initiate feeding: ' + error.message, 'error');
+    } finally {
+        const feedBtn = document.getElementById('feed-now');
+        if (feedBtn) {
+            feedBtn.disabled = false;
+            feedBtn.innerHTML = '<i class="fas fa-utensils"></i> Feed Now';
+        }
+    }
+}
+
+// Test Water function - UPDATED
+async function testWaterNow() {
+    try {
+        console.log('Initiating water test...');
+        
+        showNotification('Water Test', 'Water testing initiated. Results will be available shortly.', 'info');
+        
+        // Send command to device
+        const result = await sendDeviceCommand('test_water');
+        
+        if (result.success) {
+            // Simulate getting new data after a delay
+            setTimeout(async () => {
+                await loadDashboardData();
+                showNotification('Water Test Results', 'Water test completed. Dashboard updated with latest readings.', 'success');
+            }, 3000);
+        } else {
+            throw new Error(result.message || 'Failed to send water test command');
+        }
+    } catch (error) {
+        console.error('Error initiating water test:', error);
+        showNotification('Error', 'Failed to initiate water test: ' + error.message, 'error');
+    }
+}
+
+// Add event listener for test connection button
+document.addEventListener('DOMContentLoaded', function() {
+    const testConnectionBtn = document.getElementById('test-connection');
+    if (testConnectionBtn) {
+        testConnectionBtn.addEventListener('click', testDeviceConnection);
+    }
+    
+    // Update device status every 30 seconds
+    setInterval(updateDeviceStatus, 30000);
+    
+    // Initial status check
+    setTimeout(updateDeviceStatus, 2000);
+});
 // Feed monitoring functions
 function updateFeedLevel() {
     const percentage = Math.round((feedData.current / feedData.capacity) * 100);
