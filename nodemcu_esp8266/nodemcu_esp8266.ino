@@ -1,33 +1,42 @@
 /*
  * Crayfish Monitoring System - NodeMCU ESP8266 to Supabase
- * UPDATED VERSION with proper authentication
+ * COMPLETE UPDATED VERSION with proper authentication
+ * 
+ * Connections:
+ * ESP8266 TX (GPIO1) → Arduino UNO Pin 10 (RX)
+ * ESP8266 RX (GPIO3) → Arduino UNO Pin 11 (TX)
+ * ESP8266 GND → Arduino GND
  */
 
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
-#include <SoftwareSerial.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
+// ============================================
+// CONFIGURATION - UPDATE THESE VALUES!
+// ============================================
+
 // WiFi Configuration
-const char* WIFI_SSID = "PLDT_Home_0D8BB";
-const char* WIFI_PASSWORD = "JUNE122002";
+const char* WIFI_SSID = "Kambal_2.4G";
+const char* WIFI_PASSWORD = "Jonjon_2627272727";
 
 // Supabase Configuration
 const char* SUPABASE_URL = "https://qleubfvmydnitmsylqxo.supabase.co";
 const char* SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsZXViZnZteWRuaXRtc3lscXhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODg2MjksImV4cCI6MjA3NDk2NDYyOX0.1LtaFFXPadqUZM7iaN-0fJbLcDvbkYZkhdLYpfBBReA";
 
 // IMPORTANT: Replace with your actual user ID from Supabase
-// You can get this from the Settings page in your dashboard
-String USER_ID = "26559b74-028b-4d17-b8f7-ed259953b328
+// Get this from: Supabase Dashboard → Authentication → Users → Copy UUID
+String USER_ID = "26559b74-028b-4d17-b8f7-ed259953b328";  // ← CHANGE THIS!
 
-
-";  // REPLACE THIS!
-
-// Serial communication with Arduino Mega
-SoftwareSerial arduinoSerial(12, 13); // RX, TX (D6, D7)
+// ============================================
+// HARDWARE SERIAL FOR ARDUINO COMMUNICATION
+// ============================================
+// ESP8266 uses Hardware Serial (Serial) to talk to Arduino UNO
+// Serial is pins: TX (GPIO1) and RX (GPIO3)
+#define arduinoSerial Serial
 
 // NTP for time synchronization
 WiFiUDP ntpUDP;
@@ -49,29 +58,34 @@ struct SensorData {
 SensorData currentData = {0.0, 7.0, 0, 0, "initializing", false, false, false};
 unsigned long lastDataSend = 0;
 unsigned long lastCommandCheck = 0;
+unsigned long lastStatusPrint = 0;
 const unsigned long SEND_INTERVAL = 10000; // Send data every 10 seconds
-const unsigned long COMMAND_CHECK_INTERVAL = 5000; // Check for commands every 5 seconds
-
-// SSL fingerprint for Supabase (may need updating)
-const char* SUPABASE_FINGERPRINT = ""; // Leave empty to skip verification
+const unsigned long COMMAND_CHECK_INTERVAL = 5000; // Check commands every 5 seconds
+const unsigned long STATUS_PRINT_INTERVAL = 30000; // Print status every 30 seconds
 
 void setup() {
-  Serial.begin(115200);
+  // Initialize Serial for Arduino communication
   arduinoSerial.begin(9600);
   
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH); // LED off initially
+  // Wait a moment for serial to initialize
+  delay(1000);
   
-  Serial.println("\n\n=== Crayfish Monitoring - NodeMCU to Supabase ===");
-  Serial.println("Version: 2.0 - Updated with Device Commands");
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH); // LED off initially (inverted on ESP8266)
+  
+  arduinoSerial.println();
+  arduinoSerial.println();
+  arduinoSerial.println(F("=== Crayfish Monitoring - NodeMCU ESP8266 ==="));
+  arduinoSerial.println(F("Version: 2.0 - Updated with Device Commands"));
+  arduinoSerial.println(F("For Arduino UNO Communication"));
   
   // Validate USER_ID
   if (USER_ID == "YOUR_USER_ID_HERE" || USER_ID.length() < 30) {
-    Serial.println("========================================");
-    Serial.println("ERROR: USER_ID NOT CONFIGURED!");
-    Serial.println("Please update USER_ID in the code with your actual user ID");
-    Serial.println("You can find your USER_ID in the dashboard Settings page");
-    Serial.println("========================================");
+    arduinoSerial.println(F("========================================"));
+    arduinoSerial.println(F("ERROR: USER_ID NOT CONFIGURED!"));
+    arduinoSerial.println(F("Please update USER_ID in the code"));
+    arduinoSerial.println(F("Get it from: Supabase → Authentication → Users"));
+    arduinoSerial.println(F("========================================"));
     
     // Blink LED rapidly to indicate error
     while (true) {
@@ -82,8 +96,8 @@ void setup() {
     }
   }
   
-  Serial.print("Configured User ID: ");
-  Serial.println(USER_ID);
+  arduinoSerial.print(F("Configured User ID: "));
+  arduinoSerial.println(USER_ID);
   
   // Connect to WiFi
   connectToWiFi();
@@ -92,8 +106,10 @@ void setup() {
   timeClient.begin();
   timeClient.update();
   
-  Serial.println("System ready!");
-  Serial.println("Waiting for sensor data from Arduino...");
+  arduinoSerial.println(F("System ready!"));
+  arduinoSerial.println(F("Waiting for sensor data from Arduino UNO..."));
+  arduinoSerial.println(F("Listening on Serial (TX/RX)"));
+  arduinoSerial.println();
   
   // Signal ready
   blinkLED(3, 200);
@@ -115,6 +131,12 @@ void loop() {
     lastCommandCheck = millis();
   }
   
+  // Print status periodically
+  if (millis() - lastStatusPrint > STATUS_PRINT_INTERVAL) {
+    printStatus();
+    lastStatusPrint = millis();
+  }
+  
   // Update time
   timeClient.update();
   
@@ -123,8 +145,8 @@ void loop() {
 }
 
 void connectToWiFi() {
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(WIFI_SSID);
+  arduinoSerial.print(F("Connecting to WiFi: "));
+  arduinoSerial.println(WIFI_SSID);
   
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -132,23 +154,24 @@ void connectToWiFi() {
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 30) {
     delay(1000);
-    Serial.print(".");
+    arduinoSerial.print(F("."));
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     attempts++;
   }
   
+  arduinoSerial.println();
+  
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println();
-    Serial.println("WiFi connected successfully!");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
-    Serial.print("Signal Strength: ");
-    Serial.print(WiFi.RSSI());
-    Serial.println(" dBm");
+    arduinoSerial.println(F("WiFi connected successfully!"));
+    arduinoSerial.print(F("IP Address: "));
+    arduinoSerial.println(WiFi.localIP());
+    arduinoSerial.print(F("Signal Strength: "));
+    arduinoSerial.print(WiFi.RSSI());
+    arduinoSerial.println(F(" dBm"));
     digitalWrite(LED_BUILTIN, HIGH); // Turn off LED
   } else {
-    Serial.println();
-    Serial.println("WiFi connection failed!");
+    arduinoSerial.println(F("WiFi connection failed!"));
+    arduinoSerial.println(F("Check SSID and password!"));
     
     // Flash LED to indicate error
     while (true) {
@@ -165,28 +188,32 @@ void handleArduinoData() {
     String receivedLine = arduinoSerial.readStringUntil('\n');
     receivedLine.trim();
     
-    Serial.print("Arduino: ");
-    Serial.println(receivedLine);
+    // Ignore echo from our own transmissions
+    if (receivedLine.startsWith("→ ESP:") || 
+        receivedLine.startsWith("← ESP Command:") ||
+        receivedLine.length() == 0) {
+      return;
+    }
     
+    // Only process DATA lines, ignore debug output
     if (receivedLine.startsWith("DATA:")) {
       parseArduinoData(receivedLine.substring(5)); // Remove "DATA:" prefix
     } else if (receivedLine == "PONG") {
-      Serial.println("Arduino heartbeat received");
+      arduinoSerial.println(F("✓ Arduino heartbeat received"));
     } else if (receivedLine == "WATER_CHANGE_COMPLETE") {
-      Serial.println("Water change completed by Arduino");
+      arduinoSerial.println(F("✓ Water change completed by Arduino"));
+      blinkLED(5, 100);
     } else if (receivedLine == "FEEDING_COMPLETE") {
-      Serial.println("Feeding completed by Arduino");
+      arduinoSerial.println(F("✓ Feeding completed by Arduino"));
+      blinkLED(2, 100);
     } else if (receivedLine == "WATER_TEST_COMPLETE") {
-      Serial.println("Water test completed by Arduino");
+      arduinoSerial.println(F("✓ Water test completed by Arduino"));
     }
   }
 }
 
 void parseArduinoData(String jsonData) {
-  Serial.print("Parsing: ");
-  Serial.println(jsonData);
-  
-  // Simple JSON parsing
+  // Simple JSON parsing without ArduinoJson library overhead
   String cleanData = jsonData;
   cleanData.replace("{", "");
   cleanData.replace("}", "");
@@ -258,18 +285,24 @@ void parseArduinoData(String jsonData) {
   currentData.timestamp = timeClient.getEpochTime();
   currentData.valid = true;
   
-  Serial.printf("Parsed - Temp: %.2f°C, pH: %.2f, Status: %s, Errors: %d\n",
-                currentData.temperature, currentData.ph, 
-                currentData.status.c_str(), currentData.errors);
+  // Print parsed data
+  arduinoSerial.print(F("📊 Parsed - Temp: "));
+  arduinoSerial.print(currentData.temperature, 2);
+  arduinoSerial.print(F("°C, pH: "));
+  arduinoSerial.print(currentData.ph, 2);
+  arduinoSerial.print(F(", Status: "));
+  arduinoSerial.print(currentData.status);
+  arduinoSerial.print(F(", Errors: "));
+  arduinoSerial.println(currentData.errors);
 }
 
 void sendDataToSupabase() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi not connected, cannot send data");
+    arduinoSerial.println(F("❌ WiFi not connected, cannot send data"));
     return;
   }
   
-  Serial.println("Sending data to Supabase...");
+  arduinoSerial.println(F("📤 Sending data to Supabase..."));
   
   // Create JSON document
   StaticJsonDocument<512> doc;
@@ -277,21 +310,21 @@ void sendDataToSupabase() {
   doc["user_id"] = USER_ID;
   doc["temperature"] = currentData.temperature;
   doc["ph"] = currentData.ph;
-  doc["population"] = 15; // Default value
+  doc["population"] = 15; // Default value - update as needed
   doc["health_status"] = calculateHealthScore();
-  doc["avg_weight"] = 5.0; // Default value
-  doc["days_to_harvest"] = 120; // Default value
+  doc["avg_weight"] = 5.0; // Default value - update as needed
+  doc["days_to_harvest"] = 120; // Default value - update as needed
   
   // Serialize JSON to string
   String jsonString;
   serializeJson(doc, jsonString);
   
-  Serial.print("JSON: ");
-  Serial.println(jsonString);
+  arduinoSerial.print(F("JSON: "));
+  arduinoSerial.println(jsonString);
   
   // Create HTTPS client
   WiFiClientSecure client;
-  client.setInsecure(); // Skip SSL verification (not recommended for production)
+  client.setInsecure(); // Skip SSL verification (acceptable for local projects)
   
   HTTPClient http;
   
@@ -307,17 +340,27 @@ void sendDataToSupabase() {
   int httpResponseCode = http.POST(jsonString);
   
   if (httpResponseCode > 0) {
-    String response = http.getString();
-    Serial.printf("HTTP Response code: %d\n", httpResponseCode);
+    arduinoSerial.print(F("HTTP Response code: "));
+    arduinoSerial.println(httpResponseCode);
     
     if (httpResponseCode == 201) {
-      Serial.println("✓ Data successfully sent to Supabase");
+      arduinoSerial.println(F("✅ Data successfully sent to Supabase"));
       blinkLED(1, 100); // Success indicator
+    } else if (httpResponseCode == 401) {
+      arduinoSerial.println(F("❌ Error 401: Check SUPABASE_ANON_KEY"));
+    } else if (httpResponseCode == 400) {
+      arduinoSerial.println(F("❌ Error 400: Check USER_ID and table structure"));
+      String response = http.getString();
+      arduinoSerial.print(F("Response: "));
+      arduinoSerial.println(response);
     } else {
-      Serial.println("Response: " + response);
+      String response = http.getString();
+      arduinoSerial.print(F("Response: "));
+      arduinoSerial.println(response);
     }
   } else {
-    Serial.printf("✗ Error on sending POST: %s\n", http.errorToString(httpResponseCode).c_str());
+    arduinoSerial.print(F("❌ Error sending POST: "));
+    arduinoSerial.println(http.errorToString(httpResponseCode).c_str());
     blinkLED(3, 200); // Error indicator
   }
   
@@ -349,8 +392,8 @@ void checkForCommands() {
     DeserializationError error = deserializeJson(doc, response);
     
     if (error) {
-      Serial.print("JSON parse error: ");
-      Serial.println(error.c_str());
+      arduinoSerial.print(F("JSON parse error: "));
+      arduinoSerial.println(error.c_str());
       http.end();
       return;
     }
@@ -359,32 +402,33 @@ void checkForCommands() {
       String command = doc[0]["command"];
       String commandId = doc[0]["id"];
       
-      Serial.print("✓ Received command: ");
-      Serial.println(command);
+      arduinoSerial.print(F("🎯 Received command: "));
+      arduinoSerial.println(command);
       
-      // Execute command
+      // Execute command by sending to Arduino
       if (command == "feed") {
-        Serial.println("Executing: FEED");
+        arduinoSerial.println(F("Executing: FEED"));
         arduinoSerial.println("FEED_NOW");
         delay(100);
       } else if (command == "change_water") {
-        Serial.println("Executing: CHANGE WATER");
+        arduinoSerial.println(F("Executing: CHANGE WATER"));
         arduinoSerial.println("CHANGE_WATER");
         delay(100);
       } else if (command == "test_water") {
-        Serial.println("Executing: TEST WATER");
+        arduinoSerial.println(F("Executing: TEST WATER"));
         arduinoSerial.println("TEST_WATER");
         delay(100);
       } else if (command == "test_connection") {
-        Serial.println("Executing: TEST CONNECTION");
-        // Just acknowledge the test
+        arduinoSerial.println(F("Executing: TEST CONNECTION"));
+        arduinoSerial.println(F("✅ ESP8266 is connected and receiving commands!"));
       }
       
       // Mark command as processed
       markCommandProcessed(commandId);
     }
-  } else if (httpResponseCode != 200) {
-    Serial.printf("Command check failed: %d\n", httpResponseCode);
+  } else if (httpResponseCode != 200 && httpResponseCode != -1) {
+    arduinoSerial.print(F("❌ Command check failed: "));
+    arduinoSerial.println(httpResponseCode);
   }
   
   http.end();
@@ -413,9 +457,10 @@ void markCommandProcessed(String commandId) {
   int httpResponseCode = http.PATCH(payload);
   
   if (httpResponseCode == 200 || httpResponseCode == 204) {
-    Serial.println("✓ Command marked as processed");
+    arduinoSerial.println(F("✅ Command marked as processed"));
   } else {
-    Serial.printf("✗ Failed to mark command as processed: %d\n", httpResponseCode);
+    arduinoSerial.print(F("❌ Failed to mark command as processed: "));
+    arduinoSerial.println(httpResponseCode);
   }
   
   http.end();
@@ -424,7 +469,7 @@ void markCommandProcessed(String commandId) {
 int calculateHealthScore() {
   int score = 100;
   
-  // Temperature health
+  // Temperature health (ideal: 18-24°C)
   if (currentData.temperature < 18 || currentData.temperature > 24) {
     score -= 20;
   }
@@ -432,7 +477,7 @@ int calculateHealthScore() {
     score -= 30;
   }
   
-  // pH health
+  // pH health (ideal: 6.5-8.5)
   if (currentData.ph < 6.5 || currentData.ph > 8.5) {
     score -= 20;
   }
@@ -447,9 +492,35 @@ int calculateHealthScore() {
   return max(0, score);
 }
 
+void printStatus() {
+  arduinoSerial.println(F("\n========== ESP8266 STATUS =========="));
+  arduinoSerial.print(F("WiFi: "));
+  arduinoSerial.print(WiFi.status() == WL_CONNECTED ? F("Connected") : F("Disconnected"));
+  arduinoSerial.print(F(" ("));
+  arduinoSerial.print(WiFi.RSSI());
+  arduinoSerial.println(F(" dBm)"));
+  
+  arduinoSerial.print(F("IP: "));
+  arduinoSerial.println(WiFi.localIP());
+  
+  arduinoSerial.print(F("Uptime: "));
+  arduinoSerial.print(millis() / 1000);
+  arduinoSerial.println(F(" seconds"));
+  
+  arduinoSerial.print(F("Free Heap: "));
+  arduinoSerial.println(ESP.getFreeHeap());
+  
+  arduinoSerial.print(F("Last Data: Temp="));
+  arduinoSerial.print(currentData.temperature);
+  arduinoSerial.print(F("°C, pH="));
+  arduinoSerial.println(currentData.ph);
+  
+  arduinoSerial.println(F("====================================\n"));
+}
+
 void blinkLED(int times, int delayMs) {
   for (int i = 0; i < times; i++) {
-    digitalWrite(LED_BUILTIN, LOW);  // LED on
+    digitalWrite(LED_BUILTIN, LOW);  // LED on (inverted on ESP8266)
     delay(delayMs);
     digitalWrite(LED_BUILTIN, HIGH); // LED off
     delay(delayMs);
