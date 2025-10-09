@@ -21,7 +21,10 @@ const char* SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOi
 
 // IMPORTANT: Replace with your actual user ID from Supabase
 // You can get this from the Settings page in your dashboard
-String USER_ID = "YOUR_USER_ID_HERE";  // REPLACE THIS!
+String USER_ID = "26559b74-028b-4d17-b8f7-ed259953b328
+
+
+";  // REPLACE THIS!
 
 // Serial communication with Arduino Mega
 SoftwareSerial arduinoSerial(12, 13); // RX, TX (D6, D7)
