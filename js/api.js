@@ -309,9 +309,72 @@ API.getCurrentDataCached = async function () {
   return data;
 };
 
+// Supabase authentication functions
+async function getCurrentUser() {
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        return user;
+    } catch (error) {
+        console.error('Error getting current user:', error);
+        return null;
+    }
+}
+
+async function checkAuth() {
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        return {
+            authenticated: !!session,
+            user: session?.user || null
+        };
+    } catch (error) {
+        console.error('Error checking auth:', error);
+        return {
+            authenticated: false,
+            user: null
+        };
+    }
+}
+
+// Device command functions
+async function sendDeviceCommand(command) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+        
+        console.log('Sending device command:', command);
+        
+        const { data, error } = await supabase
+            .from('device_commands')
+            .insert([
+                { 
+                    user_id: user.id,
+                    command: command,
+                    status: 'pending',
+                    created_at: new Date().toISOString()
+                }
+            ])
+            .select();
+            
+        if (error) throw error;
+        
+        console.log('Device command sent successfully:', data);
+        return { success: true, data: data };
+    } catch (error) {
+        console.error('Error sending device command:', error);
+        return { success: false, message: error.message };
+    }
+}
+
 // Export global objects
 window.API = API;
 window.DataProcessor = DataProcessor;
 window.APICache = APICache;
+window.getCurrentUser = getCurrentUser;
+window.checkAuth = checkAuth;
+window.sendDeviceCommand = sendDeviceCommand;
 
 console.log('[API] API client initialized');
