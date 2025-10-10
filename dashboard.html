@@ -154,22 +154,23 @@
                 </div>
             </div>
 
-            <!-- Add this after the stats-grid section -->
-<div class="device-status-section">
-    <h2 class="section-title">Device Connection</h2>
-    <div class="device-status-card">
-        <div class="status-indicator" id="device-status-indicator"></div>
-        <div class="device-info">
-            <h3 id="device-status-text">Checking device status...</h3>
-            <p id="last-device-update">Last update: Never</p>
-        </div>
-        <div class="device-controls">
-            <button class="btn btn-primary" id="test-connection">
-                <i class="fas fa-sync-alt"></i> Test Connection
-            </button>
-        </div>
-    </div>
-</div>
+            <!-- Device Status Section -->
+            <div class="device-status-section">
+                <h2 class="section-title">Device Connection</h2>
+                <div class="device-status-card">
+                    <div class="status-indicator" id="device-status-indicator"></div>
+                    <div class="device-info">
+                        <h3 id="device-status-text">Checking device status...</h3>
+                        <p id="last-device-update">Last update: Never</p>
+                    </div>
+                    <div class="device-controls">
+                        <button class="btn btn-primary" id="test-connection">
+                            <i class="fas fa-sync-alt"></i> Test Connection
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Guidelines Section -->
             <div class="guidelines-section">
                 <h2 class="section-title">Optimal Crayfish Farming Guidelines</h2>
@@ -195,10 +196,10 @@
                         <div class="chart-header">
                             <h3 class="chart-title">Temperature Trends</h3>
                             <div class="chart-actions">
-                                <button class="chart-action" onclick="expandChart('temp')" aria-label="Expand temperature chart">
+                                <button class="chart-action" id="expand-temp-chart" aria-label="Expand temperature chart">
                                     <i class="fas fa-expand"></i>
                                 </button>
-                                <button class="chart-action" onclick="downloadChart('temp')" aria-label="Download temperature chart">
+                                <button class="chart-action" id="download-temp-chart" aria-label="Download temperature chart">
                                     <i class="fas fa-download"></i>
                                 </button>
                             </div>
@@ -212,10 +213,10 @@
                         <div class="chart-header">
                             <h3 class="chart-title">pH Level Trends</h3>
                             <div class="chart-actions">
-                                <button class="chart-action" onclick="expandChart('ph')" aria-label="Expand pH chart">
+                                <button class="chart-action" id="expand-ph-chart" aria-label="Expand pH chart">
                                     <i class="fas fa-expand"></i>
                                 </button>
-                                <button class="chart-action" onclick="downloadChart('ph')" aria-label="Download pH chart">
+                                <button class="chart-action" id="download-ph-chart" aria-label="Download pH chart">
                                     <i class="fas fa-download"></i>
                                 </button>
                             </div>
@@ -291,13 +292,13 @@
                 </div>
 
                 <div class="water-controls">
-                    <button class="btn btn-primary" onclick="testWaterNow()">
+                    <button class="btn btn-primary" id="test-water-now">
                         <i class="fas fa-vial"></i> Test Water Now
                     </button>
-                    <button class="btn btn-secondary" onclick="setWaterTestingSchedule()">
+                    <button class="btn btn-secondary" id="set-water-testing-schedule">
                         <i class="fas fa-clock"></i> Set Testing Schedule
                     </button>
-                    <button class="btn btn-success" onclick="viewWaterHistory()">
+                    <button class="btn btn-success" id="view-water-history">
                         <i class="fas fa-history"></i> View History
                     </button>
                 </div>
@@ -320,10 +321,10 @@
                 </div>
 
                 <div class="water-controls">
-                    <button class="btn btn-primary" id="change-water-now" onclick="changeWaterNow()">
+                    <button class="btn btn-primary" id="change-water-now">
                         <i class="fas fa-sync-alt"></i> Change Water Now
                     </button>
-                    <button class="btn btn-secondary" id="set-water-schedule" onclick="toggleWaterScheduleForm()">
+                    <button class="btn btn-secondary" id="set-water-schedule">
                         <i class="fas fa-clock"></i> Set Schedule
                     </button>
                 </div>
@@ -353,10 +354,10 @@
                         </select>
                     </div>
                     <div class="form-actions">
-                        <button class="btn btn-primary" id="save-water-schedule" onclick="saveWaterSchedule()">
+                        <button class="btn btn-primary" id="save-water-schedule">
                             <i class="fas fa-save"></i> Save Schedule
                         </button>
-                        <button class="btn btn-secondary" onclick="cancelWaterSchedule()">
+                        <button class="btn btn-secondary" id="cancel-water-schedule">
                             <i class="fas fa-times"></i> Cancel
                         </button>
                     </div>
@@ -393,10 +394,10 @@
                 </div>
 
                 <div class="feeding-controls">
-                    <button class="btn btn-primary" id="feed-now" onclick="feedNow()">
+                    <button class="btn btn-primary" id="feed-now">
                         <i class="fas fa-utensils"></i> Feed Now
                     </button>
-                    <button class="btn btn-secondary" id="set-feeding-schedule" onclick="toggleFeedingScheduleForm()">
+                    <button class="btn btn-secondary" id="set-feeding-schedule">
                         <i class="fas fa-clock"></i> Set Schedule
                     </button>
                 </div>
@@ -413,10 +414,10 @@
                             <div class="feed-level-status" id="feed-level-status">Adequate</div>
                         </div>
                         <div class="feed-actions">
-                            <button class="btn btn-primary" onclick="refillFeed()">
+                            <button class="btn btn-primary" id="refill-feed">
                                 <i class="fas fa-redo"></i> Refill Feed
                             </button>
-                            <button class="btn btn-secondary" onclick="setFeedAlert()">
+                            <button class="btn btn-secondary" id="set-feed-alert">
                                 <i class="fas fa-bell"></i> Set Alert
                             </button>
                         </div>
@@ -464,10 +465,10 @@
                         </select>
                     </div>
                     <div class="form-actions">
-                        <button class="btn btn-primary" id="save-feeding-schedule" onclick="saveFeedingSchedule()">
+                        <button class="btn btn-primary" id="save-feeding-schedule">
                             <i class="fas fa-save"></i> Save Schedule
                         </button>
-                        <button class="btn btn-secondary" onclick="cancelFeedingSchedule()">
+                        <button class="btn btn-secondary" id="cancel-feeding-schedule">
                             <i class="fas fa-times"></i> Cancel
                         </button>
                     </div>
@@ -542,13 +543,13 @@
                 </div>
 
                 <div class="harvest-controls">
-                    <button class="btn btn-primary" onclick="planHarvest()">
+                    <button class="btn btn-primary" id="plan-harvest">
                         <i class="fas fa-calendar-alt"></i> Plan Harvest
                     </button>
-                    <button class="btn btn-secondary" onclick="viewHarvestHistory()">
+                    <button class="btn btn-secondary" id="view-harvest-history">
                         <i class="fas fa-history"></i> Harvest History
                     </button>
-                    <button class="btn btn-success" onclick="recordHarvest()">
+                    <button class="btn btn-success" id="record-harvest">
                         <i class="fas fa-clipboard-check"></i> Record Harvest
                     </button>
                 </div>
@@ -605,7 +606,7 @@
                 </div>
 
                 <div class="knowledge-categories">
-                    <div class="knowledge-category" onclick="openKnowledgeCategory('water-quality')">
+                    <div class="knowledge-category" id="water-quality-category">
                         <div class="category-icon">
                             <i class="fas fa-tint"></i>
                         </div>
@@ -613,7 +614,7 @@
                         <div class="category-desc">Learn about maintaining optimal water conditions for crayfish health and growth.</div>
                     </div>
 
-                    <div class="knowledge-category" onclick="openKnowledgeCategory('feeding')">
+                    <div class="knowledge-category" id="feeding-category">
                         <div class="category-icon">
                             <i class="fas fa-utensils"></i>
                         </div>
@@ -621,7 +622,7 @@
                         <div class="category-desc">Discover best practices for crayfish nutrition and feeding strategies.</div>
                     </div>
 
-                    <div class="knowledge-category" onclick="openKnowledgeCategory('harvesting')">
+                    <div class="knowledge-category" id="harvesting-category">
                         <div class="category-icon">
                             <i class="fas fa-hand-holding-water"></i>
                         </div>
@@ -675,7 +676,7 @@
                             <option value="weekly">Weekly</option>
                         </select>
                     </div>
-                    <button class="btn btn-primary" onclick="saveSettings()">
+                    <button class="btn btn-primary" id="save-settings">
                         <i class="fas fa-save"></i> Save Settings
                     </button>
                 </div>
@@ -704,7 +705,7 @@
         </div>
         <div class="chat-input">
             <input type="text" id="chat-input" placeholder="Ask me about feeding, water changes, or sensor data...">
-            <button title="button" id="send-button">
+            <button title="send-button" id="send-button">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </div>
@@ -1019,6 +1020,9 @@
 <script src="supabase-init.js"></script>
 <script src="auth.js"></script>
 <script src="database.js"></script>
+<script src="js/api.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/chart.js"></script>
+
 </body>
 </html>

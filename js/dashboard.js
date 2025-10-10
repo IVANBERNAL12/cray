@@ -61,18 +61,34 @@ function setupRealtimeSubscription() {
 // Update dashboard with new data from Supabase
 function updateDashboardWithNewData(sensorData) {
     // Update temperature
-    document.getElementById('temp-value').textContent = `${sensorData.temperature}°C`;
-    document.getElementById('water-temp-value').textContent = `${sensorData.temperature}°C`;
+    const tempValue = document.getElementById('temp-value');
+    if (tempValue) tempValue.textContent = `${sensorData.temperature}°C`;
+    
+    const waterTempValue = document.getElementById('water-temp-value');
+    if (waterTempValue) waterTempValue.textContent = `${sensorData.temperature}°C`;
     
     // Update pH
-    document.getElementById('ph-value').textContent = sensorData.ph;
-    document.getElementById('water-ph-value').textContent = sensorData.ph;
+    const phValue = document.getElementById('ph-value');
+    if (phValue) phValue.textContent = sensorData.ph;
+    
+    const waterPhValue = document.getElementById('water-ph-value');
+    if (waterPhValue) waterPhValue.textContent = sensorData.ph;
     
     // Update other values
-    document.getElementById('population-value').textContent = sensorData.population;
-    document.getElementById('health-value').textContent = `${sensorData.health_status}%`;
-    document.getElementById('weight-value').textContent = `${sensorData.avg_weight}g`;
-    document.getElementById('harvest-value').textContent = sensorData.days_to_harvest;
+    const populationValue = document.getElementById('population-value');
+    if (populationValue) populationValue.textContent = sensorData.population;
+    
+    const healthValue = document.getElementById('health-value');
+    if (healthValue) healthValue.textContent = `${sensorData.health_status}%`;
+    
+    const weightValue = document.getElementById('weight-value');
+    if (weightValue) weightValue.textContent = `${sensorData.avg_weight}g`;
+    
+    const harvestValue = document.getElementById('harvest-value');
+    if (harvestValue) harvestValue.textContent = sensorData.days_to_harvest;
+    
+    const daysHarvestValue = document.getElementById('days-harvest-value');
+    if (daysHarvestValue) daysHarvestValue.textContent = sensorData.days_to_harvest;
     
     // Update last updated timestamp
     updateLastUpdated();
@@ -183,8 +199,11 @@ async function loadFeedData() {
             const feedPercentage = Math.round((feedData.current / feedData.capacity) * 100);
             
             // Update feed level in dashboard
-            document.getElementById('feed-level-value').textContent = `${feedPercentage}%`;
-            document.getElementById('feeding-feed-level-value').textContent = `${feedPercentage}%`;
+            const feedLevelValue = document.getElementById('feed-level-value');
+            if (feedLevelValue) feedLevelValue.textContent = `${feedPercentage}%`;
+            
+            const feedingFeedLevelValue = document.getElementById('feeding-feed-level-value');
+            if (feedingFeedLevelValue) feedingFeedLevelValue.textContent = `${feedPercentage}%`;
             
             // Update feed progress bar
             const feedProgressBar = document.getElementById('feeding-feed-level-progress');
@@ -218,13 +237,18 @@ async function loadFeedData() {
             }
             
             // Update feed stats
-            document.getElementById('feed-capacity').textContent = `${feedData.capacity}g`;
-            document.getElementById('feed-current').textContent = `${feedData.current}g`;
+            const feedCapacity = document.getElementById('feed-capacity');
+            if (feedCapacity) feedCapacity.textContent = `${feedData.capacity}g`;
+            
+            const feedCurrent = document.getElementById('feed-current');
+            if (feedCurrent) feedCurrent.textContent = `${feedData.current}g`;
             
             // Calculate estimated days left (assuming 7.5g per day)
             const dailyConsumption = 7.5;
             const daysLeft = Math.round(feedData.current / dailyConsumption);
-            document.getElementById('feed-days-left').textContent = `${daysLeft} days`;
+            
+            const feedDaysLeft = document.getElementById('feed-days-left');
+            if (feedDaysLeft) feedDaysLeft.textContent = `${daysLeft} days`;
         }
     } catch (error) {
         console.error('Error loading feed data:', error);
@@ -239,10 +263,17 @@ async function loadFeedingSchedule() {
         
         if (schedule) {
             // Update feeding schedule form
-            document.getElementById('feeding-time').value = schedule.time;
-            document.getElementById('feeding-frequency').value = schedule.frequency;
-            document.getElementById('food-amount').value = schedule.amount;
-            document.getElementById('food-type').value = schedule.type;
+            const feedingTime = document.getElementById('feeding-time');
+            if (feedingTime) feedingTime.value = schedule.time;
+            
+            const feedingFrequency = document.getElementById('feeding-frequency');
+            if (feedingFrequency) feedingFrequency.value = schedule.frequency;
+            
+            const foodAmount = document.getElementById('food-amount');
+            if (foodAmount) foodAmount.value = schedule.amount;
+            
+            const foodType = document.getElementById('food-type');
+            if (foodType) foodType.value = schedule.type;
             
             // Update feeding schedule list
             updateFeedingScheduleList(schedule);
@@ -260,9 +291,14 @@ async function loadWaterSchedule() {
         
         if (schedule) {
             // Update water schedule form
-            document.getElementById('water-change-time').value = schedule.time;
-            document.getElementById('water-frequency').value = schedule.frequency;
-            document.getElementById('water-change-percentage').value = schedule.percentage;
+            const waterChangeTime = document.getElementById('water-change-time');
+            if (waterChangeTime) waterChangeTime.value = schedule.time;
+            
+            const waterFrequency = document.getElementById('water-frequency');
+            if (waterFrequency) waterFrequency.value = schedule.frequency;
+            
+            const waterChangePercentage = document.getElementById('water-change-percentage');
+            if (waterChangePercentage) waterChangePercentage.value = schedule.percentage;
             
             // Update water schedule list
             updateWaterScheduleList(schedule);
@@ -346,15 +382,17 @@ function updateWaterQualityStatus(temperature, ph) {
     const waterStatusIndicator = document.getElementById('water-status-indicator');
     const waterStatusText = document.querySelector('.water-info h3');
     
-    if (tempStatus === 'Critical' || phStatus === 'Critical') {
-        waterStatusIndicator.className = 'status-indicator critical';
-        waterStatusText.textContent = 'Water Quality: Critical';
-    } else if (tempStatus === 'Warning' || phStatus === 'Warning') {
-        waterStatusIndicator.className = 'status-indicator warning';
-        waterStatusText.textContent = 'Water Quality: Warning';
-    } else {
-        waterStatusIndicator.className = 'status-indicator good';
-        waterStatusText.textContent = 'Water Quality: Good';
+    if (waterStatusIndicator && waterStatusText) {
+        if (tempStatus === 'Critical' || phStatus === 'Critical') {
+            waterStatusIndicator.className = 'status-indicator critical';
+            waterStatusText.textContent = 'Water Quality: Critical';
+        } else if (tempStatus === 'Warning' || phStatus === 'Warning') {
+            waterStatusIndicator.className = 'status-indicator warning';
+            waterStatusText.textContent = 'Water Quality: Warning';
+        } else {
+            waterStatusIndicator.className = 'status-indicator good';
+            waterStatusText.textContent = 'Water Quality: Good';
+        }
     }
 }
 
@@ -370,18 +408,21 @@ function updateHarvestProjections(sensorData) {
     const projectedWeight = Math.min(currentWeight + (daysToHarvest * 0.3), marketSize);
     
     // Update harvest projections
-    document.getElementById('weight-harvest-value').textContent = `${projectedWeight}g`;
+    const weightHarvestValue = document.getElementById('weight-harvest-value');
+    if (weightHarvestValue) weightHarvestValue.textContent = `${projectedWeight}g`;
     
     // Calculate projected revenue
     const marketPrice = 150; // Price per kg in PHP
     const projectedWeightKg = (projectedWeight * population) / 1000;
     const projectedRevenue = Math.round(projectedWeightKg * marketPrice);
     
-    document.getElementById('revenue-harvest-value').textContent = `₱${projectedRevenue}`;
+    const revenueHarvestValue = document.getElementById('revenue-harvest-value');
+    if (revenueHarvestValue) revenueHarvestValue.textContent = `₱${projectedRevenue}`;
     
     // Update survival rate
     const healthStatus = sensorData.health_status;
-    document.getElementById('survival-harvest-value').textContent = `${healthStatus}%`;
+    const survivalHarvestValue = document.getElementById('survival-harvest-value');
+    if (survivalHarvestValue) survivalHarvestValue.textContent = `${healthStatus}%`;
     
     // Update progress bars
     const weightProgress = Math.min((projectedWeight / marketSize) * 100, 100);
@@ -538,8 +579,11 @@ async function feedNow() {
             const now = new Date();
             const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             
-            document.getElementById('last-feeding').textContent = `Last fed: Today at ${timeString}`;
-            document.getElementById('feeding-status-indicator').className = 'status-indicator good';
+            const lastFeeding = document.getElementById('last-feeding');
+            if (lastFeeding) lastFeeding.textContent = `Last fed: Today at ${timeString}`;
+            
+            const feedingStatusIndicator = document.getElementById('feeding-status-indicator');
+            if (feedingStatusIndicator) feedingStatusIndicator.className = 'status-indicator good';
             
             showNotification('Feeding', 'Feeding command sent to device successfully', 'success');
             
@@ -578,10 +622,12 @@ async function changeWaterNow() {
             const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const dateString = now.toLocaleDateString();
             
-            document.getElementById('last-water-change').textContent = `Last changed: Today at ${timeString}`;
+            const lastWaterChange = document.getElementById('last-water-change');
+            if (lastWaterChange) lastWaterChange.textContent = `Last changed: Today at ${timeString}`;
             
             // Update status indicator
-            document.getElementById('water-status-indicator').className = 'status-indicator good';
+            const waterStatusIndicator = document.getElementById('water-status-indicator');
+            if (waterStatusIndicator) waterStatusIndicator.className = 'status-indicator good';
             
             // Show success notification
             showNotification('Water Change', 'Water change command sent to device successfully', 'success');
@@ -635,14 +681,16 @@ function openModal(modalId) {
         
         // Set default date values for date inputs
         if (modalId === 'record-harvest-modal') {
-            document.getElementById('harvest-date-record').valueAsDate = new Date();
+            const harvestDateRecord = document.getElementById('harvest-date-record');
+            if (harvestDateRecord) harvestDateRecord.valueAsDate = new Date();
         }
         
         if (modalId === 'harvest-planning-modal') {
             // Calculate estimated harvest date (120 days from now)
             const harvestDate = new Date();
             harvestDate.setDate(harvestDate.getDate() + 120);
-            document.getElementById('harvest-date').valueAsDate = harvestDate;
+            const harvestDateInput = document.getElementById('harvest-date');
+            if (harvestDateInput) harvestDateInput.valueAsDate = harvestDate;
         }
     }
 }
@@ -660,40 +708,78 @@ window.onclick = function(event) {
         event.target.style.display = 'none';
     }
 }
-
+// Add this to dashboard.js
+document.addEventListener('authStateChanged', function(event) {
+    const { authenticated, user } = event.detail;
+    
+    if (!authenticated) {
+        console.log('User not authenticated, redirecting to login...');
+        window.location.href = 'index.html';
+    } else {
+        console.log('User authenticated:', user);
+        // Continue with dashboard initialization
+    }
+});
 // Event listeners for buttons
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, setting up event listeners');
+    
     // Add event listeners to command buttons
     const feedBtn = document.getElementById('feed-now');
     if (feedBtn) {
-        feedBtn.addEventListener('click', feedNow);
+        feedBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            feedNow();
+        });
+        console.log('Feed button event listener attached');
+    } else {
+        console.warn('Feed button not found');
     }
     
     const changeWaterBtn = document.getElementById('change-water-now');
     if (changeWaterBtn) {
-        changeWaterBtn.addEventListener('click', changeWaterNow);
+        changeWaterBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            changeWaterNow();
+        });
+        console.log('Change water button event listener attached');
+    } else {
+        console.warn('Change water button not found');
     }
     
     const testWaterBtn = document.getElementById('test-water-now');
     if (testWaterBtn) {
-        testWaterBtn.addEventListener('click', testWaterNow);
+        testWaterBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            testWaterNow();
+        });
+        console.log('Test water button event listener attached');
+    } else {
+        console.warn('Test water button not found');
     }
     
     // Refresh data button
     const refreshBtn = document.getElementById('refresh-data');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', function() {
-            this.querySelector('i').classList.add('fa-spin');
+        refreshBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const icon = this.querySelector('i');
+            if (icon) icon.classList.add('fa-spin');
+            
             refreshDashboardData().then(() => {
-                this.querySelector('i').classList.remove('fa-spin');
+                if (icon) icon.classList.remove('fa-spin');
             });
         });
+        console.log('Refresh button event listener attached');
+    } else {
+        console.warn('Refresh button not found');
     }
     
     // Logout function
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', async function() {
+        logoutBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
             try {
                 await supabase.auth.signOut();
                 localStorage.removeItem('isLoggedIn');
@@ -710,35 +796,105 @@ document.addEventListener('DOMContentLoaded', function() {
                 showNotification('Error', 'Failed to log out', 'error');
             }
         });
+        console.log('Logout button event listener attached');
+    } else {
+        console.warn('Logout button not found');
     }
     
     // Close notification button
     const notificationClose = document.getElementById('notification-close');
     if (notificationClose) {
-        notificationClose.addEventListener('click', function() {
-            document.getElementById('notification').classList.remove('show');
+        notificationClose.addEventListener('click', function(e) {
+            e.preventDefault();
+            const notification = document.getElementById('notification');
+            if (notification) notification.classList.remove('show');
         });
+        console.log('Notification close button event listener attached');
+    } else {
+        console.warn('Notification close button not found');
     }
     
     // Modal close buttons
     const closeButtons = document.querySelectorAll('.modal-close');
     closeButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
             const modal = this.closest('.modal');
-            if (modal) {
-                modal.style.display = 'none';
-            }
+            if (modal) modal.style.display = 'none';
         });
     });
     
     // Modal cancel buttons
     const cancelButtons = document.querySelectorAll('.modal-cancel');
     cancelButtons.forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
             const modal = this.closest('.modal');
-            if (modal) {
-                modal.style.display = 'none';
-            }
+            if (modal) modal.style.display = 'none';
         });
     });
+    
+    // Water testing schedule modal
+    const saveTestSchedule = document.getElementById('save-test-schedule');
+    if (saveTestSchedule) {
+        saveTestSchedule.addEventListener('click', function(e) {
+            e.preventDefault();
+            const frequency = document.getElementById('test-frequency').value;
+            const time = document.getElementById('test-time').value;
+            const notifications = document.getElementById('test-notifications').value;
+            
+            showNotification('Schedule Saved', `Water testing scheduled ${frequency} at ${time}. Notifications: ${notifications}`, 'success');
+            closeModal('water-testing-schedule-modal');
+        });
+    }
+    
+    // Harvest planning modal
+    const saveHarvestPlan = document.getElementById('save-harvest-plan');
+    if (saveHarvestPlan) {
+        saveHarvestPlan.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetSize = document.getElementById('target-size').value;
+            const harvestDate = document.getElementById('harvest-date').value;
+            const harvestMethod = document.getElementById('harvest-method').value;
+            const marketPrice = document.getElementById('market-price').value;
+            
+            showNotification('Plan Saved', `Harvest plan saved: ${harvestMethod} harvest targeting ${targetSize}g by ${harvestDate}`, 'success');
+            closeModal('harvest-planning-modal');
+        });
+    }
+    
+    // Record harvest modal
+    const saveHarvestRecord = document.getElementById('save-harvest-record');
+    if (saveHarvestRecord) {
+        saveHarvestRecord.addEventListener('click', function(e) {
+            e.preventDefault();
+            const harvestDate = document.getElementById('harvest-date-record').value;
+            const quantity = document.getElementById('harvest-quantity').value;
+            const price = document.getElementById('harvest-price-record').value;
+            const notes = document.getElementById('harvest-notes').value;
+            
+            if (harvestDate && quantity && price) {
+                const revenue = (quantity * price).toFixed(2);
+                showNotification('Harvest Recorded', `Harvest recorded: ${quantity}kg at ₱${price}/kg, Revenue: ₱${revenue}`, 'success');
+                closeModal('record-harvest-modal');
+            } else {
+                showNotification('Error', 'Please fill all required fields', 'warning');
+            }
+        });
+    }
+    
+    // Feed alert modal
+    const saveFeedAlert = document.getElementById('save-feed-alert');
+    if (saveFeedAlert) {
+        saveFeedAlert.addEventListener('click', function(e) {
+            e.preventDefault();
+            const threshold = document.getElementById('alert-threshold').value;
+            const alertType = document.getElementById('alert-type').value;
+            
+            showNotification('Alert Set', `Feed alert set at ${threshold}% with ${alertType} notifications`, 'success');
+            closeModal('feed-alert-modal');
+        });
+    }
+    
+    console.log('All event listeners attached successfully');
 });

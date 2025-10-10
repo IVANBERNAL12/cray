@@ -1,6 +1,34 @@
 // auth.js
 console.log('auth.js loaded');
 
+// Helper function to handle auth state changes
+function handleAuthStateChange(event, session) {
+    console.log('Auth state changed:', event, session);
+    
+    if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('supabaseSession');
+        localStorage.removeItem('userId');
+        console.log('User signed out');
+        
+        // Dispatch custom event for dashboard
+        window.dispatchEvent(new CustomEvent('authStateChanged', {
+            detail: { authenticated: false, user: null }
+        }));
+    } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session) {
+            localStorage.setItem('supabaseSession', JSON.stringify(session));
+            localStorage.setItem('userId', session.user.id);
+            console.log('User signed in or token refreshed');
+            console.log('User ID stored:', session.user.id);
+            
+            // Dispatch custom event for dashboard
+            window.dispatchEvent(new CustomEvent('authStateChanged', {
+                detail: { authenticated: true, user: session.user }
+            }));
+        }
+    }
+}
+
 // Wait for Supabase to be ready
 document.addEventListener('supabaseReady', function() {
     console.log('Supabase is ready, setting up auth...');
@@ -8,21 +36,7 @@ document.addEventListener('supabaseReady', function() {
     // Set up auth state change listener
     if (window.supabase && window.supabase.auth) {
         window.supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Auth state changed:', event, session);
-            
-            if (event === 'SIGNED_OUT') {
-                localStorage.removeItem('supabaseSession');
-                localStorage.removeItem('userId'); // Remove user ID on sign out
-                console.log('User signed out');
-            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                if (session) {
-                    localStorage.setItem('supabaseSession', JSON.stringify(session));
-                    // Store user ID for ESP8266 to use
-                    localStorage.setItem('userId', session.user.id);
-                    console.log('User signed in or token refreshed');
-                    console.log('User ID stored:', session.user.id);
-                }
-            }
+            handleAuthStateChange(event, session);
         });
     } else {
         console.error('Supabase auth not available');
@@ -34,13 +48,8 @@ async function signUp(email, password, name, farmName) {
     try {
         console.log('Starting signup for:', email);
         
-        // Check if supabase is available
-        if (!window.supabase) {
+        if (!window.supabase || !window.supabase.auth) {
             throw new Error('Supabase is not initialized');
-        }
-        
-        if (!window.supabase.auth) {
-            throw new Error('Supabase auth is not available');
         }
         
         const { data, error } = await window.supabase.auth.signUp({
@@ -111,9 +120,13 @@ async function signIn(email, password) {
         
         if (data.session) {
             localStorage.setItem('supabaseSession', JSON.stringify(data.session));
-            // Store user ID for ESP8266 to use
             localStorage.setItem('userId', data.user.id);
             console.log('User ID stored:', data.user.id);
+            
+            // Dispatch custom event for dashboard
+            window.dispatchEvent(new CustomEvent('authStateChanged', {
+                detail: { authenticated: true, user: data.user }
+            }));
         }
         
         return { success: true, data: data };
@@ -140,8 +153,13 @@ async function signOut() {
         }
         
         localStorage.removeItem('supabaseSession');
-        localStorage.removeItem('userId'); // Remove user ID on sign out
+        localStorage.removeItem('userId');
         console.log('Sign out successful');
+        
+        // Dispatch custom event for dashboard
+        window.dispatchEvent(new CustomEvent('authStateChanged', {
+            detail: { authenticated: false, user: null }
+        }));
         
         return { success: true };
     } catch (error) {
@@ -171,7 +189,7 @@ async function checkAuth() {
             if (error || !data.user) {
                 console.log('Invalid session, removing it');
                 localStorage.removeItem('supabaseSession');
-                localStorage.removeItem('userId'); // Also remove user ID
+                localStorage.removeItem('userId');
                 return { authenticated: false };
             }
             
@@ -213,7 +231,7 @@ async function getCurrentUser() {
     }
 }
 
-// Get current user ID - NEW FUNCTION
+// Get current user ID
 function getCurrentUserId() {
     // Try to get from localStorage first
     let userId = localStorage.getItem('userId');
@@ -231,7 +249,7 @@ function getCurrentUserId() {
     return userId;
 }
 
-// Display user ID for ESP8266 configuration - NEW FUNCTION
+// Display user ID for ESP8266 configuration
 function displayUserIdForESP() {
     const userId = getCurrentUserId();
     if (userId) {
@@ -265,7 +283,6 @@ async function refreshSession() {
         
         if (data.session) {
             localStorage.setItem('supabaseSession', JSON.stringify(data.session));
-            // Update user ID if it changed
             localStorage.setItem('userId', data.session.user.id);
         }
         
@@ -276,8 +293,8 @@ async function refreshSession() {
     }
 }
 
-// Show notification function
-function showNotification(title, message, type = 'info') {
+// Show notification function (renamed to avoid conflicts)
+function showAuthNotification(title, message, type = 'info') {
     // Only show notifications when there's a proper notification toast element
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
@@ -354,12 +371,25 @@ document.addEventListener('DOMContentLoaded', function() {
             const userIdInput = document.getElementById('user-id-display');
             userIdInput.select();
             document.execCommand('copy');
-            showNotification('Copied', 'User ID copied to clipboard', 'success');
+            showAuthNotification('Copied', 'User ID copied to clipboard', 'success');
         });
         
         document.getElementById('show-user-id').addEventListener('click', function() {
             displayUserIdForESP();
-            showNotification('User ID', 'Check console for your user ID', 'info');
+            showAuthNotification('User ID', 'Check console for your user ID', 'info');
         });
     }
 });
+
+// Export functions globally
+window.signUp = signUp;
+window.signIn = signIn;
+window.signOut = signOut;
+window.checkAuth = checkAuth;
+window.getCurrentUser = getCurrentUser;
+window.getCurrentUserId = getCurrentUserId;
+window.displayUserIdForESP = displayUserIdForESP;
+window.refreshSession = refreshSession;
+window.showAuthNotification = showAuthNotification;
+
+console.log('[Auth] Auth module loaded and functions exported');
