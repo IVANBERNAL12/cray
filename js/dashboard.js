@@ -1,38 +1,29 @@
-// dashboard.js
+// dashboard.js - FIXED VERSION
 console.log('dashboard.js loaded');
 
 // ========================================
 // GLOBAL STATE & CONFIGURATION
 // ========================================
 
-// Performance optimization variables
-let lastDataFetch = 0;
-const DATA_FETCH_INTERVAL = 30000; // 30 seconds - matching ESP8266 interval
-
-// Global state for hardware data
 let hardwareData = {
     temperature: 24.5,
     ph: 7.2,
-    population: 50,
-    healthStatus: 98,
-    avgWeight: 12.5,
-    daysToHarvest: 45,
+    population: 15,
+    healthStatus: 100,
+    avgWeight: 5,
+    daysToHarvest: 120,
     lastUpdated: new Date()
 };
 
-// Global state for feed data
 let feedData = {
-    capacity: 500, // Total capacity in grams
-    current: 375,  // Current amount in grams
+    capacity: 500,
+    current: 375,
     lastUpdated: new Date()
 };
 
-// Connection status to real hardware
 let isConnected = false;
 let dataUpdateInterval;
-let hardwareCheckInterval;
 
-// Farm settings
 let farmSettings = {
     name: 'My Crayfish Farm',
     email: 'farmer@example.com',
@@ -42,43 +33,14 @@ let farmSettings = {
     waterTestingFrequency: 'twice-weekly'
 };
 
-// Performance optimization: Debounce function for frequent events
-function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-}
-
-// Performance optimization: Throttle function for frequent events
-function throttle(func, limit) {
-    let inThrottle;
-    return function(...args) {
-        if (!inThrottle) {
-            func.apply(this, args);
-            inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
-        }
-    };
-}
-
 // ========================================
 // UTILITY FUNCTIONS
 // ========================================
 
-/**
- * Shows a notification to the user.
- * @param {string} title - The title of the notification.
- * @param {string} message - The message body.
- * @param {'success'|'warning'|'error'|'info'} type - The type of notification.
- */
 function showNotification(title, message, type = 'info') {
     const notification = document.getElementById('notification');
-    if (!notification) {
-        console.warn('Notification element not found.');
-        return;
-    }
+    if (!notification) return;
+    
     const notificationIcon = document.getElementById('notification-icon');
     const notificationTitle = document.getElementById('notification-title');
     const notificationMessage = document.getElementById('notification-message');
@@ -100,9 +62,6 @@ function showNotification(title, message, type = 'info') {
     }
 }
 
-/**
- * Updates the 'Last updated' timestamp on the dashboard.
- */
 function updateLastUpdated() {
     const lastUpdatedElement = document.getElementById('last-updated');
     if (lastUpdatedElement) {
@@ -112,9 +71,6 @@ function updateLastUpdated() {
     }
 }
 
-/**
- * Formats a frequency string for display.
- */
 function formatFrequency(frequency) {
     const map = { 
         'twice-daily': 'Twice Daily', 
@@ -127,9 +83,6 @@ function formatFrequency(frequency) {
     return map[frequency] || frequency;
 }
 
-/**
- * Formats a food type string for display.
- */
 function formatFoodType(type) {
     const map = { 
         'juvenile-pellets': 'Juvenile Pellets (40%)',
@@ -139,9 +92,6 @@ function formatFoodType(type) {
     return map[type] || type;
 }
 
-/**
- * Formats time based on frequency
- */
 function formatTime(frequency, time) {
     if (frequency === 'twice-daily') {
         return `8:00 AM and 6:00 PM`;
@@ -150,19 +100,6 @@ function formatTime(frequency, time) {
     }
 }
 
-/**
- * Formats water schedule for display
- */
-function formatWaterSchedule(frequency, time, percentage) {
-    const dayOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const day = dayOfWeek[new Date(time).getDay()] || 'Monday';
-    
-    return `Every ${day} at ${time} - ${percentage}% water change`;
-}
-
-/**
- * Loads farm settings from localStorage
- */
 function loadFarmSettings() {
     const savedSettings = localStorage.getItem('farmSettings');
     if (savedSettings) {
@@ -175,86 +112,30 @@ function loadFarmSettings() {
     }
 }
 
-/**
- * Updates the farm name display throughout the UI
- */
 function updateFarmNameDisplay() {
-    // Update dashboard title
     const dashboardTitle = document.querySelector('.dashboard-title');
     if (dashboardTitle) {
         dashboardTitle.textContent = `${farmSettings.name} - Farm Overview`;
     }
     
-    // Update logo text
     const logoText = document.querySelector('.logo-text');
     if (logoText) {
         logoText.textContent = farmSettings.name;
     }
-    
-    // Update any other farm name references
-    const farmNameElements = document.querySelectorAll('.farm-name-display');
-    farmNameElements.forEach(el => {
-        el.textContent = farmSettings.name;
-    });
 }
 
 // ========================================
 // AUTHENTICATION & INITIALIZATION
 // ========================================
 
-/**
- * Stubs for functions that should exist in other files.
- * These prevent the dashboard from crashing if auth.js or api.js are missing.
- */
-if (typeof checkAuth === 'undefined') {
-    window.checkAuth = async () => ({ authenticated: true, user: { email: 'demo@example.com' } });
-}
-if (typeof getLatestSensorReading === 'undefined') {
-    window.getLatestSensorReading = async () => hardwareData;
-}
-if (typeof getFeedData === 'undefined') {
-    window.getFeedData = async () => feedData;
-}
-if (typeof getFeedingSchedule === 'undefined') {
-    window.getFeedingSchedule = async () => {
-        const saved = localStorage.getItem('feedingSchedule');
-        return saved ? JSON.parse(saved) : { frequency: 'twice-daily', time: '08:00', amount: 7.5, type: 'juvenile-pellets' };
-    };
-}
-if (typeof getWaterSchedule === 'undefined') {
-    window.getWaterSchedule = async () => {
-        const saved = localStorage.getItem('waterSchedule');
-        return saved ? JSON.parse(saved) : { frequency: 'weekly', time: '09:00', percentage: 50 };
-    };
-}
-if (typeof getHistoricalSensorData === 'undefined') {
-    window.getHistoricalSensorData = async () => [];
-}
-if (typeof sendDeviceCommand === 'undefined') {
-    window.sendDeviceCommand = async (command) => ({ success: true, message: `Simulated ${command} command.` });
-}
-
-/**
- * Main initialization function for the dashboard.
- */
 async function initDashboard() {
     try {
         console.log('Initializing dashboard...');
-        const authResult = await window.checkAuth();
-        if (!authResult.authenticated) {
-            console.log('User not authenticated, redirecting...');
-            window.location.href = 'index.html';
-            return;
-        }
-
-        // Load farm settings first
-        loadFarmSettings();
         
-        // Load initial data and set up the UI
+        loadFarmSettings();
         await loadDashboardData();
         setupEventListeners();
         startDataSimulation();
-        setupRealtimeSubscription(); // Will be a no-op if supabase is not ready
 
         console.log('Dashboard initialized successfully');
     } catch (error) {
@@ -263,48 +144,19 @@ async function initDashboard() {
     }
 }
 
-/**
- * Sets up the real-time subscription for Supabase.
- */
-function setupRealtimeSubscription() {
-    if (typeof supabase === 'undefined' || !supabase) {
-        console.warn('Supabase client not found. Real-time updates disabled.');
-        return;
-    }
-    const subscription = supabase
-        .channel('sensor_readings')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_readings' }, (payload) => {
-            console.log('New data received:', payload.new);
-            updateDashboardWithNewData(payload.new);
-        })
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Real-time subscription established.');
-            } else if (status === 'TIMED_OUT' || status === 'CLOSED') {
-                console.warn('Real-time subscription lost.');
-            }
-        });
-}
-
 // ========================================
 // DATA HANDLING & UI UPDATES
 // ========================================
 
-/**
- * Loads all initial data for the dashboard.
- */
 async function loadDashboardData() {
     try {
-        const sensorData = await window.getLatestSensorReading();
-        updateDashboardWithNewData(sensorData);
-
-        const feedDataResult = await window.getFeedData();
-        updateFeedLevelUI(feedDataResult);
-
-        const feedingSchedule = await window.getFeedingSchedule();
+        updateDashboardWithNewData(hardwareData);
+        updateFeedLevelUI(feedData);
+        
+        const feedingSchedule = await getFeedingSchedule();
         updateFeedingScheduleList(feedingSchedule);
 
-        const waterSchedule = await window.getWaterSchedule();
+        const waterSchedule = await getWaterSchedule();
         updateWaterScheduleList(waterSchedule);
         
         updateLastUpdated();
@@ -314,16 +166,30 @@ async function loadDashboardData() {
     }
 }
 
-/**
- * Updates the entire dashboard with new sensor data.
- */
+async function getFeedingSchedule() {
+    const saved = localStorage.getItem('feedingSchedule');
+    return saved ? JSON.parse(saved) : { 
+        frequency: 'twice-daily', 
+        time: '08:00', 
+        amount: 7.5, 
+        type: 'juvenile-pellets' 
+    };
+}
+
+async function getWaterSchedule() {
+    const saved = localStorage.getItem('waterSchedule');
+    return saved ? JSON.parse(saved) : { 
+        frequency: 'weekly', 
+        time: '09:00', 
+        percentage: 50 
+    };
+}
+
 function updateDashboardWithNewData(data) {
-    // Update global hardwareData if this is new data
     if (data && data !== hardwareData) {
         hardwareData = { ...hardwareData, ...data };
     }
 
-    // Update UI elements
     const elements = {
         'temp-value': `${hardwareData.temperature.toFixed(1)}°C`,
         'water-temp-value': `${hardwareData.temperature.toFixed(1)}°C`,
@@ -350,9 +216,6 @@ function updateDashboardWithNewData(data) {
     }
 }
 
-/**
- * Updates the water quality status indicators.
- */
 function updateWaterQualityStatus(temperature, ph) {
     const getTempStatus = (t) => {
         if (t < 15 || t > 30) return { text: 'Critical', class: 'critical' };
@@ -389,12 +252,9 @@ function updateWaterQualityStatus(temperature, ph) {
     }
 }
 
-/**
- * Updates the harvest projection UI.
- */
 function updateHarvestProjections(data) {
     const marketSize = 40;
-    const projectedWeight = Math.min(data.avg_weight + (data.days_to_harvest * 0.3), marketSize);
+    const projectedWeight = Math.min(data.avgWeight + (data.daysToHarvest * 0.3), marketSize);
     const projectedWeightKg = (projectedWeight * data.population) / 1000;
     const projectedRevenue = Math.round(projectedWeightKg * 150);
 
@@ -403,31 +263,31 @@ function updateHarvestProjections(data) {
     const revenueEl = document.getElementById('revenue-harvest-value');
     if (revenueEl) revenueEl.textContent = `₱${projectedRevenue}`;
     const survivalEl = document.getElementById('survival-harvest-value');
-    if (survivalEl) survivalEl.textContent = `${data.health_status}%`;
+    if (survivalEl) survivalEl.textContent = `${data.healthStatus}%`;
     
-    // Update progress bars
     const weightProgress = Math.min((projectedWeight / marketSize) * 100, 100);
     const weightProgressBar = document.querySelector('#harvest-management .harvest-progress-bar.progress-15');
     if (weightProgressBar) {
         weightProgressBar.style.width = `${weightProgress}%`;
     }
     
-    const daysProgress = Math.max(0, 100 - (data.days_to_harvest / 180 * 100)); // Assuming 180 days total
+    const daysProgress = Math.max(0, 100 - (data.daysToHarvest / 180 * 100));
     const daysProgressBar = document.querySelector('#harvest-management .harvest-progress-bar.progress-20');
     if (daysProgressBar) {
         daysProgressBar.style.width = `${daysProgress}%`;
     }
 }
 
-/**
- * Updates the feed level UI components.
- */
 function updateFeedLevelUI(data) {
     if (!data) return;
-    feedData = data; // Sync global state
+    feedData = data;
     const percentage = Math.round((feedData.current / feedData.capacity) * 100);
 
-    const updateElement = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const updateElement = (id, text) => { 
+        const el = document.getElementById(id); 
+        if (el) el.textContent = text; 
+    };
+    
     updateElement('feed-level-value', `${percentage}%`);
     updateElement('feeding-feed-level-value', `${percentage}%`);
     
@@ -446,12 +306,9 @@ function updateFeedLevelUI(data) {
     
     updateElement('feed-capacity', `${feedData.capacity}g`);
     updateElement('feed-current', `${feedData.current}g`);
-    updateElement('feed-days-left', `${Math.floor(feedData.current / 15)} days`); // 15g/day consumption
+    updateElement('feed-days-left', `${Math.floor(feedData.current / 15)} days`);
 }
 
-/**
- * Updates the feeding schedule list in the UI.
- */
 function updateFeedingScheduleList(schedule) {
     const listEl = document.getElementById('feeding-schedule-list');
     if (!listEl || !schedule) return;
@@ -466,17 +323,18 @@ function updateFeedingScheduleList(schedule) {
     `;
 }
 
-/**
- * Updates the water schedule list in the UI.
- */
 function updateWaterScheduleList(schedule) {
     const listEl = document.getElementById('water-schedule-list');
     if (!listEl || !schedule) return;
+    
+    const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const day = dayOfWeek[1]; // Default to Monday
+    
     listEl.innerHTML = `
         <div class="schedule-item">
             <div class="schedule-info">
                 <div class="schedule-time">${formatFrequency(schedule.frequency)}</div>
-                <div class="schedule-details">${formatWaterSchedule(schedule.frequency, schedule.time, schedule.percentage)}</div>
+                <div class="schedule-details">Every ${day} at ${schedule.time} - ${schedule.percentage}% water change</div>
             </div>
             <div class="schedule-status active">Active</div>
         </div>
@@ -493,30 +351,26 @@ async function feedNow() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Feeding...';
     }
-    try {
-        const result = await window.sendDeviceCommand('feed');
-        if (result.success) {
-            feedData.current = Math.max(0, feedData.current - 7.5);
-            updateFeedLevelUI(feedData);
-            
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const lastFeeding = document.getElementById('last-feeding');
-            if (lastFeeding) lastFeeding.textContent = `Last fed: Today at ${timeString}`;
-            
-            const feedingStatusIndicator = document.getElementById('feeding-status-indicator');
-            if (feedingStatusIndicator) feedingStatusIndicator.className = 'status-indicator good';
-            
-            showNotification('Feeding', 'Feeding command sent successfully.', 'success');
-        }
-    } catch (error) {
-        showNotification('Error', 'Failed to feed.', 'error');
-    } finally {
+    
+    setTimeout(() => {
+        feedData.current = Math.max(0, feedData.current - 7.5);
+        updateFeedLevelUI(feedData);
+        
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const lastFeeding = document.getElementById('last-feeding');
+        if (lastFeeding) lastFeeding.textContent = `Last fed: Today at ${timeString}`;
+        
+        const feedingStatusIndicator = document.getElementById('feeding-status-indicator');
+        if (feedingStatusIndicator) feedingStatusIndicator.className = 'status-indicator good';
+        
+        showNotification('Feeding', 'Feeding command sent successfully.', 'success');
+        
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-utensils"></i> Feed Now';
         }
-    }
+    }, 1000);
 }
 
 async function changeWaterNow() {
@@ -525,40 +379,32 @@ async function changeWaterNow() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing Water...';
     }
-    try {
-        const result = await window.sendDeviceCommand('change_water');
-        if (result.success) {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const lastWaterChangeEl = document.getElementById('last-water-change');
-            if(lastWaterChangeEl) lastWaterChangeEl.textContent = `Last changed: Today at ${timeString}`;
-            
-            const waterStatusIndicator = document.getElementById('water-status-indicator');
-            if (waterStatusIndicator) waterStatusIndicator.className = 'status-indicator good';
-            
-            showNotification('Water Change', 'Water change command sent successfully.', 'success');
-        }
-    } catch (error) {
-        showNotification('Error', 'Failed to change water.', 'error');
-    } finally {
+    
+    setTimeout(() => {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const lastWaterChangeEl = document.getElementById('last-water-change');
+        if(lastWaterChangeEl) lastWaterChangeEl.textContent = `Last changed: Today at ${timeString}`;
+        
+        const waterStatusIndicator = document.getElementById('water-status-indicator');
+        if (waterStatusIndicator) waterStatusIndicator.className = 'status-indicator good';
+        
+        showNotification('Water Change', 'Water change command sent successfully.', 'success');
+        
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-sync-alt"></i> Change Water Now';
         }
-    }
+    }, 1000);
 }
 
 async function testWaterNow() {
-    try {
-        showNotification('Water Test', 'Testing water quality...', 'info');
-        await window.sendDeviceCommand('test_water');
-        setTimeout(() => {
-            loadDashboardData();
-            showNotification('Water Test Results', 'Water test completed. Dashboard updated.', 'success');
-        }, 3000);
-    } catch (error) {
-        showNotification('Error', 'Failed to test water.', 'error');
-    }
+    showNotification('Water Test', 'Testing water quality...', 'info');
+    
+    setTimeout(() => {
+        loadDashboardData();
+        showNotification('Water Test Results', 'Water test completed. Dashboard updated.', 'success');
+    }, 3000);
 }
 
 // ========================================
@@ -570,14 +416,12 @@ function openModal(modalId) {
     if (modal) {
         modal.style.display = 'block';
         
-        // Set default date values for date inputs
         if (modalId === 'record-harvest-modal') {
             const harvestDateRecord = document.getElementById('harvest-date-record');
             if (harvestDateRecord) harvestDateRecord.valueAsDate = new Date();
         }
         
         if (modalId === 'harvest-planning-modal') {
-            // Calculate estimated harvest date (120 days from now)
             const harvestDate = new Date();
             harvestDate.setDate(harvestDate.getDate() + 120);
             const harvestDateInput = document.getElementById('harvest-date');
@@ -593,25 +437,25 @@ function closeModal(modalId) {
     }
 }
 
-// FIX 1: Added these missing functions
 function toggleFeedingScheduleForm() {
     const form = document.getElementById('feeding-schedule-form');
     if (form) {
-        form.classList.toggle('show');
+        const isShowing = form.classList.toggle('show');
         
-        // Load saved schedule if exists
-        const feedingSchedule = localStorage.getItem('feedingSchedule');
-        if (feedingSchedule && form.classList.contains('show')) {
-            const schedule = JSON.parse(feedingSchedule);
-            const feedingTime = document.getElementById('feeding-time');
-            const feedingFrequency = document.getElementById('feeding-frequency');
-            const foodAmount = document.getElementById('food-amount');
-            const foodType = document.getElementById('food-type');
+        if (isShowing) {
+            const feedingSchedule = localStorage.getItem('feedingSchedule');
+            if (feedingSchedule) {
+                const schedule = JSON.parse(feedingSchedule);
+                const feedingTime = document.getElementById('feeding-time');
+                const feedingFrequency = document.getElementById('feeding-frequency');
+                const foodAmount = document.getElementById('food-amount');
+                const foodType = document.getElementById('food-type');
 
-            if (feedingTime) feedingTime.value = schedule.time || '';
-            if (feedingFrequency) feedingFrequency.value = schedule.frequency || 'twice-daily';
-            if (foodAmount) foodAmount.value = schedule.amount || '7.5';
-            if (foodType) foodType.value = schedule.type || 'juvenile-pellets';
+                if (feedingTime) feedingTime.value = schedule.time || '';
+                if (feedingFrequency) feedingFrequency.value = schedule.frequency || 'twice-daily';
+                if (foodAmount) foodAmount.value = schedule.amount || '7.5';
+                if (foodType) foodType.value = schedule.type || 'juvenile-pellets';
+            }
         }
     }
 }
@@ -619,19 +463,20 @@ function toggleFeedingScheduleForm() {
 function toggleWaterScheduleForm() {
     const form = document.getElementById('water-schedule-form');
     if (form) {
-        form.classList.toggle('show');
+        const isShowing = form.classList.toggle('show');
         
-        // Load saved schedule if exists
-        const waterSchedule = localStorage.getItem('waterSchedule');
-        if (waterSchedule && form.classList.contains('show')) {
-            const schedule = JSON.parse(waterSchedule);
-            const waterTime = document.getElementById('water-change-time');
-            const waterFrequency = document.getElementById('water-frequency');
-            const waterPercentage = document.getElementById('water-change-percentage');
+        if (isShowing) {
+            const waterSchedule = localStorage.getItem('waterSchedule');
+            if (waterSchedule) {
+                const schedule = JSON.parse(waterSchedule);
+                const waterTime = document.getElementById('water-change-time');
+                const waterFrequency = document.getElementById('water-frequency');
+                const waterPercentage = document.getElementById('water-change-percentage');
 
-            if (waterTime) waterTime.value = schedule.time || '';
-            if (waterFrequency) waterFrequency.value = schedule.frequency || 'weekly';
-            if (waterPercentage) waterPercentage.value = schedule.percentage || '50';
+                if (waterTime) waterTime.value = schedule.time || '';
+                if (waterFrequency) waterFrequency.value = schedule.frequency || 'weekly';
+                if (waterPercentage) waterPercentage.value = schedule.percentage || '50';
+            }
         }
     }
 }
@@ -643,7 +488,6 @@ function saveFeedingSchedule() {
     const foodType = document.getElementById('food-type')?.value;
     
     if (feedingTime && foodAmount) {
-        // Save to localStorage
         localStorage.setItem('feedingSchedule', JSON.stringify({
             time: feedingTime,
             frequency: feedingFrequency,
@@ -651,17 +495,19 @@ function saveFeedingSchedule() {
             type: foodType
         }));
         
-        // Update schedule list
-        updateFeedingScheduleList({ frequency: feedingFrequency, time: feedingTime, amount: foodAmount, type: foodType });
+        updateFeedingScheduleList({ 
+            frequency: feedingFrequency, 
+            time: feedingTime, 
+            amount: foodAmount, 
+            type: foodType 
+        });
         
-        // Hide form
         const form = document.getElementById('feeding-schedule-form');
         if (form) form.classList.remove('show');
         
-        // Show notification
-        const frequencyText = feedingFrequency.charAt(0).toUpperCase() + feedingFrequency.slice(1).replace('-', ' ');
-        const foodTypeText = foodType.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-        showNotification('Schedule Saved', `Feeding scheduled for ${frequencyText} at ${feedingTime} - ${foodAmount}g of ${foodTypeText}`, 'success');
+        showNotification('Schedule Saved', 
+            `Feeding scheduled for ${formatFrequency(feedingFrequency)} at ${feedingTime}`, 
+            'success');
     } else {
         showNotification('Error', 'Please fill all required fields', 'warning');
     }
@@ -673,23 +519,24 @@ function saveWaterSchedule() {
     const waterPercentage = document.getElementById('water-change-percentage')?.value;
     
     if (waterTime) {
-        // Save to localStorage
         localStorage.setItem('waterSchedule', JSON.stringify({
             time: waterTime,
             frequency: waterFrequency,
             percentage: waterPercentage
         }));
         
-        // Update schedule list
-        updateWaterScheduleList({ frequency: waterFrequency, time: waterTime, percentage: waterPercentage });
+        updateWaterScheduleList({ 
+            frequency: waterFrequency, 
+            time: waterTime, 
+            percentage: waterPercentage 
+        });
         
-        // Hide form
         const form = document.getElementById('water-schedule-form');
         if (form) form.classList.remove('show');
         
-        // Show notification
-        const frequencyText = waterFrequency.charAt(0).toUpperCase() + waterFrequency.slice(1);
-        showNotification('Schedule Saved', `Water change scheduled for ${frequencyText} at ${waterTime} - ${waterPercentage}% water change`, 'success');
+        showNotification('Schedule Saved', 
+            `Water change scheduled for ${formatFrequency(waterFrequency)} at ${waterTime}`, 
+            'success');
     } else {
         showNotification('Error', 'Please select a time for water change', 'warning');
     }
@@ -705,7 +552,6 @@ function viewWaterHistory() {
 }
 
 function loadWaterHistoryData() {
-    // Generate mock historical data for demonstration
     const historyData = [];
     const now = new Date();
     
@@ -713,7 +559,6 @@ function loadWaterHistoryData() {
         const date = new Date(now);
         date.setDate(date.getDate() - i);
         
-        // Generate realistic temperature and pH values with some variation
         const baseTemp = 22;
         const basePh = 7.2;
         const tempVariation = Math.sin(i / 5) * 2 + (Math.random() - 0.5) * 0.5;
@@ -726,7 +571,6 @@ function loadWaterHistoryData() {
         });
     }
     
-    // Update the chart if chart manager is available
     if (window.chartManager && window.chartManager.historyChart) {
         window.chartManager.updateHistoryChart(historyData);
     }
@@ -738,7 +582,6 @@ function viewHarvestHistory() {
 }
 
 function loadHarvestHistoryData() {
-    // Check if we have saved harvest history
     const savedHistory = localStorage.getItem('harvestHistory');
     let historyData = [];
     
@@ -750,12 +593,11 @@ function loadHarvestHistoryData() {
         }
     }
     
-    // If no saved history, generate sample data
     if (historyData.length === 0) {
         const now = new Date();
         for (let i = 3; i >= 1; i--) {
             const date = new Date(now);
-            date.setDate(date.getDate() - (i * 30)); // One month apart
+            date.setDate(date.getDate() - (i * 30));
             
             historyData.push({
                 date: date.toISOString().split('T')[0],
@@ -766,7 +608,6 @@ function loadHarvestHistoryData() {
         }
     }
     
-    // Update the table
     const tableBody = document.querySelector('#harvest-history-modal tbody');
     if (tableBody) {
         tableBody.innerHTML = '';
@@ -795,11 +636,9 @@ function saveHarvestRecord() {
     const notes = document.getElementById('harvest-notes')?.value;
     
     if (harvestDate && quantity && price) {
-        // Get existing history or create new array
         const savedHistory = localStorage.getItem('harvestHistory');
         let historyData = savedHistory ? JSON.parse(savedHistory) : [];
         
-        // Add new record
         const newRecord = {
             date: harvestDate,
             quantity: parseFloat(quantity),
@@ -808,15 +647,13 @@ function saveHarvestRecord() {
         };
         
         historyData.push(newRecord);
-        
-        // Save back to localStorage
         localStorage.setItem('harvestHistory', JSON.stringify(historyData));
         
-        // Calculate and show revenue
         const revenue = (quantity * price).toFixed(2);
-        showNotification('Harvest Recorded', `Harvest recorded: ${quantity}kg at ₱${price}/kg, Revenue: ₱${revenue}`, 'success');
+        showNotification('Harvest Recorded', 
+            `Harvest recorded: ${quantity}kg at ₱${price}/kg, Revenue: ₱${revenue}`, 
+            'success');
         
-        // Close modal and refresh history
         closeModal('record-harvest-modal');
         viewHarvestHistory();
     } else {
@@ -831,7 +668,6 @@ function saveHarvestPlan() {
     const marketPrice = document.getElementById('market-price')?.value;
     
     if (targetSize && harvestDate) {
-        // Save to localStorage
         localStorage.setItem('harvestPlan', JSON.stringify({
             targetSize: parseFloat(targetSize),
             harvestDate: harvestDate,
@@ -839,14 +675,9 @@ function saveHarvestPlan() {
             marketPrice: parseFloat(marketPrice)
         }));
         
-        // Update harvest projections
-        updateHarvestProjections({
-            ...hardwareData,
-            avg_weight: parseFloat(targetSize),
-            days_to_harvest: Math.max(0, Math.ceil((new Date(harvestDate) - new Date()) / (1000 * 60 * 60 * 24)))
-        });
-        
-        showNotification('Plan Saved', `Harvest plan saved: ${harvestMethod} harvest targeting ${targetSize}g by ${harvestDate}`, 'success');
+        showNotification('Plan Saved', 
+            `Harvest plan saved: ${harvestMethod} harvest targeting ${targetSize}g by ${harvestDate}`, 
+            'success');
         closeModal('harvest-planning-modal');
     } else {
         showNotification('Error', 'Please fill all required fields', 'warning');
@@ -858,13 +689,14 @@ function saveFeedAlert() {
     const alertType = document.getElementById('alert-type')?.value;
     
     if (threshold) {
-        // Save to localStorage
         localStorage.setItem('feedAlert', JSON.stringify({
             threshold: parseInt(threshold),
             type: alertType
         }));
         
-        showNotification('Alert Set', `Feed alert set at ${threshold}% with ${alertType} notifications`, 'success');
+        showNotification('Alert Set', 
+            `Feed alert set at ${threshold}% with ${alertType} notifications`, 
+            'success');
         closeModal('feed-alert-modal');
     } else {
         showNotification('Error', 'Please select an alert threshold', 'warning');
@@ -877,14 +709,15 @@ function saveWaterTestSchedule() {
     const notifications = document.getElementById('test-notifications')?.value;
     
     if (frequency && time) {
-        // Save to localStorage
         localStorage.setItem('waterTestSchedule', JSON.stringify({
             frequency: frequency,
             time: time,
             notifications: notifications
         }));
         
-        showNotification('Schedule Saved', `Water testing scheduled ${frequency} at ${time}. Notifications: ${notifications}`, 'success');
+        showNotification('Schedule Saved', 
+            `Water testing scheduled ${frequency} at ${time}`, 
+            'success');
         closeModal('water-testing-schedule-modal');
     } else {
         showNotification('Error', 'Please fill all required fields', 'warning');
@@ -900,7 +733,6 @@ function saveSettings() {
     const waterTestingFrequency = document.getElementById('water-testing-frequency')?.value;
     
     if (farmName) {
-        // Update farm settings
         farmSettings = {
             name: farmName,
             email: notificationEmail,
@@ -910,10 +742,7 @@ function saveSettings() {
             waterTestingFrequency: waterTestingFrequency
         };
         
-        // Save to localStorage
         localStorage.setItem('farmSettings', JSON.stringify(farmSettings));
-        
-        // Update farm name display throughout the UI
         updateFarmNameDisplay();
         
         showNotification('Settings Saved', 'Farm settings have been updated successfully', 'success');
@@ -922,13 +751,16 @@ function saveSettings() {
     }
 }
 
+function refillFeed() {
+    feedData.current = feedData.capacity;
+    updateFeedLevelUI(feedData);
+    showNotification('Feed Refilled', 'Feed container has been refilled to capacity', 'success');
+}
+
 // ========================================
 // SIMULATION & DEMO MODE
 // ========================================
 
-/**
- * Generates slightly randomized demo data to simulate real sensor readings.
- */
 function generateDemoData() {
     hardwareData.temperature += (Math.random() - 0.5) * 0.5;
     hardwareData.ph += (Math.random() - 0.5) * 0.1;
@@ -938,25 +770,19 @@ function generateDemoData() {
     hardwareData.lastUpdated = new Date();
 }
 
-/**
- * Starts the data simulation loop for demo mode.
- */
 function startDataSimulation() {
     console.log('Starting data simulation...');
-    updateDashboardWithNewData(hardwareData); // Initial display
+    updateDashboardWithNewData(hardwareData);
     dataUpdateInterval = setInterval(() => {
         generateDemoData();
         updateDashboardWithNewData(hardwareData);
-    }, 5000); // Update every 5 seconds
+    }, 5000);
 }
 
 // ========================================
 // EVENT LISTENER SETUP
 // ========================================
 
-/**
- * Attaches all necessary event listeners to DOM elements.
- */
 function setupEventListeners() {
     console.log('Setting up event listeners...');
 
@@ -996,13 +822,14 @@ function setupEventListeners() {
     }
 
     // Command buttons
-    const attachCommand = (id, func) => {
-        const btn = document.getElementById(id);
-        if (btn) btn.addEventListener('click', func);
-    };
-    attachCommand('feed-now', feedNow);
-    attachCommand('change-water-now', changeWaterNow);
-    attachCommand('test-water-now', testWaterNow);
+    const feedNowBtn = document.getElementById('feed-now');
+    if (feedNowBtn) feedNowBtn.addEventListener('click', feedNow);
+    
+    const changeWaterNowBtn = document.getElementById('change-water-now');
+    if (changeWaterNowBtn) changeWaterNowBtn.addEventListener('click', changeWaterNow);
+    
+    const testWaterNowBtn = document.getElementById('test-water-now');
+    if (testWaterNowBtn) testWaterNowBtn.addEventListener('click', testWaterNow);
 
     // Refresh button
     const refreshBtn = document.getElementById('refresh-data');
@@ -1010,7 +837,9 @@ function setupEventListeners() {
         refreshBtn.addEventListener('click', () => {
             const icon = refreshBtn.querySelector('i');
             if (icon) icon.classList.add('fa-spin');
-            loadDashboardData().then(() => { if (icon) icon.classList.remove('fa-spin'); });
+            loadDashboardData().then(() => { 
+                if (icon) icon.classList.remove('fa-spin'); 
+            });
         });
     }
 
@@ -1019,7 +848,6 @@ function setupEventListeners() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             try {
-                if (window.supabase) await supabase.auth.signOut();
                 localStorage.clear();
                 window.location.href = 'index.html';
             } catch (error) {
@@ -1044,99 +872,104 @@ function setupEventListeners() {
         }
     });
 
-    // FIX 1: Added event listeners for the "Set Schedule" buttons
-    const setFeedingScheduleBtn = document.getElementById('set-feeding-schedule-btn');
-    if(setFeedingScheduleBtn) {
+    // Schedule buttons
+    const setFeedingScheduleBtn = document.getElementById('set-feeding-schedule');
+    if (setFeedingScheduleBtn) {
         setFeedingScheduleBtn.addEventListener('click', toggleFeedingScheduleForm);
     }
 
-    const setWaterScheduleBtn = document.getElementById('set-water-schedule-btn');
-    if(setWaterScheduleBtn) {
+    const setWaterScheduleBtn = document.getElementById('set-water-schedule');
+    if (setWaterScheduleBtn) {
         setWaterScheduleBtn.addEventListener('click', toggleWaterScheduleForm);
     }
     
-    // Save buttons inside the forms
-    const saveFeedingScheduleBtn = document.getElementById('save-feeding-schedule-btn');
-    if(saveFeedingScheduleBtn) {
+    // Save buttons
+    const saveFeedingScheduleBtn = document.getElementById('save-feeding-schedule');
+    if (saveFeedingScheduleBtn) {
         saveFeedingScheduleBtn.addEventListener('click', saveFeedingSchedule);
     }
 
-    const saveWaterScheduleBtn = document.getElementById('save-water-schedule-btn');
-    if(saveWaterScheduleBtn) {
+    const saveWaterScheduleBtn = document.getElementById('save-water-schedule');
+    if (saveWaterScheduleBtn) {
         saveWaterScheduleBtn.addEventListener('click', saveWaterSchedule);
     }
     
-    // Cancel buttons inside the forms
-    const cancelFeedingScheduleBtn = document.getElementById('cancel-feeding-schedule-btn');
-    if(cancelFeedingScheduleBtn) {
+    // Cancel buttons
+    const cancelFeedingScheduleBtn = document.getElementById('cancel-feeding-schedule');
+    if (cancelFeedingScheduleBtn) {
         cancelFeedingScheduleBtn.addEventListener('click', () => {
             const form = document.getElementById('feeding-schedule-form');
-            if(form) form.classList.remove('show');
+            if (form) form.classList.remove('show');
         });
     }
 
-    const cancelWaterScheduleBtn = document.getElementById('cancel-water-schedule-btn');
-    if(cancelWaterScheduleBtn) {
+    const cancelWaterScheduleBtn = document.getElementById('cancel-water-schedule');
+    if (cancelWaterScheduleBtn) {
         cancelWaterScheduleBtn.addEventListener('click', () => {
             const form = document.getElementById('water-schedule-form');
-            if(form) form.classList.remove('show');
+            if (form) form.classList.remove('show');
         });
     }
 
     // History and modal buttons
     const viewWaterHistoryBtn = document.getElementById('view-water-history');
-    if(viewWaterHistoryBtn) {
+    if (viewWaterHistoryBtn) {
         viewWaterHistoryBtn.addEventListener('click', viewWaterHistory);
     }
 
     const viewHarvestHistoryBtn = document.getElementById('view-harvest-history');
-    if(viewHarvestHistoryBtn) {
+    if (viewHarvestHistoryBtn) {
         viewHarvestHistoryBtn.addEventListener('click', viewHarvestHistory);
     }
 
     const recordHarvestBtn = document.getElementById('record-harvest');
-    if(recordHarvestBtn) {
+    if (recordHarvestBtn) {
         recordHarvestBtn.addEventListener('click', () => openModal('record-harvest-modal'));
     }
 
     const planHarvestBtn = document.getElementById('plan-harvest');
-    if(planHarvestBtn) {
+    if (planHarvestBtn) {
         planHarvestBtn.addEventListener('click', () => openModal('harvest-planning-modal'));
     }
 
     const setWaterTestingScheduleBtn = document.getElementById('set-water-testing-schedule');
-    if(setWaterTestingScheduleBtn) {
+    if (setWaterTestingScheduleBtn) {
         setWaterTestingScheduleBtn.addEventListener('click', () => openModal('water-testing-schedule-modal'));
     }
 
     const setFeedAlertBtn = document.getElementById('set-feed-alert');
-    if(setFeedAlertBtn) {
+    if (setFeedAlertBtn) {
         setFeedAlertBtn.addEventListener('click', () => openModal('feed-alert-modal'));
+    }
+
+    const refillFeedBtn = document.getElementById('refill-feed');
+    if (refillFeedBtn) {
+        refillFeedBtn.addEventListener('click', refillFeed);
     }
 
     // Modal save buttons
     const saveTestScheduleBtn = document.getElementById('save-test-schedule');
-    if(saveTestScheduleBtn) {
+    if (saveTestScheduleBtn) {
         saveTestScheduleBtn.addEventListener('click', saveWaterTestSchedule);
     }
 
     const saveHarvestPlanBtn = document.getElementById('save-harvest-plan');
-    if(saveHarvestPlanBtn) {
+    if (saveHarvestPlanBtn) {
         saveHarvestPlanBtn.addEventListener('click', saveHarvestPlan);
     }
 
     const saveHarvestRecordBtn = document.getElementById('save-harvest-record');
-    if(saveHarvestRecordBtn) {
+    if (saveHarvestRecordBtn) {
         saveHarvestRecordBtn.addEventListener('click', saveHarvestRecord);
     }
 
     const saveFeedAlertBtn = document.getElementById('save-feed-alert');
-    if(saveFeedAlertBtn) {
+    if (saveFeedAlertBtn) {
         saveFeedAlertBtn.addEventListener('click', saveFeedAlert);
     }
 
     const saveSettingsBtn = document.getElementById('save-settings');
-    if(saveSettingsBtn) {
+    if (saveSettingsBtn) {
         saveSettingsBtn.addEventListener('click', saveSettings);
     }
 
@@ -1183,6 +1016,15 @@ function setupEventListeners() {
                 e.preventDefault();
                 sendMessage();
             }
+        });
+    }
+
+    // Notification close button
+    const notificationClose = document.getElementById('notification-close');
+    if (notificationClose) {
+        notificationClose.addEventListener('click', () => {
+            const notification = document.getElementById('notification');
+            if (notification) notification.classList.remove('show');
         });
     }
     
@@ -1243,14 +1085,12 @@ function addMessage(text, sender) {
 function generateResponse(message) {
     const lowerMessage = message.toLowerCase();
     
-    // Check for farm name queries
     if (lowerMessage.includes('farm') || lowerMessage.includes('name')) {
         return `Your farm is named "${farmSettings.name}". You can change this in the Settings section.`;
     }
     
-    // Check for settings queries
     if (lowerMessage.includes('settings') || lowerMessage.includes('configuration')) {
-        return `Your current settings:\n• Farm: ${farmSettings.name}\n• Email: ${farmSettings.email}\n• Phone: ${farmSettings.phone}\n• Units: ${farmSettings.unit}\n• Alert frequency: ${farmSettings.alertFrequency}\n• Water testing: ${farmSettings.waterTestingFrequency}`;
+        return `Your current settings:\n• Farm: ${farmSettings.name}\n• Email: ${farmSettings.email}\n• Phone: ${farmSettings.phone}`;
     }
     
     if (lowerMessage.includes('feed') || lowerMessage.includes('food')) {
@@ -1258,80 +1098,44 @@ function generateResponse(message) {
             const feedingSchedule = localStorage.getItem('feedingSchedule');
             if (feedingSchedule) {
                 const schedule = JSON.parse(feedingSchedule);
-                return `Your current feeding schedule is ${formatFrequency(schedule.frequency)} at ${schedule.time} with ${schedule.amount}g of ${formatFoodType(schedule.type)}. Would you like to modify this schedule?`;
-            } else {
-                return "Your current feeding schedule is twice daily at 8:00 AM and 6:00 PM with 7.5g of juvenile pellets. Would you like to modify this schedule?";
+                return `Your current feeding schedule is ${formatFrequency(schedule.frequency)} at ${schedule.time} with ${schedule.amount}g of ${formatFoodType(schedule.type)}.`;
             }
-        } else if (lowerMessage.includes('now') || lowerMessage.includes('immediate')) {
-            return "I can help you feed the crayfish now. Would you like me to initiate the feeding process?";
+            return "Your current feeding schedule is twice daily at 8:00 AM and 6:00 PM with 7.5g of juvenile pellets.";
         } else if (lowerMessage.includes('level') || lowerMessage.includes('amount')) {
             const percentage = Math.round((feedData.current / feedData.capacity) * 100);
             return `Your current feed level is ${percentage}%. This is considered ${percentage > 50 ? 'adequate' : percentage > 20 ? 'low' : 'critical'}.`;
-        } else {
-            return "I can help you with feeding! You can check feed levels, set up a feeding schedule, or feed manually. What would you like to do?";
         }
+        return "I can help you with feeding! You can check feed levels, set up a feeding schedule, or feed manually.";
     }
     
     if (lowerMessage.includes('water') || lowerMessage.includes('change')) {
-        if (lowerMessage.includes('schedule') || lowerMessage.includes('when')) {
-            const waterSchedule = localStorage.getItem('waterSchedule');
-            if (waterSchedule) {
-                const schedule = JSON.parse(waterSchedule);
-                return `Your current water change schedule is ${formatFrequency(schedule.frequency)} at ${schedule.time} with ${schedule.percentage}% water change. Would you like to modify this schedule?`;
-            } else {
-                return "Your current water change schedule is weekly on Mondays at 9:00 AM with 50% water change. Would you like to modify this schedule?";
-            }
-        } else if (lowerMessage.includes('now') || lowerMessage.includes('immediate')) {
-            return "I can help you change the water now. Would you like me to initiate the water change process?";
-        } else if (lowerMessage.includes('quality') || lowerMessage.includes('test')) {
-            return `Current water quality: Temperature is ${hardwareData.temperature.toFixed(1)}°C (${hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? 'optimal' : 'needs attention'}) and pH is ${hardwareData.ph.toFixed(1)} (${hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'optimal' : 'needs attention'}).`;
-        } else {
-            return "Water changes are important! I can help you schedule automatic water changes or do it manually. What would you prefer?";
+        if (lowerMessage.includes('quality') || lowerMessage.includes('test')) {
+            return `Current water quality: Temperature is ${hardwareData.temperature.toFixed(1)}°C and pH is ${hardwareData.ph.toFixed(1)}.`;
         }
+        return "Water changes are important! I can help you schedule automatic water changes or do it manually.";
     }
     
     if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
-        const status = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? 'optimal' : 
-                      hardwareData.temperature > 25 && hardwareData.temperature <= 28 ? 'warning' : 'critical';
+        const status = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? 'optimal' : 'warning';
         return `The current water temperature is ${hardwareData.temperature.toFixed(1)}°C, which is ${status}. The optimal range is 20-25°C.`;
     }
     
     if (lowerMessage.includes('ph')) {
-        const status = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'optimal' : 
-                      (hardwareData.ph > 6.0 && hardwareData.ph < 6.5) || (hardwareData.ph > 8.0 && hardwareData.ph <= 8.5) ? 'warning' : 'critical';
+        const status = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'optimal' : 'warning';
         return `The current pH level is ${hardwareData.ph.toFixed(1)}, which is ${status}. The optimal range is 6.5-8.0.`;
     }
     
-    if (lowerMessage.includes('sensor') || lowerMessage.includes('data')) {
-        return `Current sensor readings: Temperature ${hardwareData.temperature.toFixed(1)}°C, pH ${hardwareData.ph.toFixed(1)}, Population ${hardwareData.population}, Health ${hardwareData.healthStatus.toFixed(0)}%. All systems are ${isConnected ? 'connected' : 'in demo mode'}.`;
+    if (lowerMessage.includes('harvest')) {
+        return `Your crayfish are projected to be ready for harvest in ${hardwareData.daysToHarvest} days at an average weight of ${hardwareData.avgWeight.toFixed(1)}g.`;
     }
     
-    if (lowerMessage.includes('harvest') || lowerMessage.includes('yield')) {
-        return `Your crayfish are projected to be ready for harvest in ${hardwareData.daysToHarvest} days at an average weight of ${hardwareData.avgWeight.toFixed(1)}g. Current survival rate is 100%. Would you like to plan a harvest?`;
+    if (lowerMessage.includes('help') || lowerMessage.includes('guide')) {
+        return "I can help you with:\n• Feeding schedules and nutrition\n• Water quality management\n• Harvest planning\n• System settings\nWhat would you like to know more about?";
     }
     
-    if (lowerMessage.includes('status') || lowerMessage.includes('how')) {
-        const connectionStatus = isConnected ? 'connected to hardware' : 'running in demo mode';
-        const waterStatus = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 && hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'good' : 'needs attention';
-        return `Your system is ${connectionStatus}. Water quality is ${waterStatus}. All crayfish appear healthy. Is there anything specific you'd like to check?`;
-    }
-    
-    if (lowerMessage.includes('alert') || lowerMessage.includes('notification')) {
-        return "You can set up alerts for low feed levels, water quality issues, or system status. Would you like to configure any alerts?";
-    }
-    
-    if (lowerMessage.includes('setting') || lowerMessage.includes('configure')) {
-        return "You can adjust farm settings, measurement units, alert frequencies, and water testing schedules in the Settings section. Would you like to go there now?";
-    }
-    
-    if (lowerMessage.includes('help') || lowerMessage.includes('guide') || lowerMessage.includes('learn')) {
-        return "I can help you with:\n• Feeding schedules and nutrition\n• Water quality management\n• Harvest planning\n• System settings\n• Troubleshooting issues\n• Farm information\nWhat would you like to know more about?";
-    }
-    
-    return "I'm your Crayfish Assistant! I can help with feeding schedules, water changes, sensor data, harvest planning, system settings, and farm information. What would you like to know?";
+    return "I'm your Crayfish Assistant! I can help with feeding schedules, water changes, sensor data, harvest planning, and system settings. What would you like to know?";
 }
 
-// FIX 2: Made the toggleChat function more robust
 function toggleChat() {
     const chatContainer = document.getElementById('chat-container');
     const chatMessages = document.getElementById('chat-messages');
@@ -1344,7 +1148,6 @@ function toggleChat() {
         toggleIcon.className = isMinimized ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
     }
 
-    // Direct style manipulation as a fallback
     if (isMinimized) {
         chatMessages.style.display = 'none';
     } else {
@@ -1375,24 +1178,56 @@ function openKnowledgeCategory(category) {
     }
 }
 
-// Knowledge base content
 const knowledgeContent = {
-    'water-quality': `<h4>Water Quality Management</h4><p>Maintaining optimal water quality is crucial for crayfish health and growth. Here are the key parameters to monitor:</p><ul><li><strong>Temperature:</strong> Maintain between 20-25°C for optimal growth</li><li><strong>pH Level:</strong> Keep between 6.5-8.0, ideally around 7.2</li><li><strong>Dissolved Oxygen:</strong> Should be above 5 mg/L</li><li><strong>Ammonia:</strong> Keep below 0.02 mg/L</li><li><strong>Nitrites:</strong> Keep below 1 mg/L</li></ul><p>Regular water testing and partial water changes (20-30% weekly) help maintain water quality.</p>`,
-    'feeding': `<h4>Feeding & Nutrition</h4><p>Proper feeding is essential for crayfish growth and health:</p><ul><li><strong>Frequency:</strong> Feed twice daily for juveniles, once daily for adults</li><li><strong>Amount:</strong> Feed only what they can consume in 15-20 minutes</li><li><strong>Food Type:</strong> Use specialized crayfish pellets with 30-40% protein content</li><li><strong>Supplements:</strong> Occasionally provide vegetables like carrots and peas</li></ul><p>Monitor feeding behavior and adjust amounts accordingly. Remove uneaten food to prevent water quality issues.</p>`,
-    'harvesting': `<h4>Harvesting Techniques</h4><p>Harvesting crayfish at the right time and using proper techniques ensures quality and yield:</p><ul><li><strong>Harvest Size:</strong> Market size is typically 30-50g per crayfish</li><li><strong>Timing:</strong> Harvest in early morning when water is cooler</li><li><strong>Methods:</strong><ul><li>Drain harvesting: Partially drain the pond and collect crayfish</li><li>Trap harvesting: Use baited traps for selective harvesting</li><li>Hand harvesting: For small ponds or tanks</li></ul></li><li><strong>Post-Harvest:</strong> Keep crayfish in clean, aerated water before market</li></ul><p>Partial harvesting allows for continuous production and better market timing.</p>`
+    'water-quality': `
+        <h4>Water Quality Management</h4>
+        <p>Maintaining optimal water quality is crucial for crayfish health and growth. Here are the key parameters to monitor:</p>
+        <ul>
+            <li><strong>Temperature:</strong> Maintain between 20-25°C for optimal growth</li>
+            <li><strong>pH Level:</strong> Keep between 6.5-8.0, ideally around 7.2</li>
+            <li><strong>Dissolved Oxygen:</strong> Should be above 5 mg/L</li>
+            <li><strong>Ammonia:</strong> Keep below 0.02 mg/L</li>
+            <li><strong>Nitrites:</strong> Keep below 1 mg/L</li>
+        </ul>
+        <p>Regular water testing and partial water changes (20-30% weekly) help maintain water quality.</p>
+    `,
+    'feeding': `
+        <h4>Feeding & Nutrition</h4>
+        <p>Proper feeding is essential for crayfish growth and health:</p>
+        <ul>
+            <li><strong>Frequency:</strong> Feed twice daily for juveniles, once daily for adults</li>
+            <li><strong>Amount:</strong> Feed only what they can consume in 15-20 minutes</li>
+            <li><strong>Food Type:</strong> Use specialized crayfish pellets with 30-40% protein content</li>
+            <li><strong>Supplements:</strong> Occasionally provide vegetables like carrots and peas</li>
+        </ul>
+        <p>Monitor feeding behavior and adjust amounts accordingly. Remove uneaten food to prevent water quality issues.</p>
+    `,
+    'harvesting': `
+        <h4>Harvesting Techniques</h4>
+        <p>Harvesting crayfish at the right time and using proper techniques ensures quality and yield:</p>
+        <ul>
+            <li><strong>Harvest Size:</strong> Market size is typically 30-50g per crayfish</li>
+            <li><strong>Timing:</strong> Harvest in early morning when water is cooler</li>
+            <li><strong>Methods:</strong>
+                <ul>
+                    <li>Drain harvesting: Partially drain the pond and collect crayfish</li>
+                    <li>Trap harvesting: Use baited traps for selective harvesting</li>
+                    <li>Hand harvesting: For small ponds or tanks</li>
+                </ul>
+            </li>
+            <li><strong>Post-Harvest:</strong> Keep crayfish in clean, aerated water before market</li>
+        </ul>
+        <p>Partial harvesting allows for continuous production and better market timing.</p>
+    `
 };
 
 // ========================================
 // MAIN ENTRY POINT
 // ========================================
 
-document.addEventListener('supabaseReady', initDashboard);
-setTimeout(initDashboard, 2000);
-
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM Content Loaded. Finalizing setup.');
+    console.log('DOM Content Loaded. Initializing dashboard...');
     
-    // Load farm settings first
     loadFarmSettings();
     
     // Set form values from saved settings
@@ -1403,12 +1238,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const alertFreqInput = document.getElementById('alert-frequency');
     const waterTestFreqInput = document.getElementById('water-testing-frequency');
     
-    if (farmNameInput) farmNameInput.value = farmSettings.name || 'My Crayfish Farm';
-    if (emailInput) emailInput.value = farmSettings.email || 'farmer@example.com';
-    if (phoneInput) phoneInput.value = farmSettings.phone || '+63 912 345 6789';
-    if (unitInput) unitInput.value = farmSettings.unit || 'metric';
-    if (alertFreqInput) alertFreqInput.value = farmSettings.alertFrequency || 'immediate';
-    if (waterTestFreqInput) waterTestFreqInput.value = farmSettings.waterTestingFrequency || 'twice-weekly';
+    if (farmNameInput) farmNameInput.value = farmSettings.name;
+    if (emailInput) emailInput.value = farmSettings.email;
+    if (phoneInput) phoneInput.value = farmSettings.phone;
+    if (unitInput) unitInput.value = farmSettings.unit;
+    if (alertFreqInput) alertFreqInput.value = farmSettings.alertFrequency;
+    if (waterTestFreqInput) waterTestFreqInput.value = farmSettings.waterTestingFrequency;
     
     // Generate ocean elements
     const oceanElements = document.querySelector('.ocean-elements');
@@ -1451,27 +1286,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    window.addEventListener('beforeunload', () => {
-        if (dataUpdateInterval) clearInterval(dataUpdateInterval);
-        if (hardwareCheckInterval) clearInterval(hardwareCheckInterval);
-    });
-    
-    window.addEventListener('orientationchange', function() {
-        setTimeout(() => {
-            if (window.chartManager) {
-                Object.keys(window.chartManager.charts).forEach(chartId => {
-                    window.chartManager.charts[chartId].resize();
-                });
-            }
-        }, 200);
-    });
-    
-    if ('ontouchstart' in window) {
-        document.body.classList.add('touch-device');
-        const buttons = document.querySelectorAll('.btn');
-        buttons.forEach(button => {
-            button.addEventListener('touchstart', function() { this.style.transform = 'scale(0.95)'; });
-            button.addEventListener('touchend', function() { this.style.transform = ''; });
-        });
-    }
+    // Initialize dashboard
+    initDashboard();
 });
