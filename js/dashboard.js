@@ -42,6 +42,27 @@ let farmSettings = {
     waterTestingFrequency: 'twice-weekly'
 };
 
+// Performance optimization: Debounce function for frequent events
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+// Performance optimization: Throttle function for frequent events
+function throttle(func, limit) {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
 // ========================================
 // UTILITY FUNCTIONS
 // ========================================
@@ -165,12 +186,9 @@ function updateFarmNameDisplay() {
     }
     
     // Update logo text
-    const logoText = document.querySelector('.logo');
+    const logoText = document.querySelector('.logo-text');
     if (logoText) {
-        const logoIcon = logoText.querySelector('i');
-        logoText.innerHTML = '';
-        if (logoIcon) logoText.appendChild(logoIcon);
-        logoText.appendChild(document.createTextNode(farmSettings.name));
+        logoText.textContent = farmSettings.name;
     }
     
     // Update any other farm name references
