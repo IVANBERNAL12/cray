@@ -1,4 +1,4 @@
-// dashboard.js - FIXED VERSION
+// dashboard.js - COMPLETE VERSION WITH ALL FEATURES
 console.log('dashboard.js loaded');
 
 // ========================================
@@ -23,6 +23,8 @@ let feedData = {
 
 let isConnected = false;
 let dataUpdateInterval;
+let mockDataInterval;
+let deviceCheckInterval;
 
 let farmSettings = {
     name: 'My Crayfish Farm',
@@ -100,15 +102,304 @@ function formatTime(frequency, time) {
     }
 }
 
-function loadFarmSettings() {
-    const savedSettings = localStorage.getItem('farmSettings');
-    if (savedSettings) {
-        try {
-            farmSettings = { ...farmSettings, ...JSON.parse(savedSettings) };
-            updateFarmNameDisplay();
-        } catch (error) {
-            console.error('Error loading farm settings:', error);
+// ========================================
+// SUPABASE INTEGRATION
+// ========================================
+
+async function saveToSupabase(table, data) {
+    try {
+        if (!window.supabase) {
+            console.warn('Supabase not available, saving to localStorage only');
+            localStorage.setItem(table, JSON.stringify(data));
+            return { success: true, local: true };
         }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            console.warn('User not authenticated, saving to localStorage');
+            localStorage.setItem(table, JSON.stringify(data));
+            return { success: true, local: true };
+        }
+
+        // Add user_id to data
+        const dataWithUser = { ...data, user_id: user.id };
+
+        const { data: result, error } = await window.supabase
+            .from(table)
+            .upsert([dataWithUser])
+            .select();
+
+        if (error) throw error;
+
+        // Also save to localStorage as backup
+        localStorage.setItem(table, JSON.stringify(data));
+        
+        console.log(`✓ Saved to Supabase (${table}):`, result);
+        return { success: true, data: result };
+    } catch (error) {
+        console.error(`Error saving to Supabase (${table}):`, error);
+        // Fallback to localStorage
+        localStorage.setItem(table, JSON.stringify(data));
+        return { success: false, error: error.message, local: true };
+    }
+}
+
+async function loadFromSupabase(table) {
+    try {
+        if (!window.supabase) {
+            const local = localStorage.getItem(table);
+            return local ? JSON.parse(local) : null;
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            const local = localStorage.getItem(table);
+            return local ? JSON.parse(local) : null;
+        }
+
+        const { data, error } = await window.supabase
+            .from(table)
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            throw error;
+        }
+
+        if (data) {
+            // Also update localStorage
+            const dataWithoutUserId = { ...data };
+            delete dataWithoutUserId.user_id;
+            delete dataWithoutUserId.id;
+            localStorage.setItem(table, JSON.stringify(dataWithoutUserId));
+            return dataWithoutUserId;
+        }
+
+        // Fallback to localStorage
+        const local = localStorage.getItem(table);
+        return local ? JSON.parse(local) : null;
+    } catch (error) {
+        console.error(`Error loading from Supabase (${table}):`, error);
+        const local = localStorage.getItem(table);
+        return local ? JSON.parse(local) : null;
+    }
+}
+
+async function saveSensorReading(reading) {
+    try {
+        if (!window.supabase) return;
+
+        const user = await getCurrentUser();
+        if (!user) return;
+
+        const { error } = await window.supabase
+            .from('sensor_readings')
+            .insert([{
+                user_id: user.id,
+                temperature: reading.temperature,
+                ph: reading.ph,
+                population: reading.population || 15,
+                health_status: reading.healthStatus || 100,
+                avg_weight: reading.avgWeight || 5,
+                days_to_harvest: reading.daysToHarvest || 120
+            }]);
+
+        if (error) throw error;
+        console.log('✓ Sensor reading saved to Supabase');
+    } catch (error) {
+        console.error('Error saving sensor reading:', error);
+    }
+}
+
+// ========================================
+// DEVICE STATUS & COMMANDS
+// ========================================
+
+async function checkDeviceStatus() {
+    const statusIndicator = document.getElementById('device-status-indicator');
+    const statusText = document.getElementById('device-status-text');
+    const lastUpdate = document.getElementById('last-device-update');
+
+    try {
+        if (!window.supabase) {
+            updateOfflineStatus();
+            return;
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            updateOfflineStatus();
+            return;
+        }
+
+        // Check for recent sensor readings (within last 2 minutes)
+        const twoMinutesAgo = new Date();
+        twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('created_at, temperature, ph')
+            .eq('user_id', user.id)
+            .gte('created_at', twoMinutesAgo.toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+            // Device is online
+            isConnected = true;
+            if (statusIndicator) statusIndicator.className = 'status-indicator online';
+            if (statusText) statusText.textContent = 'Device Connected';
+            if (lastUpdate) {
+                const updateTime = new Date(data[0].created_at);
+                lastUpdate.textContent = `Last update: ${updateTime.toLocaleTimeString()}`;
+            }
+
+            // Update with real data
+            hardwareData.temperature = data[0].temperature;
+            hardwareData.ph = data[0].ph;
+            hardwareData.lastUpdated = new Date(data[0].created_at);
+            
+            updateDashboardWithNewData(hardwareData);
+            stopMockData(); // Stop mock data when real data available
+        } else {
+            updateOfflineStatus();
+        }
+    } catch (error) {
+        console.error('Error checking device status:', error);
+        updateOfflineStatus();
+    }
+
+    function updateOfflineStatus() {
+        isConnected = false;
+        if (statusIndicator) statusIndicator.className = 'status-indicator offline';
+        if (statusText) statusText.textContent = 'Device Offline - Showing Mock Data';
+        if (lastUpdate) lastUpdate.textContent = 'Last update: Never';
+        
+        startMockData(); // Start mock data when offline
+    }
+}
+
+async function sendCommand(command) {
+    try {
+        if (!window.supabase) {
+            showNotification('Offline', 'Cannot send commands while offline', 'warning');
+            return { success: false };
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            showNotification('Authentication Required', 'Please log in to send commands', 'warning');
+            return { success: false };
+        }
+
+        showNotification('Sending Command', `Sending ${command} command to device...`, 'info');
+
+        const { data, error } = await window.supabase
+            .from('device_commands')
+            .insert([{
+                user_id: user.id,
+                command: command,
+                status: 'pending'
+            }])
+            .select();
+
+        if (error) throw error;
+
+        console.log('Command sent:', data);
+        showNotification('Success', `${command} command sent successfully`, 'success');
+        return { success: true, data: data };
+    } catch (error) {
+        console.error('Error sending command:', error);
+        showNotification('Error', `Failed to send command: ${error.message}`, 'error');
+        return { success: false, error: error.message };
+    }
+}
+
+// ========================================
+// MOCK DATA GENERATION
+// ========================================
+
+function startMockData() {
+    if (mockDataInterval) return; // Already running
+    
+    console.log('Starting mock data generation...');
+    
+    // Generate some initial history
+    const now = Date.now();
+    for (let i = 50; i > 0; i--) {
+        const timestamp = new Date(now - (i * 60000)); // 1 minute intervals
+        const temp = 20 + Math.sin(i * 0.1) * 2 + (Math.random() - 0.5) * 1;
+        const ph = 7.2 + Math.cos(i * 0.08) * 0.2 + (Math.random() - 0.5) * 0.1;
+        
+        if (window.chartManager) {
+            window.chartManager.updateAllChartsFromHistory([{
+                timestamp: timestamp,
+                temperature: parseFloat(temp.toFixed(2)),
+                ph: parseFloat(ph.toFixed(2))
+            }]);
+        }
+    }
+    
+    mockDataInterval = setInterval(() => {
+        // Generate realistic varying data
+        const baseTemp = 22;
+        const basePh = 7.2;
+        const time = Date.now() / 100000;
+        
+        hardwareData.temperature = baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1;
+        hardwareData.ph = basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2;
+        hardwareData.lastUpdated = new Date();
+        
+        updateDashboardWithNewData(hardwareData);
+    }, 3000); // Update every 3 seconds
+}
+
+function stopMockData() {
+    if (mockDataInterval) {
+        clearInterval(mockDataInterval);
+        mockDataInterval = null;
+        console.log('Mock data stopped');
+    }
+}
+
+// ========================================
+// AUTHENTICATION & INITIALIZATION
+// ========================================
+
+async function initDashboard() {
+    try {
+        console.log('Initializing dashboard...');
+        
+        await loadFarmSettings();
+        await loadDashboardData();
+        setupEventListeners();
+        
+        // Start device status checking
+        checkDeviceStatus();
+        deviceCheckInterval = setInterval(checkDeviceStatus, 30000); // Check every 30 seconds
+        
+        // Start with mock data if offline
+        if (!isConnected) {
+            startMockData();
+        }
+
+        console.log('Dashboard initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize dashboard:', error);
+        showNotification('Error', 'Failed to initialize dashboard', 'error');
+    }
+}
+
+async function loadFarmSettings() {
+    const savedSettings = await loadFromSupabase('farm_settings') || 
+                          JSON.parse(localStorage.getItem('farmSettings') || '{}');
+    
+    if (Object.keys(savedSettings).length > 0) {
+        farmSettings = { ...farmSettings, ...savedSettings };
+        updateFarmNameDisplay();
     }
 }
 
@@ -125,26 +416,6 @@ function updateFarmNameDisplay() {
 }
 
 // ========================================
-// AUTHENTICATION & INITIALIZATION
-// ========================================
-
-async function initDashboard() {
-    try {
-        console.log('Initializing dashboard...');
-        
-        loadFarmSettings();
-        await loadDashboardData();
-        setupEventListeners();
-        startDataSimulation();
-
-        console.log('Dashboard initialized successfully');
-    } catch (error) {
-        console.error('Failed to initialize dashboard:', error);
-        showNotification('Error', 'Failed to initialize dashboard: ' + error.message, 'error');
-    }
-}
-
-// ========================================
 // DATA HANDLING & UI UPDATES
 // ========================================
 
@@ -153,36 +424,21 @@ async function loadDashboardData() {
         updateDashboardWithNewData(hardwareData);
         updateFeedLevelUI(feedData);
         
-        const feedingSchedule = await getFeedingSchedule();
-        updateFeedingScheduleList(feedingSchedule);
+        const feedingSchedule = await loadFromSupabase('feeding_schedule');
+        if (feedingSchedule) {
+            updateFeedingScheduleList(feedingSchedule);
+        }
 
-        const waterSchedule = await getWaterSchedule();
-        updateWaterScheduleList(waterSchedule);
+        const waterSchedule = await loadFromSupabase('water_schedule');
+        if (waterSchedule) {
+            updateWaterScheduleList(waterSchedule);
+        }
         
         updateLastUpdated();
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         showNotification('Error', 'Failed to load dashboard data.', 'error');
     }
-}
-
-async function getFeedingSchedule() {
-    const saved = localStorage.getItem('feedingSchedule');
-    return saved ? JSON.parse(saved) : { 
-        frequency: 'twice-daily', 
-        time: '08:00', 
-        amount: 7.5, 
-        type: 'juvenile-pellets' 
-    };
-}
-
-async function getWaterSchedule() {
-    const saved = localStorage.getItem('waterSchedule');
-    return saved ? JSON.parse(saved) : { 
-        frequency: 'weekly', 
-        time: '09:00', 
-        percentage: 50 
-    };
 }
 
 function updateDashboardWithNewData(data) {
@@ -212,8 +468,15 @@ function updateDashboardWithNewData(data) {
     updateLastUpdated();
 
     if (window.chartManager) {
-        window.chartManager.updateAllChartsFromHistory([hardwareData]);
+        window.chartManager.updateAllChartsFromHistory([{
+            timestamp: hardwareData.lastUpdated,
+            temperature: hardwareData.temperature,
+            ph: hardwareData.ph
+        }]);
     }
+    
+    // Save to Supabase in background
+    saveSensorReading(hardwareData);
 }
 
 function updateWaterQualityStatus(temperature, ph) {
@@ -352,9 +615,13 @@ async function feedNow() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Feeding...';
     }
     
+    // Send command to device
+    await sendCommand('feed');
+    
     setTimeout(() => {
         feedData.current = Math.max(0, feedData.current - 7.5);
         updateFeedLevelUI(feedData);
+        saveToSupabase('feed_data', feedData);
         
         const now = new Date();
         const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -380,6 +647,9 @@ async function changeWaterNow() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing Water...';
     }
     
+    // Send command to device
+    await sendCommand('change_water');
+    
     setTimeout(() => {
         const now = new Date();
         const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -401,10 +671,19 @@ async function changeWaterNow() {
 async function testWaterNow() {
     showNotification('Water Test', 'Testing water quality...', 'info');
     
+    // Send command to device
+    await sendCommand('test_water');
+    
     setTimeout(() => {
         loadDashboardData();
         showNotification('Water Test Results', 'Water test completed. Dashboard updated.', 'success');
     }, 3000);
+}
+
+async function testConnection() {
+    showNotification('Testing', 'Testing device connection...', 'info');
+    await sendCommand('test_connection');
+    setTimeout(checkDeviceStatus, 2000);
 }
 
 // ========================================
@@ -443,19 +722,19 @@ function toggleFeedingScheduleForm() {
         const isShowing = form.classList.toggle('show');
         
         if (isShowing) {
-            const feedingSchedule = localStorage.getItem('feedingSchedule');
-            if (feedingSchedule) {
-                const schedule = JSON.parse(feedingSchedule);
-                const feedingTime = document.getElementById('feeding-time');
-                const feedingFrequency = document.getElementById('feeding-frequency');
-                const foodAmount = document.getElementById('food-amount');
-                const foodType = document.getElementById('food-type');
+            loadFromSupabase('feeding_schedule').then(schedule => {
+                if (schedule) {
+                    const feedingTime = document.getElementById('feeding-time');
+                    const feedingFrequency = document.getElementById('feeding-frequency');
+                    const foodAmount = document.getElementById('food-amount');
+                    const foodType = document.getElementById('food-type');
 
-                if (feedingTime) feedingTime.value = schedule.time || '';
-                if (feedingFrequency) feedingFrequency.value = schedule.frequency || 'twice-daily';
-                if (foodAmount) foodAmount.value = schedule.amount || '7.5';
-                if (foodType) foodType.value = schedule.type || 'juvenile-pellets';
-            }
+                    if (feedingTime) feedingTime.value = schedule.time || '';
+                    if (feedingFrequency) feedingFrequency.value = schedule.frequency || 'twice-daily';
+                    if (foodAmount) foodAmount.value = schedule.amount || '7.5';
+                    if (foodType) foodType.value = schedule.type || 'juvenile-pellets';
+                }
+            });
         }
     }
 }
@@ -466,41 +745,37 @@ function toggleWaterScheduleForm() {
         const isShowing = form.classList.toggle('show');
         
         if (isShowing) {
-            const waterSchedule = localStorage.getItem('waterSchedule');
-            if (waterSchedule) {
-                const schedule = JSON.parse(waterSchedule);
-                const waterTime = document.getElementById('water-change-time');
-                const waterFrequency = document.getElementById('water-frequency');
-                const waterPercentage = document.getElementById('water-change-percentage');
+            loadFromSupabase('water_schedule').then(schedule => {
+                if (schedule) {
+                    const waterTime = document.getElementById('water-change-time');
+                    const waterFrequency = document.getElementById('water-frequency');
+                    const waterPercentage = document.getElementById('water-change-percentage');
 
-                if (waterTime) waterTime.value = schedule.time || '';
-                if (waterFrequency) waterFrequency.value = schedule.frequency || 'weekly';
-                if (waterPercentage) waterPercentage.value = schedule.percentage || '50';
-            }
+                    if (waterTime) waterTime.value = schedule.time || '';
+                    if (waterFrequency) waterFrequency.value = schedule.frequency || 'weekly';
+                    if (waterPercentage) waterPercentage.value = schedule.percentage || '50';
+                }
+            });
         }
     }
 }
 
-function saveFeedingSchedule() {
+async function saveFeedingSchedule() {
     const feedingTime = document.getElementById('feeding-time')?.value;
     const feedingFrequency = document.getElementById('feeding-frequency')?.value;
     const foodAmount = document.getElementById('food-amount')?.value;
     const foodType = document.getElementById('food-type')?.value;
     
     if (feedingTime && foodAmount) {
-        localStorage.setItem('feedingSchedule', JSON.stringify({
+        const scheduleData = {
             time: feedingTime,
             frequency: feedingFrequency,
-            amount: foodAmount,
+            amount: parseFloat(foodAmount),
             type: foodType
-        }));
+        };
         
-        updateFeedingScheduleList({ 
-            frequency: feedingFrequency, 
-            time: feedingTime, 
-            amount: foodAmount, 
-            type: foodType 
-        });
+        await saveToSupabase('feeding_schedule', scheduleData);
+        updateFeedingScheduleList(scheduleData);
         
         const form = document.getElementById('feeding-schedule-form');
         if (form) form.classList.remove('show');
@@ -513,23 +788,20 @@ function saveFeedingSchedule() {
     }
 }
 
-function saveWaterSchedule() {
+async function saveWaterSchedule() {
     const waterTime = document.getElementById('water-change-time')?.value;
     const waterFrequency = document.getElementById('water-frequency')?.value;
     const waterPercentage = document.getElementById('water-change-percentage')?.value;
     
     if (waterTime) {
-        localStorage.setItem('waterSchedule', JSON.stringify({
+        const scheduleData = {
             time: waterTime,
             frequency: waterFrequency,
-            percentage: waterPercentage
-        }));
+            percentage: parseInt(waterPercentage)
+        };
         
-        updateWaterScheduleList({ 
-            frequency: waterFrequency, 
-            time: waterTime, 
-            percentage: waterPercentage 
-        });
+        await saveToSupabase('water_schedule', scheduleData);
+        updateWaterScheduleList(scheduleData);
         
         const form = document.getElementById('water-schedule-form');
         if (form) form.classList.remove('show');
@@ -724,7 +996,7 @@ function saveWaterTestSchedule() {
     }
 }
 
-function saveSettings() {
+async function saveSettings() {
     const farmName = document.getElementById('farm-name')?.value;
     const notificationEmail = document.getElementById('notification-email')?.value;
     const notificationPhone = document.getElementById('notification-phone')?.value;
@@ -742,7 +1014,7 @@ function saveSettings() {
             waterTestingFrequency: waterTestingFrequency
         };
         
-        localStorage.setItem('farmSettings', JSON.stringify(farmSettings));
+        await saveToSupabase('farm_settings', farmSettings);
         updateFarmNameDisplay();
         
         showNotification('Settings Saved', 'Farm settings have been updated successfully', 'success');
@@ -754,30 +1026,194 @@ function saveSettings() {
 function refillFeed() {
     feedData.current = feedData.capacity;
     updateFeedLevelUI(feedData);
+    saveToSupabase('feed_data', feedData);
     showNotification('Feed Refilled', 'Feed container has been refilled to capacity', 'success');
 }
 
 // ========================================
-// SIMULATION & DEMO MODE
+// CHAT FUNCTIONALITY
 // ========================================
 
-function generateDemoData() {
-    hardwareData.temperature += (Math.random() - 0.5) * 0.5;
-    hardwareData.ph += (Math.random() - 0.5) * 0.1;
-    hardwareData.temperature = Math.max(20, Math.min(30, hardwareData.temperature));
-    hardwareData.ph = Math.max(6.5, Math.min(8.0, hardwareData.ph));
-    if (Math.random() > 0.9) hardwareData.daysToHarvest = Math.max(0, hardwareData.daysToHarvest - 1);
-    hardwareData.lastUpdated = new Date();
+function sendMessage() {
+    const input = document.getElementById('chat-input');
+    if (!input) return;
+    
+    const message = input.value.trim();
+    
+    if (message === '') return;
+    
+    addMessage(message, 'user');
+    input.value = '';
+    
+    setTimeout(() => {
+        const response = generateResponse(message);
+        addMessage(response, 'system');
+    }, 500);
 }
 
-function startDataSimulation() {
-    console.log('Starting data simulation...');
-    updateDashboardWithNewData(hardwareData);
-    dataUpdateInterval = setInterval(() => {
-        generateDemoData();
-        updateDashboardWithNewData(hardwareData);
-    }, 5000);
+function addMessage(text, sender) {
+    const messagesContainer = document.getElementById('chat-messages');
+    if (!messagesContainer) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender);
+    
+    const iconDiv = document.createElement('div');
+    iconDiv.classList.add('message-icon');
+    iconDiv.innerHTML = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-fish"></i>';
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content');
+    contentDiv.textContent = text;
+    
+    messageDiv.appendChild(iconDiv);
+    messageDiv.appendChild(contentDiv);
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    messageDiv.style.opacity = '0';
+    messageDiv.style.transform = 'translateY(10px)';
+    
+    setTimeout(() => {
+        messageDiv.style.transition = 'all 0.3s ease';
+        messageDiv.style.opacity = '1';
+        messageDiv.style.transform = 'translateY(0)';
+    }, 10);
 }
+
+function generateResponse(message) {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('farm') || lowerMessage.includes('name')) {
+        return `Your farm is named "${farmSettings.name}". You can change this in the Settings section.`;
+    }
+    
+    if (lowerMessage.includes('settings') || lowerMessage.includes('configuration')) {
+        return `Your current settings:\n• Farm: ${farmSettings.name}\n• Email: ${farmSettings.email}\n• Phone: ${farmSettings.phone}`;
+    }
+    
+    if (lowerMessage.includes('feed') || lowerMessage.includes('food')) {
+        if (lowerMessage.includes('schedule') || lowerMessage.includes('when')) {
+            return "Your feeding schedule is twice daily at 8:00 AM and 6:00 PM with 7.5g of juvenile pellets.";
+        } else if (lowerMessage.includes('level') || lowerMessage.includes('amount')) {
+            const percentage = Math.round((feedData.current / feedData.capacity) * 100);
+            return `Your current feed level is ${percentage}%. This is considered ${percentage > 50 ? 'adequate' : percentage > 20 ? 'low' : 'critical'}.`;
+        }
+        return "I can help you with feeding! You can check feed levels, set up a feeding schedule, or feed manually.";
+    }
+    
+    if (lowerMessage.includes('water') || lowerMessage.includes('change')) {
+        if (lowerMessage.includes('quality') || lowerMessage.includes('test')) {
+            return `Current water quality: Temperature is ${hardwareData.temperature.toFixed(1)}°C and pH is ${hardwareData.ph.toFixed(1)}.`;
+        }
+        return "Water changes are important! I can help you schedule automatic water changes or do it manually.";
+    }
+    
+    if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
+        const status = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? 'optimal' : 'warning';
+        return `The current water temperature is ${hardwareData.temperature.toFixed(1)}°C, which is ${status}. The optimal range is 20-25°C.`;
+    }
+    
+    if (lowerMessage.includes('ph')) {
+        const status = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'optimal' : 'warning';
+        return `The current pH level is ${hardwareData.ph.toFixed(1)}, which is ${status}. The optimal range is 6.5-8.0.`;
+    }
+    
+    if (lowerMessage.includes('harvest')) {
+        return `Your crayfish are projected to be ready for harvest in ${hardwareData.daysToHarvest} days at an average weight of ${hardwareData.avgWeight.toFixed(1)}g.`;
+    }
+    
+    if (lowerMessage.includes('help') || lowerMessage.includes('guide')) {
+        return "I can help you with:\n• Feeding schedules and nutrition\n• Water quality management\n• Harvest planning\n• System settings\nWhat would you like to know more about?";
+    }
+    
+    return "I'm your Crayfish Assistant! I can help with feeding schedules, water changes, sensor data, harvest planning, and system settings. What would you like to know?";
+}
+
+function toggleChat() {
+    const chatContainer = document.getElementById('chat-container');
+    const chatMessages = document.getElementById('chat-messages');
+    if (!chatContainer || !chatMessages) return;
+    
+    const isMinimized = chatContainer.classList.toggle('minimized');
+    
+    const toggleIcon = document.querySelector('#chat-toggle i');
+    if (toggleIcon) {
+        toggleIcon.className = isMinimized ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+    }
+
+    if (isMinimized) {
+        chatMessages.style.display = 'none';
+    } else {
+        chatMessages.style.display = 'flex';
+    }
+}
+
+// ========================================
+// KNOWLEDGE BASE FUNCTIONS
+// ========================================
+
+function openKnowledgeCategory(category) {
+    const modal = document.getElementById('knowledge-modal');
+    const title = document.getElementById('knowledge-title');
+    const content = document.getElementById('knowledge-content');
+    
+    if (modal && title && content) {
+        if (category === 'water-quality') {
+            title.textContent = 'Water Quality Management';
+        } else if (category === 'feeding') {
+            title.textContent = 'Feeding & Nutrition';
+        } else if (category === 'harvesting') {
+            title.textContent = 'Harvesting Techniques';
+        }
+        
+        content.innerHTML = knowledgeContent[category] || '<p>Content not found.</p>';
+        modal.style.display = 'block';
+    }
+}
+
+const knowledgeContent = {
+    'water-quality': `
+        <h4>Water Quality Management</h4>
+        <p>Maintaining optimal water quality is crucial for crayfish health and growth. Here are the key parameters to monitor:</p>
+        <ul>
+            <li><strong>Temperature:</strong> Maintain between 20-25°C for optimal growth</li>
+            <li><strong>pH Level:</strong> Keep between 6.5-8.0, ideally around 7.2</li>
+            <li><strong>Dissolved Oxygen:</strong> Should be above 5 mg/L</li>
+            <li><strong>Ammonia:</strong> Keep below 0.02 mg/L</li>
+            <li><strong>Nitrites:</strong> Keep below 1 mg/L</li>
+        </ul>
+        <p>Regular water testing and partial water changes (20-30% weekly) help maintain water quality.</p>
+    `,
+    'feeding': `
+        <h4>Feeding & Nutrition</h4>
+        <p>Proper feeding is essential for crayfish growth and health:</p>
+        <ul>
+            <li><strong>Frequency:</strong> Feed twice daily for juveniles, once daily for adults</li>
+            <li><strong>Amount:</strong> Feed only what they can consume in 15-20 minutes</li>
+            <li><strong>Food Type:</strong> Use specialized crayfish pellets with 30-40% protein content</li>
+            <li><strong>Supplements:</strong> Occasionally provide vegetables like carrots and peas</li>
+        </ul>
+        <p>Monitor feeding behavior and adjust amounts accordingly. Remove uneaten food to prevent water quality issues.</p>
+    `,
+    'harvesting': `
+        <h4>Harvesting Techniques</h4>
+        <p>Harvesting crayfish at the right time and using proper techniques ensures quality and yield:</p>
+        <ul>
+            <li><strong>Harvest Size:</strong> Market size is typically 30-50g per crayfish</li>
+            <li><strong>Timing:</strong> Harvest in early morning when water is cooler</li>
+            <li><strong>Methods:</strong>
+                <ul>
+                    <li>Drain harvesting: Partially drain the pond and collect crayfish</li>
+                    <li>Trap harvesting: Use baited traps for selective harvesting</li>
+                    <li>Hand harvesting: For small ponds or tanks</li>
+                </ul>
+            </li>
+            <li><strong>Post-Harvest:</strong> Keep crayfish in clean, aerated water before market</li>
+        </ul>
+        <p>Partial harvesting allows for continuous production and better market timing.</p>
+    `
+};
 
 // ========================================
 // EVENT LISTENER SETUP
@@ -830,6 +1266,9 @@ function setupEventListeners() {
     
     const testWaterNowBtn = document.getElementById('test-water-now');
     if (testWaterNowBtn) testWaterNowBtn.addEventListener('click', testWaterNow);
+    
+    const testConnectionBtn = document.getElementById('test-connection');
+    if (testConnectionBtn) testConnectionBtn.addEventListener('click', testConnection);
 
     // Refresh button
     const refreshBtn = document.getElementById('refresh-data');
@@ -848,6 +1287,9 @@ function setupEventListeners() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             try {
+                if (window.signOut) {
+                    await window.signOut();
+                }
                 localStorage.clear();
                 window.location.href = 'index.html';
             } catch (error) {
@@ -1032,197 +1474,7 @@ function setupEventListeners() {
 }
 
 // ========================================
-// CHAT FUNCTIONALITY
-// ========================================
-
-function sendMessage() {
-    const input = document.getElementById('chat-input');
-    if (!input) return;
-    
-    const message = input.value.trim();
-    
-    if (message === '') return;
-    
-    addMessage(message, 'user');
-    input.value = '';
-    
-    setTimeout(() => {
-        const response = generateResponse(message);
-        addMessage(response, 'system');
-    }, 500);
-}
-
-function addMessage(text, sender) {
-    const messagesContainer = document.getElementById('chat-messages');
-    if (!messagesContainer) return;
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', sender);
-    
-    const iconDiv = document.createElement('div');
-    iconDiv.classList.add('message-icon');
-    iconDiv.innerHTML = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-fish"></i>';
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.classList.add('message-content');
-    contentDiv.textContent = text;
-    
-    messageDiv.appendChild(iconDiv);
-    messageDiv.appendChild(contentDiv);
-    messagesContainer.appendChild(messageDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    
-    messageDiv.style.opacity = '0';
-    messageDiv.style.transform = 'translateY(10px)';
-    
-    setTimeout(() => {
-        messageDiv.style.transition = 'all 0.3s ease';
-        messageDiv.style.opacity = '1';
-        messageDiv.style.transform = 'translateY(0)';
-    }, 10);
-}
-
-function generateResponse(message) {
-    const lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.includes('farm') || lowerMessage.includes('name')) {
-        return `Your farm is named "${farmSettings.name}". You can change this in the Settings section.`;
-    }
-    
-    if (lowerMessage.includes('settings') || lowerMessage.includes('configuration')) {
-        return `Your current settings:\n• Farm: ${farmSettings.name}\n• Email: ${farmSettings.email}\n• Phone: ${farmSettings.phone}`;
-    }
-    
-    if (lowerMessage.includes('feed') || lowerMessage.includes('food')) {
-        if (lowerMessage.includes('schedule') || lowerMessage.includes('when')) {
-            const feedingSchedule = localStorage.getItem('feedingSchedule');
-            if (feedingSchedule) {
-                const schedule = JSON.parse(feedingSchedule);
-                return `Your current feeding schedule is ${formatFrequency(schedule.frequency)} at ${schedule.time} with ${schedule.amount}g of ${formatFoodType(schedule.type)}.`;
-            }
-            return "Your current feeding schedule is twice daily at 8:00 AM and 6:00 PM with 7.5g of juvenile pellets.";
-        } else if (lowerMessage.includes('level') || lowerMessage.includes('amount')) {
-            const percentage = Math.round((feedData.current / feedData.capacity) * 100);
-            return `Your current feed level is ${percentage}%. This is considered ${percentage > 50 ? 'adequate' : percentage > 20 ? 'low' : 'critical'}.`;
-        }
-        return "I can help you with feeding! You can check feed levels, set up a feeding schedule, or feed manually.";
-    }
-    
-    if (lowerMessage.includes('water') || lowerMessage.includes('change')) {
-        if (lowerMessage.includes('quality') || lowerMessage.includes('test')) {
-            return `Current water quality: Temperature is ${hardwareData.temperature.toFixed(1)}°C and pH is ${hardwareData.ph.toFixed(1)}.`;
-        }
-        return "Water changes are important! I can help you schedule automatic water changes or do it manually.";
-    }
-    
-    if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
-        const status = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? 'optimal' : 'warning';
-        return `The current water temperature is ${hardwareData.temperature.toFixed(1)}°C, which is ${status}. The optimal range is 20-25°C.`;
-    }
-    
-    if (lowerMessage.includes('ph')) {
-        const status = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'optimal' : 'warning';
-        return `The current pH level is ${hardwareData.ph.toFixed(1)}, which is ${status}. The optimal range is 6.5-8.0.`;
-    }
-    
-    if (lowerMessage.includes('harvest')) {
-        return `Your crayfish are projected to be ready for harvest in ${hardwareData.daysToHarvest} days at an average weight of ${hardwareData.avgWeight.toFixed(1)}g.`;
-    }
-    
-    if (lowerMessage.includes('help') || lowerMessage.includes('guide')) {
-        return "I can help you with:\n• Feeding schedules and nutrition\n• Water quality management\n• Harvest planning\n• System settings\nWhat would you like to know more about?";
-    }
-    
-    return "I'm your Crayfish Assistant! I can help with feeding schedules, water changes, sensor data, harvest planning, and system settings. What would you like to know?";
-}
-
-function toggleChat() {
-    const chatContainer = document.getElementById('chat-container');
-    const chatMessages = document.getElementById('chat-messages');
-    if (!chatContainer || !chatMessages) return;
-    
-    const isMinimized = chatContainer.classList.toggle('minimized');
-    
-    const toggleIcon = document.querySelector('#chat-toggle i');
-    if (toggleIcon) {
-        toggleIcon.className = isMinimized ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
-    }
-
-    if (isMinimized) {
-        chatMessages.style.display = 'none';
-    } else {
-        chatMessages.style.display = 'flex';
-    }
-}
-
-// ========================================
-// KNOWLEDGE BASE FUNCTIONS
-// ========================================
-
-function openKnowledgeCategory(category) {
-    const modal = document.getElementById('knowledge-modal');
-    const title = document.getElementById('knowledge-title');
-    const content = document.getElementById('knowledge-content');
-    
-    if (modal && title && content) {
-        if (category === 'water-quality') {
-            title.textContent = 'Water Quality Management';
-        } else if (category === 'feeding') {
-            title.textContent = 'Feeding & Nutrition';
-        } else if (category === 'harvesting') {
-            title.textContent = 'Harvesting Techniques';
-        }
-        
-        content.innerHTML = knowledgeContent[category] || '<p>Content not found.</p>';
-        modal.style.display = 'block';
-    }
-}
-
-const knowledgeContent = {
-    'water-quality': `
-        <h4>Water Quality Management</h4>
-        <p>Maintaining optimal water quality is crucial for crayfish health and growth. Here are the key parameters to monitor:</p>
-        <ul>
-            <li><strong>Temperature:</strong> Maintain between 20-25°C for optimal growth</li>
-            <li><strong>pH Level:</strong> Keep between 6.5-8.0, ideally around 7.2</li>
-            <li><strong>Dissolved Oxygen:</strong> Should be above 5 mg/L</li>
-            <li><strong>Ammonia:</strong> Keep below 0.02 mg/L</li>
-            <li><strong>Nitrites:</strong> Keep below 1 mg/L</li>
-        </ul>
-        <p>Regular water testing and partial water changes (20-30% weekly) help maintain water quality.</p>
-    `,
-    'feeding': `
-        <h4>Feeding & Nutrition</h4>
-        <p>Proper feeding is essential for crayfish growth and health:</p>
-        <ul>
-            <li><strong>Frequency:</strong> Feed twice daily for juveniles, once daily for adults</li>
-            <li><strong>Amount:</strong> Feed only what they can consume in 15-20 minutes</li>
-            <li><strong>Food Type:</strong> Use specialized crayfish pellets with 30-40% protein content</li>
-            <li><strong>Supplements:</strong> Occasionally provide vegetables like carrots and peas</li>
-        </ul>
-        <p>Monitor feeding behavior and adjust amounts accordingly. Remove uneaten food to prevent water quality issues.</p>
-    `,
-    'harvesting': `
-        <h4>Harvesting Techniques</h4>
-        <p>Harvesting crayfish at the right time and using proper techniques ensures quality and yield:</p>
-        <ul>
-            <li><strong>Harvest Size:</strong> Market size is typically 30-50g per crayfish</li>
-            <li><strong>Timing:</strong> Harvest in early morning when water is cooler</li>
-            <li><strong>Methods:</strong>
-                <ul>
-                    <li>Drain harvesting: Partially drain the pond and collect crayfish</li>
-                    <li>Trap harvesting: Use baited traps for selective harvesting</li>
-                    <li>Hand harvesting: For small ponds or tanks</li>
-                </ul>
-            </li>
-            <li><strong>Post-Harvest:</strong> Keep crayfish in clean, aerated water before market</li>
-        </ul>
-        <p>Partial harvesting allows for continuous production and better market timing.</p>
-    `
-};
-
-// ========================================
-// MAIN ENTRY POINT
+// MAIN ENTRY POINT & ANIMATIONS
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1245,7 +1497,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (alertFreqInput) alertFreqInput.value = farmSettings.alertFrequency;
     if (waterTestFreqInput) waterTestFreqInput.value = farmSettings.waterTestingFrequency;
     
-    // Generate ocean elements
+    // Generate ocean elements - ANIMATIONS
     const oceanElements = document.querySelector('.ocean-elements');
     if (oceanElements) {
         const elementCount = 15;
@@ -1268,6 +1520,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Generate bioluminescence particles - ANIMATIONS
     const bioluminescence = document.querySelector('.bioluminescence');
     if (bioluminescence) {
         const particleCount = 30;
@@ -1288,4 +1541,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize dashboard
     initDashboard();
+});
+
+// Cleanup on unload
+window.addEventListener('beforeunload', () => {
+    if (mockDataInterval) clearInterval(mockDataInterval);
+    if (deviceCheckInterval) clearInterval(deviceCheckInterval);
+    if (dataUpdateInterval) clearInterval(dataUpdateInterval);
 });
