@@ -765,6 +765,8 @@ nav {
         max-height: 95vh;
     }
 }
+
+/* Rest of the original CSS remains unchanged */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;600;700&display=swap');
 
 :root {
@@ -788,15 +790,6 @@ nav {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-body {
-    font-family: 'Exo 2', sans-serif;
-    background-color: var(--dark-color);
-    color: var(--text-color);
-    overflow-x: hidden;
-    position: relative;
-    padding-top: 70px;
 }
 
 /* Custom Scrollbar */

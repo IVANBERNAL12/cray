@@ -32,6 +32,16 @@ let isConnected = false;
 let dataUpdateInterval;
 let hardwareCheckInterval;
 
+// Farm settings
+let farmSettings = {
+    name: 'My Crayfish Farm',
+    email: 'farmer@example.com',
+    phone: '+63 912 345 6789',
+    unit: 'metric',
+    alertFrequency: 'immediate',
+    waterTestingFrequency: 'twice-weekly'
+};
+
 // ========================================
 // UTILITY FUNCTIONS
 // ========================================
@@ -129,6 +139,47 @@ function formatWaterSchedule(frequency, time, percentage) {
     return `Every ${day} at ${time} - ${percentage}% water change`;
 }
 
+/**
+ * Loads farm settings from localStorage
+ */
+function loadFarmSettings() {
+    const savedSettings = localStorage.getItem('farmSettings');
+    if (savedSettings) {
+        try {
+            farmSettings = { ...farmSettings, ...JSON.parse(savedSettings) };
+            updateFarmNameDisplay();
+        } catch (error) {
+            console.error('Error loading farm settings:', error);
+        }
+    }
+}
+
+/**
+ * Updates the farm name display throughout the UI
+ */
+function updateFarmNameDisplay() {
+    // Update dashboard title
+    const dashboardTitle = document.querySelector('.dashboard-title');
+    if (dashboardTitle) {
+        dashboardTitle.textContent = `${farmSettings.name} - Farm Overview`;
+    }
+    
+    // Update logo text
+    const logoText = document.querySelector('.logo');
+    if (logoText) {
+        const logoIcon = logoText.querySelector('i');
+        logoText.innerHTML = '';
+        if (logoIcon) logoText.appendChild(logoIcon);
+        logoText.appendChild(document.createTextNode(farmSettings.name));
+    }
+    
+    // Update any other farm name references
+    const farmNameElements = document.querySelectorAll('.farm-name-display');
+    farmNameElements.forEach(el => {
+        el.textContent = farmSettings.name;
+    });
+}
+
 // ========================================
 // AUTHENTICATION & INITIALIZATION
 // ========================================
@@ -147,10 +198,16 @@ if (typeof getFeedData === 'undefined') {
     window.getFeedData = async () => feedData;
 }
 if (typeof getFeedingSchedule === 'undefined') {
-    window.getFeedingSchedule = async () => ({ frequency: 'twice-daily', time: '08:00', amount: 7.5, type: 'juvenile-pellets' });
+    window.getFeedingSchedule = async () => {
+        const saved = localStorage.getItem('feedingSchedule');
+        return saved ? JSON.parse(saved) : { frequency: 'twice-daily', time: '08:00', amount: 7.5, type: 'juvenile-pellets' };
+    };
 }
 if (typeof getWaterSchedule === 'undefined') {
-    window.getWaterSchedule = async () => ({ frequency: 'weekly', time: '09:00', percentage: 50 });
+    window.getWaterSchedule = async () => {
+        const saved = localStorage.getItem('waterSchedule');
+        return saved ? JSON.parse(saved) : { frequency: 'weekly', time: '09:00', percentage: 50 };
+    };
 }
 if (typeof getHistoricalSensorData === 'undefined') {
     window.getHistoricalSensorData = async () => [];
@@ -172,6 +229,9 @@ async function initDashboard() {
             return;
         }
 
+        // Load farm settings first
+        loadFarmSettings();
+        
         // Load initial data and set up the UI
         await loadDashboardData();
         setupEventListeners();
@@ -618,6 +678,233 @@ function saveWaterSchedule() {
 }
 
 // ========================================
+// HISTORY & MODAL FUNCTIONS
+// ========================================
+
+function viewWaterHistory() {
+    openModal('water-history-modal');
+    loadWaterHistoryData();
+}
+
+function loadWaterHistoryData() {
+    // Generate mock historical data for demonstration
+    const historyData = [];
+    const now = new Date();
+    
+    for (let i = 30; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        
+        // Generate realistic temperature and pH values with some variation
+        const baseTemp = 22;
+        const basePh = 7.2;
+        const tempVariation = Math.sin(i / 5) * 2 + (Math.random() - 0.5) * 0.5;
+        const phVariation = Math.cos(i / 7) * 0.3 + (Math.random() - 0.5) * 0.1;
+        
+        historyData.push({
+            date: date.toISOString().split('T')[0],
+            temperature: parseFloat((baseTemp + tempVariation).toFixed(1)),
+            ph: parseFloat((basePh + phVariation).toFixed(1))
+        });
+    }
+    
+    // Update the chart if chart manager is available
+    if (window.chartManager && window.chartManager.historyChart) {
+        window.chartManager.updateHistoryChart(historyData);
+    }
+}
+
+function viewHarvestHistory() {
+    openModal('harvest-history-modal');
+    loadHarvestHistoryData();
+}
+
+function loadHarvestHistoryData() {
+    // Check if we have saved harvest history
+    const savedHistory = localStorage.getItem('harvestHistory');
+    let historyData = [];
+    
+    if (savedHistory) {
+        try {
+            historyData = JSON.parse(savedHistory);
+        } catch (error) {
+            console.error('Error parsing harvest history:', error);
+        }
+    }
+    
+    // If no saved history, generate sample data
+    if (historyData.length === 0) {
+        const now = new Date();
+        for (let i = 3; i >= 1; i--) {
+            const date = new Date(now);
+            date.setDate(date.getDate() - (i * 30)); // One month apart
+            
+            historyData.push({
+                date: date.toISOString().split('T')[0],
+                quantity: (2 + Math.random() * 1.5).toFixed(1),
+                price: (140 + Math.random() * 20).toFixed(0),
+                notes: i === 1 ? 'First harvest' : 'Partial harvest'
+            });
+        }
+    }
+    
+    // Update the table
+    const tableBody = document.querySelector('#harvest-history-modal tbody');
+    if (tableBody) {
+        tableBody.innerHTML = '';
+        
+        historyData.forEach(record => {
+            const row = document.createElement('tr');
+            const revenue = (record.quantity * record.price).toFixed(2);
+            
+            row.innerHTML = `
+                <td>${record.date}</td>
+                <td>${record.quantity}</td>
+                <td>₱${record.price}</td>
+                <td>₱${revenue}</td>
+                <td>${record.notes}</td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+}
+
+function saveHarvestRecord() {
+    const harvestDate = document.getElementById('harvest-date-record')?.value;
+    const quantity = document.getElementById('harvest-quantity')?.value;
+    const price = document.getElementById('harvest-price-record')?.value;
+    const notes = document.getElementById('harvest-notes')?.value;
+    
+    if (harvestDate && quantity && price) {
+        // Get existing history or create new array
+        const savedHistory = localStorage.getItem('harvestHistory');
+        let historyData = savedHistory ? JSON.parse(savedHistory) : [];
+        
+        // Add new record
+        const newRecord = {
+            date: harvestDate,
+            quantity: parseFloat(quantity),
+            price: parseFloat(price),
+            notes: notes || ''
+        };
+        
+        historyData.push(newRecord);
+        
+        // Save back to localStorage
+        localStorage.setItem('harvestHistory', JSON.stringify(historyData));
+        
+        // Calculate and show revenue
+        const revenue = (quantity * price).toFixed(2);
+        showNotification('Harvest Recorded', `Harvest recorded: ${quantity}kg at ₱${price}/kg, Revenue: ₱${revenue}`, 'success');
+        
+        // Close modal and refresh history
+        closeModal('record-harvest-modal');
+        viewHarvestHistory();
+    } else {
+        showNotification('Error', 'Please fill all required fields', 'warning');
+    }
+}
+
+function saveHarvestPlan() {
+    const targetSize = document.getElementById('target-size')?.value;
+    const harvestDate = document.getElementById('harvest-date')?.value;
+    const harvestMethod = document.getElementById('harvest-method')?.value;
+    const marketPrice = document.getElementById('market-price')?.value;
+    
+    if (targetSize && harvestDate) {
+        // Save to localStorage
+        localStorage.setItem('harvestPlan', JSON.stringify({
+            targetSize: parseFloat(targetSize),
+            harvestDate: harvestDate,
+            harvestMethod: harvestMethod,
+            marketPrice: parseFloat(marketPrice)
+        }));
+        
+        // Update harvest projections
+        updateHarvestProjections({
+            ...hardwareData,
+            avg_weight: parseFloat(targetSize),
+            days_to_harvest: Math.max(0, Math.ceil((new Date(harvestDate) - new Date()) / (1000 * 60 * 60 * 24)))
+        });
+        
+        showNotification('Plan Saved', `Harvest plan saved: ${harvestMethod} harvest targeting ${targetSize}g by ${harvestDate}`, 'success');
+        closeModal('harvest-planning-modal');
+    } else {
+        showNotification('Error', 'Please fill all required fields', 'warning');
+    }
+}
+
+function saveFeedAlert() {
+    const threshold = document.getElementById('alert-threshold')?.value;
+    const alertType = document.getElementById('alert-type')?.value;
+    
+    if (threshold) {
+        // Save to localStorage
+        localStorage.setItem('feedAlert', JSON.stringify({
+            threshold: parseInt(threshold),
+            type: alertType
+        }));
+        
+        showNotification('Alert Set', `Feed alert set at ${threshold}% with ${alertType} notifications`, 'success');
+        closeModal('feed-alert-modal');
+    } else {
+        showNotification('Error', 'Please select an alert threshold', 'warning');
+    }
+}
+
+function saveWaterTestSchedule() {
+    const frequency = document.getElementById('test-frequency')?.value;
+    const time = document.getElementById('test-time')?.value;
+    const notifications = document.getElementById('test-notifications')?.value;
+    
+    if (frequency && time) {
+        // Save to localStorage
+        localStorage.setItem('waterTestSchedule', JSON.stringify({
+            frequency: frequency,
+            time: time,
+            notifications: notifications
+        }));
+        
+        showNotification('Schedule Saved', `Water testing scheduled ${frequency} at ${time}. Notifications: ${notifications}`, 'success');
+        closeModal('water-testing-schedule-modal');
+    } else {
+        showNotification('Error', 'Please fill all required fields', 'warning');
+    }
+}
+
+function saveSettings() {
+    const farmName = document.getElementById('farm-name')?.value;
+    const notificationEmail = document.getElementById('notification-email')?.value;
+    const notificationPhone = document.getElementById('notification-phone')?.value;
+    const measurementUnit = document.getElementById('measurement-unit')?.value;
+    const alertFrequency = document.getElementById('alert-frequency')?.value;
+    const waterTestingFrequency = document.getElementById('water-testing-frequency')?.value;
+    
+    if (farmName) {
+        // Update farm settings
+        farmSettings = {
+            name: farmName,
+            email: notificationEmail,
+            phone: notificationPhone,
+            unit: measurementUnit,
+            alertFrequency: alertFrequency,
+            waterTestingFrequency: waterTestingFrequency
+        };
+        
+        // Save to localStorage
+        localStorage.setItem('farmSettings', JSON.stringify(farmSettings));
+        
+        // Update farm name display throughout the UI
+        updateFarmNameDisplay();
+        
+        showNotification('Settings Saved', 'Farm settings have been updated successfully', 'success');
+    } else {
+        showNotification('Error', 'Farm name is required', 'warning');
+    }
+}
+
+// ========================================
 // SIMULATION & DEMO MODE
 // ========================================
 
@@ -778,83 +1065,61 @@ function setupEventListeners() {
         });
     }
 
-
-    // Water testing schedule modal
-    const saveTestSchedule = document.getElementById('save-test-schedule');
-    if (saveTestSchedule) {
-        saveTestSchedule.addEventListener('click', () => {
-            const frequency = document.getElementById('test-frequency')?.value;
-            const time = document.getElementById('test-time')?.value;
-            const notifications = document.getElementById('test-notifications')?.value;
-            
-            showNotification('Schedule Saved', `Water testing scheduled ${frequency} at ${time}. Notifications: ${notifications}`, 'success');
-            closeModal('water-testing-schedule-modal');
-        });
-    }
-    
-    // Harvest planning modal
-    const saveHarvestPlan = document.getElementById('save-harvest-plan');
-    if (saveHarvestPlan) {
-        saveHarvestPlan.addEventListener('click', () => {
-            const targetSize = document.getElementById('target-size')?.value;
-            const harvestDate = document.getElementById('harvest-date')?.value;
-            const harvestMethod = document.getElementById('harvest-method')?.value;
-            const marketPrice = document.getElementById('market-price')?.value;
-            
-            showNotification('Plan Saved', `Harvest plan saved: ${harvestMethod} harvest targeting ${targetSize}g by ${harvestDate}`, 'success');
-            closeModal('harvest-planning-modal');
-        });
-    }
-    
-    // Record harvest modal
-    const saveHarvestRecord = document.getElementById('save-harvest-record');
-    if (saveHarvestRecord) {
-        saveHarvestRecord.addEventListener('click', () => {
-            const harvestDate = document.getElementById('harvest-date-record')?.value;
-            const quantity = document.getElementById('harvest-quantity')?.value;
-            const price = document.getElementById('harvest-price-record')?.value;
-            const notes = document.getElementById('harvest-notes')?.value;
-            
-            if (harvestDate && quantity && price) {
-                const revenue = (quantity * price).toFixed(2);
-                showNotification('Harvest Recorded', `Harvest recorded: ${quantity}kg at ₱${price}/kg, Revenue: ₱${revenue}`, 'success');
-                closeModal('record-harvest-modal');
-            } else {
-                showNotification('Error', 'Please fill all required fields', 'warning');
-            }
-        });
+    // History and modal buttons
+    const viewWaterHistoryBtn = document.getElementById('view-water-history');
+    if(viewWaterHistoryBtn) {
+        viewWaterHistoryBtn.addEventListener('click', viewWaterHistory);
     }
 
-    // Feed alert modal
-    const saveFeedAlert = document.getElementById('save-feed-alert');
-    if (saveFeedAlert) {
-        saveFeedAlert.addEventListener('click', () => {
-            const threshold = document.getElementById('alert-threshold')?.value;
-            const alertType = document.getElementById('alert-type')?.value;
-            
-            showNotification('Alert Set', `Feed alert set at ${threshold}% with ${alertType} notifications`, 'success');
-            closeModal('feed-alert-modal');
-        });
+    const viewHarvestHistoryBtn = document.getElementById('view-harvest-history');
+    if(viewHarvestHistoryBtn) {
+        viewHarvestHistoryBtn.addEventListener('click', viewHarvestHistory);
     }
 
-    // Settings save button
+    const recordHarvestBtn = document.getElementById('record-harvest');
+    if(recordHarvestBtn) {
+        recordHarvestBtn.addEventListener('click', () => openModal('record-harvest-modal'));
+    }
+
+    const planHarvestBtn = document.getElementById('plan-harvest');
+    if(planHarvestBtn) {
+        planHarvestBtn.addEventListener('click', () => openModal('harvest-planning-modal'));
+    }
+
+    const setWaterTestingScheduleBtn = document.getElementById('set-water-testing-schedule');
+    if(setWaterTestingScheduleBtn) {
+        setWaterTestingScheduleBtn.addEventListener('click', () => openModal('water-testing-schedule-modal'));
+    }
+
+    const setFeedAlertBtn = document.getElementById('set-feed-alert');
+    if(setFeedAlertBtn) {
+        setFeedAlertBtn.addEventListener('click', () => openModal('feed-alert-modal'));
+    }
+
+    // Modal save buttons
+    const saveTestScheduleBtn = document.getElementById('save-test-schedule');
+    if(saveTestScheduleBtn) {
+        saveTestScheduleBtn.addEventListener('click', saveWaterTestSchedule);
+    }
+
+    const saveHarvestPlanBtn = document.getElementById('save-harvest-plan');
+    if(saveHarvestPlanBtn) {
+        saveHarvestPlanBtn.addEventListener('click', saveHarvestPlan);
+    }
+
+    const saveHarvestRecordBtn = document.getElementById('save-harvest-record');
+    if(saveHarvestRecordBtn) {
+        saveHarvestRecordBtn.addEventListener('click', saveHarvestRecord);
+    }
+
+    const saveFeedAlertBtn = document.getElementById('save-feed-alert');
+    if(saveFeedAlertBtn) {
+        saveFeedAlertBtn.addEventListener('click', saveFeedAlert);
+    }
+
     const saveSettingsBtn = document.getElementById('save-settings');
-    if (saveSettingsBtn) {
-        saveSettingsBtn.addEventListener('click', () => {
-            const farmName = document.getElementById('farm-name')?.value;
-            const notificationEmail = document.getElementById('notification-email')?.value;
-            const notificationPhone = document.getElementById('notification-phone')?.value;
-            const measurementUnit = document.getElementById('measurement-unit')?.value;
-            const alertFrequency = document.getElementById('alert-frequency')?.value;
-            const waterTestingFrequency = document.getElementById('water-testing-frequency')?.value;
-            
-            localStorage.setItem('farmSettings', JSON.stringify({
-                name: farmName, email: notificationEmail, phone: notificationPhone,
-                unit: measurementUnit, alertFrequency: alertFrequency, waterTestingFrequency: waterTestingFrequency
-            }));
-            
-            showNotification('Settings Saved', 'Farm settings have been updated successfully', 'success');
-        });
+    if(saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', saveSettings);
     }
 
     // Knowledge base categories
@@ -960,9 +1225,25 @@ function addMessage(text, sender) {
 function generateResponse(message) {
     const lowerMessage = message.toLowerCase();
     
+    // Check for farm name queries
+    if (lowerMessage.includes('farm') || lowerMessage.includes('name')) {
+        return `Your farm is named "${farmSettings.name}". You can change this in the Settings section.`;
+    }
+    
+    // Check for settings queries
+    if (lowerMessage.includes('settings') || lowerMessage.includes('configuration')) {
+        return `Your current settings:\n• Farm: ${farmSettings.name}\n• Email: ${farmSettings.email}\n• Phone: ${farmSettings.phone}\n• Units: ${farmSettings.unit}\n• Alert frequency: ${farmSettings.alertFrequency}\n• Water testing: ${farmSettings.waterTestingFrequency}`;
+    }
+    
     if (lowerMessage.includes('feed') || lowerMessage.includes('food')) {
         if (lowerMessage.includes('schedule') || lowerMessage.includes('when')) {
-            return "Your current feeding schedule is twice daily at 8:00 AM and 6:00 PM with 7.5g of juvenile pellets. Would you like to modify this schedule?";
+            const feedingSchedule = localStorage.getItem('feedingSchedule');
+            if (feedingSchedule) {
+                const schedule = JSON.parse(feedingSchedule);
+                return `Your current feeding schedule is ${formatFrequency(schedule.frequency)} at ${schedule.time} with ${schedule.amount}g of ${formatFoodType(schedule.type)}. Would you like to modify this schedule?`;
+            } else {
+                return "Your current feeding schedule is twice daily at 8:00 AM and 6:00 PM with 7.5g of juvenile pellets. Would you like to modify this schedule?";
+            }
         } else if (lowerMessage.includes('now') || lowerMessage.includes('immediate')) {
             return "I can help you feed the crayfish now. Would you like me to initiate the feeding process?";
         } else if (lowerMessage.includes('level') || lowerMessage.includes('amount')) {
@@ -975,7 +1256,13 @@ function generateResponse(message) {
     
     if (lowerMessage.includes('water') || lowerMessage.includes('change')) {
         if (lowerMessage.includes('schedule') || lowerMessage.includes('when')) {
-            return "Your current water change schedule is weekly on Mondays at 9:00 AM with 50% water change. Would you like to modify this schedule?";
+            const waterSchedule = localStorage.getItem('waterSchedule');
+            if (waterSchedule) {
+                const schedule = JSON.parse(waterSchedule);
+                return `Your current water change schedule is ${formatFrequency(schedule.frequency)} at ${schedule.time} with ${schedule.percentage}% water change. Would you like to modify this schedule?`;
+            } else {
+                return "Your current water change schedule is weekly on Mondays at 9:00 AM with 50% water change. Would you like to modify this schedule?";
+            }
         } else if (lowerMessage.includes('now') || lowerMessage.includes('immediate')) {
             return "I can help you change the water now. Would you like me to initiate the water change process?";
         } else if (lowerMessage.includes('quality') || lowerMessage.includes('test')) {
@@ -1020,10 +1307,10 @@ function generateResponse(message) {
     }
     
     if (lowerMessage.includes('help') || lowerMessage.includes('guide') || lowerMessage.includes('learn')) {
-        return "I can help you with:\n• Feeding schedules and nutrition\n• Water quality management\n• Harvest planning\n• System settings\n• Troubleshooting issues\nWhat would you like to know more about?";
+        return "I can help you with:\n• Feeding schedules and nutrition\n• Water quality management\n• Harvest planning\n• System settings\n• Troubleshooting issues\n• Farm information\nWhat would you like to know more about?";
     }
     
-    return "I'm your Crayfish Assistant! I can help with feeding schedules, water changes, sensor data, harvest planning, and system settings. What would you like to know?";
+    return "I'm your Crayfish Assistant! I can help with feeding schedules, water changes, sensor data, harvest planning, system settings, and farm information. What would you like to know?";
 }
 
 // FIX 2: Made the toggleChat function more robust
@@ -1087,23 +1374,23 @@ setTimeout(initDashboard, 2000);
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded. Finalizing setup.');
     
-    const farmSettings = localStorage.getItem('farmSettings');
-    if (farmSettings) {
-        const settings = JSON.parse(farmSettings);
-        const farmNameInput = document.getElementById('farm-name');
-        const emailInput = document.getElementById('notification-email');
-        const phoneInput = document.getElementById('notification-phone');
-        const unitInput = document.getElementById('measurement-unit');
-        const alertFreqInput = document.getElementById('alert-frequency');
-        const waterTestFreqInput = document.getElementById('water-testing-frequency');
-        
-        if (farmNameInput) farmNameInput.value = settings.name || 'My Crayfish Farm';
-        if (emailInput) emailInput.value = settings.email || 'farmer@example.com';
-        if (phoneInput) phoneInput.value = settings.phone || '+63 912 345 6789';
-        if (unitInput) unitInput.value = settings.unit || 'metric';
-        if (alertFreqInput) alertFreqInput.value = settings.alertFrequency || 'immediate';
-        if (waterTestFreqInput) waterTestFreqInput.value = settings.waterTestingFrequency || 'twice-weekly';
-    }
+    // Load farm settings first
+    loadFarmSettings();
+    
+    // Set form values from saved settings
+    const farmNameInput = document.getElementById('farm-name');
+    const emailInput = document.getElementById('notification-email');
+    const phoneInput = document.getElementById('notification-phone');
+    const unitInput = document.getElementById('measurement-unit');
+    const alertFreqInput = document.getElementById('alert-frequency');
+    const waterTestFreqInput = document.getElementById('water-testing-frequency');
+    
+    if (farmNameInput) farmNameInput.value = farmSettings.name || 'My Crayfish Farm';
+    if (emailInput) emailInput.value = farmSettings.email || 'farmer@example.com';
+    if (phoneInput) phoneInput.value = farmSettings.phone || '+63 912 345 6789';
+    if (unitInput) unitInput.value = farmSettings.unit || 'metric';
+    if (alertFreqInput) alertFreqInput.value = farmSettings.alertFrequency || 'immediate';
+    if (waterTestFreqInput) waterTestFreqInput.value = farmSettings.waterTestingFrequency || 'twice-weekly';
     
     // Generate ocean elements
     const oceanElements = document.querySelector('.ocean-elements');
