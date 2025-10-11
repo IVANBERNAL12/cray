@@ -717,12 +717,17 @@ function closeModal(modalId) {
 }
 
 function toggleFeedingScheduleForm() {
+    console.log('toggleFeedingScheduleForm called'); // Debug log
     const form = document.getElementById('feeding-schedule-form');
+    console.log('Form element:', form); // Debug log
+    
     if (form) {
         const isShowing = form.classList.toggle('show');
+        console.log('Form is now:', isShowing ? 'visible' : 'hidden'); // Debug log
         
         if (isShowing) {
             loadFromSupabase('feeding_schedule').then(schedule => {
+                console.log('Loaded schedule:', schedule); // Debug log
                 if (schedule) {
                     const feedingTime = document.getElementById('feeding-time');
                     const feedingFrequency = document.getElementById('feeding-frequency');
@@ -736,16 +741,23 @@ function toggleFeedingScheduleForm() {
                 }
             });
         }
+    } else {
+        console.error('Feeding schedule form not found!'); // Debug log
     }
 }
 
 function toggleWaterScheduleForm() {
+    console.log('toggleWaterScheduleForm called'); // Debug log
     const form = document.getElementById('water-schedule-form');
+    console.log('Form element:', form); // Debug log
+    
     if (form) {
         const isShowing = form.classList.toggle('show');
+        console.log('Form is now:', isShowing ? 'visible' : 'hidden'); // Debug log
         
         if (isShowing) {
             loadFromSupabase('water_schedule').then(schedule => {
+                console.log('Loaded schedule:', schedule); // Debug log
                 if (schedule) {
                     const waterTime = document.getElementById('water-change-time');
                     const waterFrequency = document.getElementById('water-frequency');
@@ -757,6 +769,8 @@ function toggleWaterScheduleForm() {
                 }
             });
         }
+    } else {
+        console.error('Water schedule form not found!'); // Debug log
     }
 }
 
@@ -1314,15 +1328,47 @@ function setupEventListeners() {
         }
     });
 
-    // Schedule buttons
+    // Schedule buttons - FIXED IDs with debug logging
+    console.log('Looking for feeding schedule button...');
     const setFeedingScheduleBtn = document.getElementById('set-feeding-schedule');
+    const setFeedingScheduleBtn2 = document.getElementById('set-feeding-schedule-btn');
+    console.log('set-feeding-schedule found:', setFeedingScheduleBtn);
+    console.log('set-feeding-schedule-btn found:', setFeedingScheduleBtn2);
+    
     if (setFeedingScheduleBtn) {
-        setFeedingScheduleBtn.addEventListener('click', toggleFeedingScheduleForm);
+        console.log('Adding click listener to set-feeding-schedule');
+        setFeedingScheduleBtn.addEventListener('click', (e) => {
+            console.log('set-feeding-schedule clicked!');
+            e.preventDefault();
+            toggleFeedingScheduleForm();
+        });
+    }
+    if (setFeedingScheduleBtn2) {
+        console.log('Adding click listener to set-feeding-schedule-btn');
+        setFeedingScheduleBtn2.addEventListener('click', (e) => {
+            console.log('set-feeding-schedule-btn clicked!');
+            e.preventDefault();
+            toggleFeedingScheduleForm();
+        });
+    }
+    
+    if (!setFeedingScheduleBtn && !setFeedingScheduleBtn2) {
+        console.error('⚠️ No feeding schedule button found! Check HTML.');
     }
 
+    console.log('Looking for water schedule button...');
     const setWaterScheduleBtn = document.getElementById('set-water-schedule');
+    console.log('set-water-schedule found:', setWaterScheduleBtn);
+    
     if (setWaterScheduleBtn) {
-        setWaterScheduleBtn.addEventListener('click', toggleWaterScheduleForm);
+        console.log('Adding click listener to set-water-schedule');
+        setWaterScheduleBtn.addEventListener('click', (e) => {
+            console.log('set-water-schedule clicked!');
+            e.preventDefault();
+            toggleWaterScheduleForm();
+        });
+    } else {
+        console.error('⚠️ No water schedule button found! Check HTML.');
     }
     
     // Save buttons
