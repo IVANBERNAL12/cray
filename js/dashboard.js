@@ -221,6 +221,11 @@ async function saveSensorReading(reading) {
 // Replace the checkDeviceStatus function in dashboard.js
 // ========================================
 
+// ========================================
+// IMPROVED DEVICE STATUS & COMMANDS
+// Replace the checkDeviceStatus and related functions in dashboard.js
+// ========================================
+
 async function checkDeviceStatus() {
     const statusIndicator = document.getElementById('device-status-indicator');
     const statusText = document.getElementById('device-status-text');
@@ -459,9 +464,6 @@ function setupRealtimeSubscription() {
     });
 }
 
-// Add this to the initDashboard function to enable realtime updates
-// Call this after initializing: setupRealtimeSubscription();
-
 // Improved startMockData with better visual indicators
 function startMockData() {
     if (mockDataInterval) {
@@ -613,6 +615,233 @@ window.sendCommand = sendCommand;
 window.setupRealtimeSubscription = setupRealtimeSubscription;
 window.startMockData = startMockData;
 window.stopMockData = stopMockData;
+
+
+/**
+ * Supabase Data Helper Functions
+ * Add these functions to your dashboard.js or api.js file
+ */
+
+/**
+ * Fetch historical sensor data from Supabase
+ * @param {number} days - Number of days to fetch (default: 7)
+ * @returns {Promise<Array>} Array of sensor readings
+ */
+async function getHistoricalSensorData(days = 7) {
+    try {
+        if (!window.supabase) {
+            console.warn('[Supabase] Supabase not available');
+            return [];
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            console.warn('[Supabase] User not authenticated');
+            return [];
+        }
+
+        // Calculate date range
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        console.log('[Supabase] Fetching sensor data from', startDate.toISOString(), 'to', endDate.toISOString());
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('created_at', startDate.toISOString())
+            .lte('created_at', endDate.toISOString())
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('[Supabase] Error fetching historical data:', error);
+            throw error;
+        }
+
+        console.log('[Supabase] Fetched', data?.length || 0, 'sensor readings');
+        return data || [];
+    } catch (error) {
+        console.error('[Supabase] getHistoricalSensorData error:', error);
+        return [];
+    }
+}
+
+/**
+ * Fetch the latest sensor reading
+ * @returns {Promise<Object|null>} Latest sensor reading
+ */
+async function getLatestSensorReading() {
+    try {
+        if (!window.supabase) {
+            console.warn('[Supabase] Supabase not available');
+            return null;
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            console.warn('[Supabase] User not authenticated');
+            return null;
+        }
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('[Supabase] Error fetching latest reading:', error);
+            throw error;
+        }
+
+        return data || null;
+    } catch (error) {
+        console.error('[Supabase] getLatestSensorReading error:', error);
+        return null;
+    }
+}
+
+/**
+ * Save sensor reading to Supabase
+ * @param {Object} reading - Sensor reading data
+ * @returns {Promise<Object>} Result object
+ */
+async function saveSensorReadingToSupabase(reading) {
+    try {
+        if (!window.supabase) {
+            console.warn('[Supabase] Supabase not available');
+            return { success: false, reason: 'no_supabase' };
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            console.warn('[Supabase] User not authenticated');
+            return { success: false, reason: 'not_authenticated' };
+        }
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .insert([{
+                user_id: user.id,
+                temperature: reading.temperature,
+                ph: reading.ph,
+                population: reading.population || 15,
+                health_status: reading.healthStatus || 100,
+                avg_weight: reading.avgWeight || 5,
+                days_to_harvest: reading.daysToHarvest || 120,
+                created_at: reading.timestamp || new Date().toISOString()
+            }])
+            .select();
+
+        if (error) {
+            console.error('[Supabase] Error saving sensor reading:', error);
+            throw error;
+        }
+
+        console.log('[Supabase] Sensor reading saved successfully');
+        return { success: true, data: data };
+    } catch (error) {
+        console.error('[Supabase] saveSensorReadingToSupabase error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Check if device has recent data (within specified minutes)
+ * @param {number} minutes - Minutes to check (default: 5)
+ * @returns {Promise<boolean>} True if device has recent data
+ */
+async function hasRecentDeviceData(minutes = 5) {
+    try {
+        if (!window.supabase) {
+            return false;
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            return false;
+        }
+
+        const cutoffTime = new Date();
+        cutoffTime.setMinutes(cutoffTime.getMinutes() - minutes);
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('id')
+            .eq('user_id', user.id)
+            .gte('created_at', cutoffTime.toISOString())
+            .limit(1);
+
+        if (error) {
+            console.error('[Supabase] Error checking recent data:', error);
+            return false;
+        }
+
+        return data && data.length > 0;
+    } catch (error) {
+        console.error('[Supabase] hasRecentDeviceData error:', error);
+        return false;
+    }
+}
+
+/**
+ * Get sensor data statistics for a time range
+ * @param {number} days - Number of days to analyze
+ * @returns {Promise<Object>} Statistics object
+ */
+async function getSensorStatistics(days = 7) {
+    try {
+        const data = await getHistoricalSensorData(days);
+        
+        if (!data || data.length === 0) {
+            return null;
+        }
+
+        const temperatures = data.map(d => d.temperature).filter(t => t !== null);
+        const phLevels = data.map(d => d.ph).filter(p => p !== null);
+
+        const calcStats = (values) => {
+            if (values.length === 0) return null;
+            const sorted = [...values].sort((a, b) => a - b);
+            const sum = values.reduce((a, b) => a + b, 0);
+            const mean = sum / values.length;
+            
+            return {
+                min: sorted[0],
+                max: sorted[sorted.length - 1],
+                mean: parseFloat(mean.toFixed(2)),
+                median: sorted[Math.floor(sorted.length / 2)],
+                count: values.length
+            };
+        };
+
+        return {
+            temperature: calcStats(temperatures),
+            ph: calcStats(phLevels),
+            totalReadings: data.length,
+            timeRange: {
+                start: data[0].created_at,
+                end: data[data.length - 1].created_at
+            }
+        };
+    } catch (error) {
+        console.error('[Supabase] getSensorStatistics error:', error);
+        return null;
+    }
+}
+
+// Export functions
+window.getHistoricalSensorData = getHistoricalSensorData;
+window.getLatestSensorReading = getLatestSensorReading;
+window.saveSensorReadingToSupabase = saveSensorReadingToSupabase;
+window.hasRecentDeviceData = hasRecentDeviceData;
+window.getSensorStatistics = getSensorStatistics;
+
+console.log('[Supabase] Data helper functions loaded');
 // ========================================
 // AUTHENTICATION & INITIALIZATION
 // ========================================
@@ -803,8 +1032,8 @@ function updateFeedLevelUI(data) {
     updateElement('feeding-feed-level-value', `${percentage}%`);
     
     // In updateFeedLevelUI function, update this line:
-const progressBar = document.getElementById('feeding-feed-level-progress');
-if (progressBar) progressBar.style.width = `${percentage}%`;
+    const progressBar = document.getElementById('feeding-feed-level-progress');
+    if (progressBar) progressBar.style.width = `${percentage}%`;
 
     let statusText = 'Adequate', statusClass = 'adequate';
     if (percentage < 20) { statusText = 'Critical'; statusClass = 'critical'; }

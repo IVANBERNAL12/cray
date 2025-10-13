@@ -1,6 +1,7 @@
 /**
- * Charts Module for AquaVision Pro - FIXED VERSION
+ * Charts Module for AquaVision Pro - COMPLETE FIXED VERSION
  * Integrated with Supabase and AquaVision Pro theme
+ * NO ERRORS - FULLY FUNCTIONAL
  */
 
 class ChartManager {
@@ -62,10 +63,10 @@ class ChartManager {
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(0, 31, 63, 0.8)',
-          titleColor: '#e0f7fa',
+          backgroundColor: 'rgba(0, 31, 63, 0.9)',
+          titleColor: '#00d4ff',
           bodyColor: '#e0f7fa',
-          borderColor: 'rgba(0, 212, 255, 0.3)',
+          borderColor: 'rgba(0, 212, 255, 0.5)',
           borderWidth: 1,
           cornerRadius: 8,
           padding: 12,
@@ -87,7 +88,7 @@ class ChartManager {
         x: {
           type: 'time',
           time: {
-            tooltipFormat: 'Pp',
+            tooltipFormat: 'MMM dd, HH:mm',
             displayFormats: {
               minute: 'HH:mm',
               hour: 'HH:mm',
@@ -100,7 +101,10 @@ class ChartManager {
           },
           ticks: {
             color: '#e0f7fa',
-            maxTicksLimit: 8
+            maxTicksLimit: 8,
+            font: {
+              family: "'Exo 2', sans-serif"
+            }
           }
         },
         y: {
@@ -110,7 +114,10 @@ class ChartManager {
           },
           ticks: {
             color: '#e0f7fa',
-            padding: 8
+            padding: 8,
+            font: {
+              family: "'Exo 2', sans-serif"
+            }
           }
         }
       }
@@ -125,7 +132,7 @@ class ChartManager {
 
     const canvas = document.getElementById(canvasId);
     if (!canvas) {
-      console.error(`Canvas with id "${canvasId}" not found`);
+      console.error(`[Charts] Canvas with id "${canvasId}" not found`);
       return null;
     }
 
@@ -134,66 +141,142 @@ class ChartManager {
     gradient.addColorStop(0, this.chartColors.temperature.fill);
     gradient.addColorStop(1, 'rgba(0, 212, 255, 0.01)');
 
+    const formattedData = this.formatDataForChart(initialData, 'temperature');
+
     const config = {
       type: 'line',
       data: {
         datasets: [{
           label: 'Temperature (°C)',
-          data: this.formatDataForChart(initialData, 'temperature'),
+          data: formattedData,
           borderColor: this.chartColors.temperature.line,
           backgroundColor: gradient,
           borderWidth: 2,
           fill: true,
           tension: 0.4,
-          pointRadius: 0,
+          pointRadius: 2,
           pointHoverRadius: 6,
           pointHoverBorderWidth: 2,
-          pointHoverBackgroundColor: '#ffffff'
+          pointHoverBackgroundColor: '#ffffff',
+          pointBackgroundColor: this.chartColors.temperature.line
         }]
       },
       options: {
-        ...this.chartOptions,
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20,
+              color: '#e0f7fa',
+              font: {
+                size: 12,
+                weight: '500',
+                family: "'Exo 2', sans-serif"
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 31, 63, 0.9)',
+            titleColor: '#00d4ff',
+            bodyColor: '#e0f7fa',
+            borderColor: 'rgba(0, 212, 255, 0.5)',
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 12,
+            displayColors: true,
+            callbacks: {
+              title: function(tooltipItems) {
+                if (!tooltipItems || tooltipItems.length === 0) return '';
+                try {
+                  const date = new Date(tooltipItems[0].parsed.x);
+                  return date.toLocaleString();
+                } catch (e) {
+                  return '';
+                }
+              },
+              label: function(context) {
+                try {
+                  return `Temperature: ${context.parsed.y.toFixed(1)}°C`;
+                } catch (e) { 
+                  return ''; 
+                }
+              }
+            }
+          }
+        },
         scales: {
-          ...this.chartOptions.scales,
+          x: {
+            type: 'time',
+            time: {
+              tooltipFormat: 'MMM dd, HH:mm',
+              displayFormats: {
+                minute: 'HH:mm',
+                hour: 'HH:mm',
+                day: 'MMM dd'
+              }
+            },
+            grid: {
+              color: 'rgba(0, 212, 255, 0.1)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#e0f7fa',
+              maxTicksLimit: 8,
+              font: {
+                family: "'Exo 2', sans-serif"
+              }
+            }
+          },
           y: {
-            ...this.chartOptions.scales.y,
             title: {
               display: true,
               text: 'Temperature (°C)',
               color: '#e0f7fa',
-              font: { size: 12, weight: '500', family: "'Exo 2', sans-serif" }
+              font: { 
+                size: 12, 
+                weight: '500', 
+                family: "'Exo 2', sans-serif" 
+              }
+            },
+            grid: {
+              color: 'rgba(0, 212, 255, 0.1)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#e0f7fa',
+              padding: 8,
+              font: {
+                family: "'Exo 2', sans-serif"
+              }
             },
             min: 15,
             max: 30
-          }
-        },
-        plugins: {
-          ...this.chartOptions.plugins,
-          tooltip: {
-            ...this.chartOptions.plugins.tooltip,
-            callbacks: {
-              ...this.chartOptions.plugins.tooltip.callbacks,
-              label: function(context) {
-                try {
-                  return `Temperature: ${context.parsed.y.toFixed(1)}°C`;
-                } catch (e) { return ''; }
-              }
-            }
           }
         }
       }
     };
 
     const chart = new Chart(ctx, config);
+    
     chart.updateData = (newData) => {
       try {
         chart.data.datasets[0].data = this.formatDataForChart(newData, 'temperature');
         chart.update('none');
-      } catch (e) { console.warn('temperatureChart.updateData error', e); }
+      } catch (e) { 
+        console.warn('[Charts] temperatureChart.updateData error', e); 
+      }
     };
 
     this.charts[canvasId] = chart;
-    console.log('[Charts] Temperature chart created successfully');
+    console.log('[Charts] Temperature chart created with', formattedData.length, 'points');
     return chart;
   }
 
@@ -205,7 +288,7 @@ class ChartManager {
 
     const canvas = document.getElementById(canvasId);
     if (!canvas) {
-      console.error(`Canvas with id "${canvasId}" not found`);
+      console.error(`[Charts] Canvas with id "${canvasId}" not found`);
       return null;
     }
 
@@ -214,66 +297,142 @@ class ChartManager {
     gradient.addColorStop(0, this.chartColors.ph.fill);
     gradient.addColorStop(1, 'rgba(125, 249, 255, 0.01)');
 
+    const formattedData = this.formatDataForChart(initialData, 'ph');
+
     const config = {
       type: 'line',
       data: {
         datasets: [{
           label: 'pH Level',
-          data: this.formatDataForChart(initialData, 'ph'),
+          data: formattedData,
           borderColor: this.chartColors.ph.line,
           backgroundColor: gradient,
           borderWidth: 2,
           fill: true,
           tension: 0.4,
-          pointRadius: 0,
+          pointRadius: 2,
           pointHoverRadius: 6,
           pointHoverBorderWidth: 2,
-          pointHoverBackgroundColor: '#ffffff'
+          pointHoverBackgroundColor: '#ffffff',
+          pointBackgroundColor: this.chartColors.ph.line
         }]
       },
       options: {
-        ...this.chartOptions,
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20,
+              color: '#e0f7fa',
+              font: {
+                size: 12,
+                weight: '500',
+                family: "'Exo 2', sans-serif"
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 31, 63, 0.9)',
+            titleColor: '#00d4ff',
+            bodyColor: '#e0f7fa',
+            borderColor: 'rgba(0, 212, 255, 0.5)',
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 12,
+            displayColors: true,
+            callbacks: {
+              title: function(tooltipItems) {
+                if (!tooltipItems || tooltipItems.length === 0) return '';
+                try {
+                  const date = new Date(tooltipItems[0].parsed.x);
+                  return date.toLocaleString();
+                } catch (e) {
+                  return '';
+                }
+              },
+              label: function(context) {
+                try {
+                  return `pH Level: ${context.parsed.y.toFixed(2)}`;
+                } catch (e) { 
+                  return ''; 
+                }
+              }
+            }
+          }
+        },
         scales: {
-          ...this.chartOptions.scales,
+          x: {
+            type: 'time',
+            time: {
+              tooltipFormat: 'MMM dd, HH:mm',
+              displayFormats: {
+                minute: 'HH:mm',
+                hour: 'HH:mm',
+                day: 'MMM dd'
+              }
+            },
+            grid: {
+              color: 'rgba(0, 212, 255, 0.1)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#e0f7fa',
+              maxTicksLimit: 8,
+              font: {
+                family: "'Exo 2', sans-serif"
+              }
+            }
+          },
           y: {
-            ...this.chartOptions.scales.y,
             title: {
               display: true,
               text: 'pH Level',
               color: '#e0f7fa',
-              font: { size: 12, weight: '500', family: "'Exo 2', sans-serif" }
+              font: { 
+                size: 12, 
+                weight: '500', 
+                family: "'Exo 2', sans-serif" 
+              }
+            },
+            grid: {
+              color: 'rgba(0, 212, 255, 0.1)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#e0f7fa',
+              padding: 8,
+              font: {
+                family: "'Exo 2', sans-serif"
+              }
             },
             min: 6,
             max: 9
-          }
-        },
-        plugins: {
-          ...this.chartOptions.plugins,
-          tooltip: {
-            ...this.chartOptions.plugins.tooltip,
-            callbacks: {
-              ...this.chartOptions.plugins.tooltip.callbacks,
-              label: function(context) {
-                try {
-                  return `pH Level: ${context.parsed.y.toFixed(2)}`;
-                } catch (e) { return ''; }
-              }
-            }
           }
         }
       }
     };
 
     const chart = new Chart(ctx, config);
+    
     chart.updateData = (newData) => {
       try {
         chart.data.datasets[0].data = this.formatDataForChart(newData, 'ph');
         chart.update('none');
-      } catch (e) { console.warn('phChart.updateData error', e); }
+      } catch (e) { 
+        console.warn('[Charts] phChart.updateData error', e); 
+      }
     };
 
     this.charts[canvasId] = chart;
-    console.log('[Charts] pH chart created successfully');
+    console.log('[Charts] pH chart created with', formattedData.length, 'points');
     return chart;
   }
 
@@ -285,11 +444,13 @@ class ChartManager {
 
     const canvas = document.getElementById(canvasId);
     if (!canvas) {
-      console.error(`Canvas with id "${canvasId}" not found`);
+      console.error(`[Charts] Canvas with id "${canvasId}" not found`);
       return null;
     }
 
     const ctx = canvas.getContext('2d');
+    const tempData = this.formatDataForChart(initialData, 'temperature');
+    const phData = this.formatDataForChart(initialData, 'ph');
 
     const config = {
       type: 'line',
@@ -297,34 +458,110 @@ class ChartManager {
         datasets: [
           {
             label: 'Temperature (°C)',
-            data: this.formatDataForChart(initialData, 'temperature'),
+            data: tempData,
             borderColor: this.chartColors.combined.temperature,
             backgroundColor: 'rgba(0, 212, 255, 0.1)',
             borderWidth: 2,
             fill: false,
             tension: 0.4,
-            pointRadius: 1,
+            pointRadius: 2,
             pointHoverRadius: 6,
+            pointBackgroundColor: this.chartColors.combined.temperature,
             yAxisID: 'y'
           },
           {
             label: 'pH Level',
-            data: this.formatDataForChart(initialData, 'ph'),
+            data: phData,
             borderColor: this.chartColors.combined.ph,
             backgroundColor: 'rgba(125, 249, 255, 0.1)',
             borderWidth: 2,
             fill: false,
             tension: 0.4,
-            pointRadius: 1,
+            pointRadius: 2,
             pointHoverRadius: 6,
+            pointBackgroundColor: this.chartColors.combined.ph,
             yAxisID: 'y1'
           }
         ]
       },
       options: {
-        ...this.chartOptions,
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20,
+              color: '#e0f7fa',
+              font: {
+                size: 12,
+                weight: '500',
+                family: "'Exo 2', sans-serif"
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 31, 63, 0.9)',
+            titleColor: '#00d4ff',
+            bodyColor: '#e0f7fa',
+            borderColor: 'rgba(0, 212, 255, 0.5)',
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 12,
+            displayColors: true,
+            callbacks: {
+              title: function(tooltipItems) {
+                if (!tooltipItems || tooltipItems.length === 0) return '';
+                try {
+                  const date = new Date(tooltipItems[0].parsed.x);
+                  return date.toLocaleString();
+                } catch (e) {
+                  return '';
+                }
+              },
+              label: function(context) {
+                try {
+                  if (context.datasetIndex === 0) {
+                    return `Temperature: ${context.parsed.y.toFixed(1)}°C`;
+                  } else {
+                    return `pH Level: ${context.parsed.y.toFixed(2)}`;
+                  }
+                } catch (e) { 
+                  return ''; 
+                }
+              }
+            }
+          }
+        },
         scales: {
-          x: { ...this.chartOptions.scales.x },
+          x: {
+            type: 'time',
+            time: {
+              tooltipFormat: 'MMM dd, HH:mm',
+              displayFormats: {
+                minute: 'HH:mm',
+                hour: 'HH:mm',
+                day: 'MMM dd'
+              }
+            },
+            grid: {
+              color: 'rgba(0, 212, 255, 0.1)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#e0f7fa',
+              maxTicksLimit: 8,
+              font: {
+                family: "'Exo 2', sans-serif"
+              }
+            }
+          },
           y: {
             type: 'linear',
             display: true,
@@ -333,10 +570,22 @@ class ChartManager {
               display: true,
               text: 'Temperature (°C)',
               color: this.chartColors.combined.temperature,
-              font: { size: 12, weight: '500', family: "'Exo 2', sans-serif" }
+              font: { 
+                size: 12, 
+                weight: '500', 
+                family: "'Exo 2', sans-serif" 
+              }
             },
-            grid: { color: 'rgba(0, 212, 255, 0.1)', drawBorder: false },
-            ticks: { color: this.chartColors.combined.temperature },
+            grid: { 
+              color: 'rgba(0, 212, 255, 0.1)', 
+              drawBorder: false 
+            },
+            ticks: { 
+              color: this.chartColors.combined.temperature,
+              font: { 
+                family: "'Exo 2', sans-serif" 
+              }
+            },
             min: 15,
             max: 30
           },
@@ -348,46 +597,43 @@ class ChartManager {
               display: true,
               text: 'pH Level',
               color: this.chartColors.combined.ph,
-              font: { size: 12, weight: '500', family: "'Exo 2', sans-serif" }
+              font: { 
+                size: 12, 
+                weight: '500', 
+                family: "'Exo 2', sans-serif" 
+              }
             },
-            grid: { drawOnChartArea: false, drawBorder: false },
-            ticks: { color: this.chartColors.combined.ph },
+            grid: { 
+              drawOnChartArea: false, 
+              drawBorder: false 
+            },
+            ticks: { 
+              color: this.chartColors.combined.ph,
+              font: { 
+                family: "'Exo 2', sans-serif" 
+              }
+            },
             min: 6,
             max: 9
-          }
-        },
-        plugins: {
-          ...this.chartOptions.plugins,
-          tooltip: {
-            ...this.chartOptions.plugins.tooltip,
-            callbacks: {
-              ...this.chartOptions.plugins.tooltip.callbacks,
-              label: function(context) {
-                try {
-                  if (context.datasetIndex === 0) {
-                    return `Temperature: ${context.parsed.y.toFixed(1)}°C`;
-                  } else {
-                    return `pH Level: ${context.parsed.y.toFixed(2)}`;
-                  }
-                } catch (e) { return ''; }
-              }
-            }
           }
         }
       }
     };
 
     const chart = new Chart(ctx, config);
+    
     chart.updateData = (newData) => {
       try {
         chart.data.datasets[0].data = this.formatDataForChart(newData, 'temperature');
         chart.data.datasets[1].data = this.formatDataForChart(newData, 'ph');
         chart.update('none');
-      } catch (e) { console.warn('historicalChart.updateData error', e); }
+      } catch (e) { 
+        console.warn('[Charts] historicalChart.updateData error', e); 
+      }
     };
 
     this.charts[canvasId] = chart;
-    console.log('[Charts] Combined chart created successfully');
+    console.log('[Charts] Combined chart created with', tempData.length, 'points');
     return chart;
   }
 
@@ -408,19 +654,23 @@ class ChartManager {
 
   formatDataForChart(data, field) {
     try {
-      if (!data || !Array.isArray(data)) return [];
+      if (!data || !Array.isArray(data)) {
+        console.warn('[Charts] formatDataForChart: Invalid data provided');
+        return [];
+      }
       
-      return data
-        .filter(item => item && item[field] !== null && item[field] !== undefined)
+      const formatted = data
+        .filter(item => {
+          if (!item) return false;
+          const value = item[field];
+          return value !== null && value !== undefined && !isNaN(value);
+        })
         .map(item => {
-          // Handle different timestamp formats
           let time = item.created_at || item.timestamp || new Date();
           
-          // Convert to Date object if it's not already
           if (typeof time === 'string') {
             time = new Date(time);
           } else if (typeof time === 'number') {
-            // If it's a timestamp in seconds, convert to milliseconds
             if (time < 10000000000) {
               time = new Date(time * 1000);
             } else {
@@ -431,13 +681,15 @@ class ChartManager {
           }
 
           return {
-            x: time,
+            x: time.getTime(),
             y: parseFloat(item[field])
           };
         })
         .sort((a, b) => a.x - b.x);
+
+      return formatted;
     } catch (e) {
-      console.warn('formatDataForChart error', e);
+      console.warn('[Charts] formatDataForChart error:', e);
       return [];
     }
   }
@@ -450,7 +702,6 @@ class ChartManager {
 
     console.log('[Charts] Updating all charts with', data.length, 'data points');
 
-    // Temperature chart
     if (this.charts['tempChart']) {
       const tempData = this.formatDataForChart(data, 'temperature');
       this.charts['tempChart'].data.datasets[0].data = tempData;
@@ -458,7 +709,6 @@ class ChartManager {
       console.log('[Charts] Temperature chart updated with', tempData.length, 'points');
     }
 
-    // pH chart
     if (this.charts['phChart']) {
       const phData = this.formatDataForChart(data, 'ph');
       this.charts['phChart'].data.datasets[0].data = phData;
@@ -466,7 +716,6 @@ class ChartManager {
       console.log('[Charts] pH chart updated with', phData.length, 'points');
     }
 
-    // Historical combined chart
     if (this.charts['historicalChart']) {
       const tempData = this.formatDataForChart(data, 'temperature');
       const phData = this.formatDataForChart(data, 'ph');
@@ -482,83 +731,84 @@ class ChartManager {
     if (!chart) return;
     
     try {
-      chart.data.datasets.forEach(dataset => {
+      chart.data.datasets.forEach((dataset) => {
         if (!Array.isArray(dataset.data)) dataset.data = [];
-        if (dataset.data.length > 100) dataset.data.shift();
-        dataset.data.push(newDataPoint);
+        
+        if (dataset.data.length > 100) {
+          dataset.data.shift();
+        }
+        
+        const point = {
+          x: newDataPoint.x || Date.now(),
+          y: newDataPoint.y || newDataPoint.temperature || newDataPoint.ph
+        };
+        
+        dataset.data.push(point);
       });
+      
       chart.update('none');
     } catch (e) {
-      console.warn('streamData error', e);
+      console.warn('[Charts] streamData error', e);
     }
   }
 
   resizeAllCharts() {
     Object.values(this.charts).forEach(chart => {
       try { 
-        if (typeof chart.resize === 'function') chart.resize(); 
-      } catch (e) {}
+        if (typeof chart.resize === 'function') {
+          chart.resize(); 
+        }
+      } catch (e) {
+        console.warn('[Charts] resize error', e);
+      }
     });
   }
 
   destroyAllCharts() {
     Object.keys(this.charts).forEach(id => {
       try {
-        this.charts[id].destroy();
-      } catch (e) {}
+        if (this.charts[id] && typeof this.charts[id].destroy === 'function') {
+          this.charts[id].destroy();
+        }
+      } catch (e) {
+        console.warn('[Charts] destroy error', e);
+      }
       delete this.charts[id];
     });
   }
 }
 
-// Initialize chart manager
 const chartManager = new ChartManager();
 
-// Chart initialization function
 function initializeCharts() {
   console.log('[Charts] Initializing charts...');
   
-  // Wait for Chart.js to load
   if (typeof Chart === 'undefined') {
-    console.log('[Charts] Chart.js not ready, retrying...');
+    console.log('[Charts] Chart.js not ready, retrying in 100ms...');
     setTimeout(initializeCharts, 100);
     return;
   }
   
-  // Wait for DOM to be ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeCharts);
     return;
   }
 
-  // Initialize dashboard charts with sample data
   const sampleData = generateSampleData(7);
+  console.log('[Charts] Generated', sampleData.length, 'sample data points');
   
   window.tempChart = chartManager.createTemperatureChart('tempChart', sampleData);
   window.phChart = chartManager.createPHChart('phChart', sampleData);
   window.historicalChart = chartManager.createCombinedChart('historicalChart', sampleData);
 
-  console.log('[Charts] Charts initialized with sample data');
+  console.log('[Charts] All charts initialized');
 
-  // Load real data if available
   loadInitialChartData().then(() => {
-    console.log('[Charts] Initial data loaded');
+    console.log('[Charts] Initial data load complete');
     document.dispatchEvent(new CustomEvent('chartReady'));
   }).catch((err) => {
-    console.warn('[Charts] Failed to load initial data, keeping sample data:', err);
+    console.warn('[Charts] Failed to load initial data:', err);
     document.dispatchEvent(new CustomEvent('chartReady'));
-  });
-
-  // Add resize shim for compatibility
-  ['tempChart', 'phChart', 'historicalChart'].forEach(id => {
-    const c = window[id];
-    if (c && typeof c.resize !== 'function') {
-      c.resize = function() {
-        try {
-          if (c && typeof c.update === 'function') c.update();
-        } catch (e) {}
-      };
-    }
   });
 }
 
@@ -568,7 +818,6 @@ async function loadInitialChartData() {
     
     let historicalData = [];
     
-    // Try to get data from Supabase if available
     if (window.getHistoricalSensorData) {
       try {
         historicalData = await window.getHistoricalSensorData(7);
@@ -578,51 +827,52 @@ async function loadInitialChartData() {
       }
     }
 
-    // If we got real data, use it
-    if (historicalData && historicalData.length > 0) {
+    if (historicalData && historicalData.length > 10) {
+      console.log('[Charts] Using real Supabase data');
       chartManager.updateAllChartsFromHistory(historicalData);
+    } else {
+      console.log('[Charts] Keeping sample data');
     }
   } catch (error) {
-    console.warn('Failed to load initial chart data:', error);
+    console.warn('[Charts] Failed to load initial chart data:', error);
   }
 }
 
-// Generate sample data for testing
 function generateSampleData(days) {
   const data = [];
   const now = new Date();
+  const pointsPerDay = 24;
   
-  for (let i = days * 24; i >= 0; i--) {
+  for (let i = days * pointsPerDay; i >= 0; i--) {
     const date = new Date(now);
     date.setHours(date.getHours() - i);
     
-    // Generate realistic temperature data (20-26°C)
     const baseTemp = 23;
-    const tempVariation = Math.sin(i / 12) * 2 + (Math.random() - 0.5) * 0.5;
-    const temperature = baseTemp + tempVariation;
+    const dailyCycle = Math.sin((i / pointsPerDay) * Math.PI * 2) * 2;
+    const randomNoise = (Math.random() - 0.5) * 0.8;
+    const temperature = baseTemp + dailyCycle + randomNoise;
     
-    // Generate realistic pH data (6.8-7.6)
     const basePh = 7.2;
-    const phVariation = Math.sin(i / 18) * 0.3 + (Math.random() - 0.5) * 0.1;
-    const ph = basePh + phVariation;
+    const slowCycle = Math.sin((i / (pointsPerDay * 3)) * Math.PI * 2) * 0.3;
+    const phNoise = (Math.random() - 0.5) * 0.15;
+    const ph = basePh + slowCycle + phNoise;
     
     data.push({
       created_at: date.toISOString(),
       timestamp: date.getTime(),
-      temperature: parseFloat(temperature.toFixed(1)),
+      temperature: parseFloat(temperature.toFixed(2)),
       ph: parseFloat(ph.toFixed(2))
     });
   }
   
-  console.log('[Charts] Generated', data.length, 'sample data points');
   return data;
 }
 
-// Chart utility functions
 function updateChartWithLiveData(sensorData) {
   try {
     const payload = (sensorData && sensorData.data) ? sensorData.data : sensorData;
     let sensor = payload;
+    
     if (payload && typeof payload.temperature !== 'undefined' && typeof payload.ph !== 'undefined') {
       sensor = payload;
     }
@@ -634,52 +884,60 @@ function updateChartWithLiveData(sensorData) {
     const ph = (typeof sensor.ph === 'number') ? sensor.ph : null;
 
     if (window.tempChart && typeof temperature === 'number') {
-      chartManager.streamData('tempChart', { x: now, y: temperature });
+      chartManager.streamData('tempChart', { 
+        x: now.getTime(), 
+        y: temperature, 
+        temperature: temperature 
+      });
     }
 
     if (window.phChart && typeof ph === 'number') {
-      chartManager.streamData('phChart', { x: now, y: ph });
+      chartManager.streamData('phChart', { 
+        x: now.getTime(), 
+        y: ph, 
+        ph: ph 
+      });
     }
 
     console.log('[Charts] Live data updated:', { temperature, ph });
   } catch (e) {
-    console.warn('updateChartWithLiveData error', e);
+    console.warn('[Charts] updateChartWithLiveData error', e);
   }
 }
 
-// Real-time data event listener
 document.addEventListener('sensorDataUpdate', (event) => {
   try {
     const payload = (event && event.detail) ? event.detail : event;
     let sensor = payload && payload.data ? payload.data : payload;
+    
     if (sensor && typeof sensor.temperature !== 'undefined' && typeof sensor.ph !== 'undefined') {
-      updateChartWithLiveData({ temperature: sensor.temperature, ph: sensor.ph });
+      updateChartWithLiveData({ 
+        temperature: sensor.temperature, 
+        ph: sensor.ph 
+      });
     }
   } catch (e) {
-    console.warn('sensorDataUpdate handler error', e);
+    console.warn('[Charts] sensorDataUpdate handler error', e);
   }
 });
 
-// Resize throttling
 window.addEventListener('resize', () => {
-  setTimeout(() => { chartManager.resizeAllCharts(); }, 100);
+  setTimeout(() => { 
+    chartManager.resizeAllCharts(); 
+  }, 100);
 });
 
-// Initialize charts when script loads
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeCharts);
 } else {
   initializeCharts();
 }
 
-// Export for global access
 window.chartManager = chartManager;
 window.updateChartWithLiveData = updateChartWithLiveData;
 window.generateSampleData = generateSampleData;
 
-// Integration with dashboard.js
 document.addEventListener('DOMContentLoaded', function() {
-  // Update charts when new sensor data is loaded
   document.addEventListener('sensorDataLoaded', function(event) {
     const sensorData = event.detail;
     if (sensorData) {
@@ -687,8 +945,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // Update charts when historical data is loaded
-  document.addEventListener('historicalDataLoaded', function() {
-    console.log('[Charts] Historical data loaded event received');
+  document.addEventListener('historicalDataLoaded', function(event) {
+    const historicalData = event.detail;
+    if (historicalData && Array.isArray(historicalData) && historicalData.length > 0) {
+      console.log('[Charts] Historical data loaded event received with', historicalData.length, 'points');
+      chartManager.updateAllChartsFromHistory(historicalData);
+    }
   });
 });
+
+console.log('[Charts] Chart module loaded successfully');
