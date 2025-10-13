@@ -1,1015 +1,1037 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AquaVision Pro Dashboard</title>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="dashboard.css">
-    </head>
-    <body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaVision Pro Dashboard</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
 
-        <!-- Ocean Background -->
-        <div class="ocean-bg">
-            <div class="ocean-waves"></div>
-            <div class="ocean-light"></div>
+    <!-- Ocean Background -->
+    <div class="ocean-bg">
+        <div class="ocean-waves"></div>
+        <div class="ocean-light"></div>
+    </div>
+
+    <!-- Seabed with Crawling Crayfish -->
+    <div class="seabed">
+        <div class="crawling-crayfish"></div>
+    </div>
+
+    <!-- Floating Ocean Elements -->
+    <div class="ocean-elements">
+        <!-- Generate elements dynamically with JavaScript -->
+    </div>
+
+    <!-- Bioluminescent Particles -->
+    <div class="bioluminescence">
+        <!-- Generate particles dynamically with JavaScript -->
+    </div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <i class="fas fa-water crayfish-logo"></i>
+                <span class="logo-text">AquaVision Pro</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#dashboard" class="nav-link active">Dashboard</a></li>
+                <li><a href="#water-quality" class="nav-link">Water Quality</a></li>
+                <li><a href="#water-management" class="nav-link">Water Management</a></li>
+                <li><a href="#feeding" class="nav-link">Feeding</a></li>
+                <li><a href="#harvest" class="nav-link">Harvest</a></li>
+                <li><a href="#knowledge" class="nav-link">Knowledge Base</a></li>
+                <li><a href="#settings" class="nav-link">Settings</a></li>
+                <li class="nav-logout-item">
+                    <button class="btn btn-logout" id="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </li>
+            </ul>
+            <div class="nav-actions">
+                <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle mobile menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
         </div>
+    </nav>
 
-        <!-- Seabed with Crawling Crayfish -->
-        <div class="seabed">
-            <div class="crawling-crayfish"></div>
-        </div>
+    <!-- Dashboard Container -->
+    <div class="dashboard-container">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="dashboard-section active">
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">Farm Overview</h1>
+                <p class="dashboard-subtitle">Monitor your crayfish farm at a glance</p>
+                <div class="refresh-controls">
+                    <button class="btn btn-icon" id="refresh-data" aria-label="Refresh data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <span id="last-updated">Last updated: Just now</span>
+                </div>
+            </div>
 
-        <!-- Floating Ocean Elements -->
-        <div class="ocean-elements">
-            <!-- Generate elements dynamically with JavaScript -->
-        </div>
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-thermometer-half"></i>
+                    </div>
+                    <h3 class="stat-title">Water Temperature</h3>
+                    <div class="stat-value" id="temp-value">24.5°C</div>
+                    <div class="stat-change positive" id="temp-change">
+                        <i class="fas fa-arrow-up"></i> 2.1%
+                    </div>
+                </div>
 
-        <!-- Bioluminescent Particles -->
-        <div class="bioluminescence">
-            <!-- Generate particles dynamically with JavaScript -->
-        </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-tint"></i>
+                    </div>
+                    <h3 class="stat-title">pH Level</h3>
+                    <div class="stat-value" id="ph-value">7.2</div>
+                    <div class="stat-change positive" id="ph-change">
+                        <i class="fas fa-arrow-up"></i> 0.5%
+                    </div>
+                </div>
 
-        <!-- Navigation -->
-        <nav>
-            <div class="nav-container">
-                <a href="#" class="logo">
-                    <i class="fas fa-water crayfish-logo"></i>
-                    <span class="logo-text">AquaVision Pro</span>
-                </a>
-                <ul class="nav-links">
-                    <li><a href="#dashboard" class="nav-link active">Dashboard</a></li>
-                    <li><a href="#water-quality" class="nav-link">Water Quality</a></li>
-                    <li><a href="#water-management" class="nav-link">Water Management</a></li>
-                    <li><a href="#feeding" class="nav-link">Feeding</a></li>
-                    <li><a href="#harvest" class="nav-link">Harvest</a></li>
-                    <li><a href="#knowledge" class="nav-link">Knowledge Base</a></li>
-                    <li><a href="#settings" class="nav-link">Settings</a></li>
-                    <li class="nav-logout-item">
-                        <button class="btn btn-logout" id="logout-btn">
-                            <i class="fas fa-sign-out-alt"></i> Logout
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-fish"></i>
+                    </div>
+                    <h3 class="stat-title">Crayfish Population</h3>
+                    <div class="stat-value" id="population-value">15</div>
+                    <div class="stat-change positive" id="population-change">
+                        <i class="fas fa-arrow-up"></i> 0%
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <h3 class="stat-title">Health Status</h3>
+                    <div class="stat-value" id="health-value">100%</div>
+                    <div class="stat-change positive" id="health-change">
+                        <i class="fas fa-arrow-up"></i> 0%
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-weight"></i>
+                    </div>
+                    <h3 class="stat-title">Avg. Weight</h3>
+                    <div class="stat-value" id="weight-value">5g</div>
+                    <div class="stat-change positive" id="weight-change">
+                        <i class="fas fa-arrow-up"></i> 25%
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h3 class="stat-title">Days to Harvest</h3>
+                    <div class="stat-value" id="harvest-value">120</div>
+                    <div class="stat-change negative" id="harvest-change">
+                        <i class="fas fa-arrow-down"></i> 0 days
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                    <h3 class="stat-title">Feed Level</h3>
+                    <div class="stat-value" id="feed-level-value">75%</div>
+                    <div class="feed-status" id="feed-status">Adequate</div>
+                </div>
+            </div>
+
+            <!-- Device Status Section -->
+            <div class="device-status-section">
+                <h2 class="section-title">Device Connection</h2>
+                <div class="device-status-card">
+                    <div class="status-indicator offline" id="device-status-indicator"></div>
+                    <div class="device-info">
+                        <h3 id="device-status-text">Checking device status...</h3>
+                        <p id="last-device-update">Last update: Never</p>
+                    </div>
+                    <div class="device-controls">
+                        <button class="btn btn-primary" id="test-connection">
+                            <i class="fas fa-sync-alt"></i> Test Connection
                         </button>
-                    </li>
-                </ul>
-                <div class="nav-actions">
-                    <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle mobile menu">
-                        <i class="fas fa-bars"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guidelines Section -->
+            <div class="guidelines-section">
+                <h2 class="section-title">Optimal Crayfish Farming Guidelines</h2>
+                <div class="guidelines-grid">
+                    <div class="guideline-card">
+                        <div class="guideline-title">Water Temperature</div>
+                        <div class="guideline-range">20-25°C (68-77°F)</div>
+                        <div class="guideline-desc">Optimal for growth and reproduction. Temperatures above 30°C can cause stress, while below 15°C slows metabolism.</div>
+                    </div>
+                    <div class="guideline-card">
+                        <div class="guideline-title">pH Level</div>
+                        <div class="guideline-range">6.5-8.0</div>
+                        <div class="guideline-desc">Slightly alkaline water is ideal. pH below 6.5 can cause shell problems, while above 8.5 affects ammonia toxicity.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section - FIXED WITH PROPER HEIGHTS -->
+            <div class="charts-section">
+                <h2 class="section-title">Farm Analytics</h2>
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Temperature Trends</h3>
+                            <div class="chart-actions">
+                                <button class="chart-action" id="expand-temp-chart" aria-label="Expand temperature chart">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                                <button class="chart-action" id="download-temp-chart" aria-label="Download temperature chart">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="tempChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">pH Level Trends</h3>
+                            <div class="chart-actions">
+                                <button class="chart-action" id="expand-ph-chart" aria-label="Expand pH chart">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                                <button class="chart-action" id="download-ph-chart" aria-label="Download pH chart">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="phChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Historical Chart - Full Width -->
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Historical Data (Temperature & pH)</h3>
+                            <div class="chart-actions">
+                                <button class="chart-action" id="expand-historical-chart" aria-label="Expand historical chart">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                                <button class="chart-action" id="download-historical-chart" aria-label="Download historical chart">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="position: relative; height: 400px; width: 100%;">
+                            <canvas id="historicalChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div class="alerts-section">
+                <h2 class="section-title">Farm Alerts</h2>
+                <div class="alerts-container">
+                    <div class="alerts-header">
+                        <h3 class="alerts-title">Recent Notifications</h3>
+                    </div>
+                    <div class="alerts-list" id="alerts-list">
+                        <div class="alert-item info">
+                            <div class="alert-icon">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div class="alert-content">
+                                <div class="alert-title">System Update</div>
+                                <div class="alert-message">All systems are functioning optimally. Continue regular monitoring.</div>
+                            </div>
+                            <div class="alert-time">Just now</div>
+                        </div>
+
+                        <div class="alert-item info">
+                            <div class="alert-icon">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div class="alert-content">
+                                <div class="alert-title">Feeding Schedule</div>
+                                <div class="alert-message">Next feeding scheduled for today at 6:00 PM.</div>
+                            </div>
+                            <div class="alert-time">2 hours ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Water Quality Section -->
+        <section id="water-quality" class="dashboard-section">
+            <div class="water-quality">
+                <div class="section-header">
+                    <h2 class="section-title">Water Quality Management</h2>
+                </div>
+
+                <div class="quality-parameters">
+                    <div class="parameter-card">
+                        <div class="parameter-icon">
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="parameter-name">Temperature</div>
+                        <div class="parameter-value" id="water-temp-value">24.5°C</div>
+                        <div class="parameter-status optimal" id="water-temp-status">Optimal</div>
+                        <div class="parameter-range">Optimal: 20-25°C</div>
+                    </div>
+
+                    <div class="parameter-card">
+                        <div class="parameter-icon">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="parameter-name">pH Level</div>
+                        <div class="parameter-value" id="water-ph-value">7.2</div>
+                        <div class="parameter-status optimal" id="water-ph-status">Optimal</div>
+                        <div class="parameter-range">Optimal: 6.5-8.0</div>
+                    </div>
+                </div>
+
+                <div class="water-controls">
+                    <button class="btn btn-primary" id="test-water-now">
+                        <i class="fas fa-vial"></i> Test Water Now
+                    </button>
+                    <button class="btn btn-secondary" id="set-water-testing-schedule">
+                        <i class="fas fa-clock"></i> Set Testing Schedule
+                    </button>
+                    <button class="btn btn-success" id="view-water-history">
+                        <i class="fas fa-history"></i> View History
                     </button>
                 </div>
             </div>
-        </nav>
+        </section>
 
-        <!-- Dashboard Container -->
-        <div class="dashboard-container">
-            <!-- Dashboard Section -->
-            <section id="dashboard" class="dashboard-section active">
-                <div class="dashboard-header">
-                    <h1 class="dashboard-title">Farm Overview</h1>
-                    <p class="dashboard-subtitle">Monitor your crayfish farm at a glance</p>
-                    <div class="refresh-controls">
-                        <button class="btn btn-icon" id="refresh-data" aria-label="Refresh data">
-                            <i class="fas fa-sync-alt"></i>
+        <!-- Water Management Section -->
+        <section id="water-management" class="dashboard-section">
+            <div class="water-management">
+                <div class="section-header">
+                    <h2 class="section-title">Water Management</h2>
+                </div>
+
+                <div class="water-status">
+                    <div class="status-indicator good" id="water-status-indicator"></div>
+                    <div class="water-info">
+                        <h3>Water Quality: Good</h3>
+                        <p id="last-water-change">Last changed: 2 days ago</p>
+                    </div>
+                </div>
+
+                <div class="water-controls">
+                    <button class="btn btn-primary" id="change-water-now">
+                        <i class="fas fa-sync-alt"></i> Change Water Now
+                    </button>
+                    <button class="btn btn-secondary" id="set-water-schedule">
+                        <i class="fas fa-clock"></i> Set Schedule
+                    </button>
+                </div>
+
+                <div class="schedule-form" id="water-schedule-form">
+                    <h3 class="form-title">Water Change Schedule</h3>
+                    <div class="form-group">
+                        <label for="water-change-time" class="form-label">Water Change Time</label>
+                        <input type="time" id="water-change-time" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="water-frequency" class="form-label">Frequency</label>
+                        <select id="water-frequency" class="form-control">
+                            <option value="daily">Daily</option>
+                            <option value="weekly" selected>Weekly</option>
+                            <option value="biweekly">Bi-weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="water-change-percentage" class="form-label">Water Change Percentage</label>
+                        <select id="water-change-percentage" class="form-control">
+                            <option value="25">25%</option>
+                            <option value="50" selected>50%</option>
+                            <option value="75">75%</option>
+                            <option value="100">100%</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" id="save-water-schedule">
+                            <i class="fas fa-save"></i> Save Schedule
                         </button>
-                        <span id="last-updated">Last updated: Just now</span>
+                        <button class="btn btn-secondary" id="cancel-water-schedule">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
                     </div>
                 </div>
 
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-thermometer-half"></i>
-                        </div>
-                        <h3 class="stat-title">Water Temperature</h3>
-                        <div class="stat-value" id="temp-value">24.5°C</div>
-                        <div class="stat-change positive" id="temp-change">
-                            <i class="fas fa-arrow-up"></i> 2.1%
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-tint"></i>
-                        </div>
-                        <h3 class="stat-title">pH Level</h3>
-                        <div class="stat-value" id="ph-value">7.2</div>
-                        <div class="stat-change positive" id="ph-change">
-                            <i class="fas fa-arrow-up"></i> 0.5%
+                <div class="upcoming-schedules">
+                    <h3 class="section-title">Scheduled Water Changes</h3>
+                    <div class="schedule-list" id="water-schedule-list">
+                        <div class="schedule-item">
+                            <div class="schedule-info">
+                                <div class="schedule-time">Weekly</div>
+                                <div class="schedule-details">Every Monday at 9:00 AM - 50% water change</div>
+                            </div>
+                            <div class="schedule-status active">Active</div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </section>
 
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-fish"></i>
-                        </div>
-                        <h3 class="stat-title">Crayfish Population</h3>
-                        <div class="stat-value" id="population-value">15</div>
-                        <div class="stat-change positive" id="population-change">
-                            <i class="fas fa-arrow-up"></i> 0%
-                        </div>
-                    </div>
+        <!-- Feeding Section -->
+        <section id="feeding" class="dashboard-section">
+            <div class="feeding-section">
+                <div class="section-header">
+                    <h2 class="section-title">Feeding Management</h2>
+                </div>
 
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-heartbeat"></i>
-                        </div>
-                        <h3 class="stat-title">Health Status</h3>
-                        <div class="stat-value" id="health-value">100%</div>
-                        <div class="stat-change positive" id="health-change">
-                            <i class="fas fa-arrow-up"></i> 0%
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-weight"></i>
-                        </div>
-                        <h3 class="stat-title">Avg. Weight</h3>
-                        <div class="stat-value" id="weight-value">5g</div>
-                        <div class="stat-change positive" id="weight-change">
-                            <i class="fas fa-arrow-up"></i> 25%
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <h3 class="stat-title">Days to Harvest</h3>
-                        <div class="stat-value" id="harvest-value">120</div>
-                        <div class="stat-change negative" id="harvest-change">
-                            <i class="fas fa-arrow-down"></i> 0 days
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-box-open"></i>
-                        </div>
-                        <h3 class="stat-title">Feed Level</h3>
-                        <div class="stat-value" id="feed-level-value">75%</div>
-                        <div class="feed-status" id="feed-status">Adequate</div>
+                <div class="feeding-status">
+                    <div class="status-indicator good" id="feeding-status-indicator"></div>
+                    <div class="feeding-info">
+                        <h3>Feeding Status: Active</h3>
+                        <p id="last-feeding">Last fed: Today at 8:00 AM</p>
                     </div>
                 </div>
 
-                <!-- Device Status Section -->
-                <div class="device-status-section">
-                    <h2 class="section-title">Device Connection</h2>
-                    <div class="device-status-card">
-                        <div class="status-indicator" id="device-status-indicator"></div>
-                        <div class="device-info">
-                            <h3 id="device-status-text">Checking device status...</h3>
-                            <p id="last-device-update">Last update: Never</p>
+                <div class="feeding-controls">
+                    <button class="btn btn-primary" id="feed-now">
+                        <i class="fas fa-utensils"></i> Feed Now
+                    </button>
+                    <button class="btn btn-secondary" id="set-feeding-schedule-btn">
+                        <i class="fas fa-clock"></i> Set Schedule
+                    </button>
+                </div>
+
+                <!-- Feed Monitoring Section -->
+                <div class="feed-monitoring">
+                    <h3 class="section-title">Feed Monitoring</h3>
+                    <div class="feed-level-card">
+                        <div class="feed-level-info">
+                            <div class="feed-level-percentage" id="feeding-feed-level-value">75%</div>
+                            <div class="feed-level-bar">
+                                <div class="feed-level-progress" id="feeding-feed-level-progress" style="width: 75%;"></div>
+                            </div>
+                            <div class="feed-level-status" id="feed-level-status">Adequate</div>
                         </div>
-                        <div class="device-controls">
-                            <button class="btn btn-primary" id="test-connection">
-                                <i class="fas fa-sync-alt"></i> Test Connection
+                        <div class="feed-actions">
+                            <button class="btn btn-primary" id="refill-feed">
+                                <i class="fas fa-redo"></i> Refill Feed
+                            </button>
+                            <button class="btn btn-secondary" id="set-feed-alert">
+                                <i class="fas fa-bell"></i> Set Alert
                             </button>
                         </div>
                     </div>
-                </div>
-
-                <!-- Guidelines Section -->
-                <div class="guidelines-section">
-                    <h2 class="section-title">Optimal Crayfish Farming Guidelines</h2>
-                    <div class="guidelines-grid">
-                        <div class="guideline-card">
-                            <div class="guideline-title">Water Temperature</div>
-                            <div class="guideline-range">20-25°C (68-77°F)</div>
-                            <div class="guideline-desc">Optimal for growth and reproduction. Temperatures above 30°C can cause stress, while below 15°C slows metabolism.</div>
+                    <div class="feed-stats">
+                        <div class="feed-stat">
+                            <div class="feed-stat-label">Total Capacity</div>
+                            <div class="feed-stat-value" id="feed-capacity">500g</div>
                         </div>
-                        <div class="guideline-card">
-                            <div class="guideline-title">pH Level</div>
-                            <div class="guideline-range">6.5-8.0</div>
-                            <div class="guideline-desc">Slightly alkaline water is ideal. pH below 6.5 can cause shell problems, while above 8.5 affects ammonia toxicity.</div>
+                        <div class="feed-stat">
+                            <div class="feed-stat-label">Current Amount</div>
+                            <div class="feed-stat-value" id="feed-current">375g</div>
+                        </div>
+                        <div class="feed-stat">
+                            <div class="feed-stat-label">Estimated Days Left</div>
+                            <div class="feed-stat-value" id="feed-days-left">25 days</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Charts Section -->
-                <div class="charts-section">
-                    <h2 class="section-title">Farm Analytics</h2>
-                    <div class="charts-grid">
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3 class="chart-title">Temperature Trends</h3>
-                                <div class="chart-actions">
-                                    <button class="chart-action" id="expand-temp-chart" aria-label="Expand temperature chart">
-                                        <i class="fas fa-expand"></i>
-                                    </button>
-                                    <button class="chart-action" id="download-temp-chart" aria-label="Download temperature chart">
-                                        <i class="fas fa-download"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="tempChart"></canvas>
-                            </div>
-                        </div>
+                <div class="schedule-form" id="feeding-schedule-form">
+                    <h3 class="form-title">Feeding Schedule</h3>
+                    <div class="form-group">
+                        <label for="feeding-time" class="form-label">Feeding Time</label>
+                        <input type="time" id="feeding-time" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="feeding-frequency" class="form-label">Frequency</label>
+                        <select id="feeding-frequency" class="form-control">
+                            <option value="twice-daily" selected>Twice Daily</option>
+                            <option value="daily">Daily</option>
+                            <option value="every-other-day">Every Other Day</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="food-amount" class="form-label">Food Amount (grams)</label>
+                        <input type="number" id="food-amount" class="form-control" min="1" max="500" value="7.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="food-type" class="form-label">Food Type</label>
+                        <select id="food-type" class="form-control">
+                            <option value="juvenile-pellets" selected>Juvenile Pellets (40%)</option>
+                            <option value="growth-pellets">Growth Pellets (35%)</option>
+                            <option value="breeder-pellets">Breeder Pellets (30%)</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" id="save-feeding-schedule">
+                            <i class="fas fa-save"></i> Save Schedule
+                        </button>
+                        <button class="btn btn-secondary" id="cancel-feeding-schedule">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
 
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3 class="chart-title">pH Level Trends</h3>
-                                <div class="chart-actions">
-                                    <button class="chart-action" id="expand-ph-chart" aria-label="Expand pH chart">
-                                        <i class="fas fa-expand"></i>
-                                    </button>
-                                    <button class="chart-action" id="download-ph-chart" aria-label="Download pH chart">
-                                        <i class="fas fa-download"></i>
-                                    </button>
-                                </div>
+                <div class="upcoming-schedules">
+                    <h3 class="section-title">Scheduled Feedings</h3>
+                    <div class="schedule-list" id="feeding-schedule-list">
+                        <div class="schedule-item">
+                            <div class="schedule-info">
+                                <div class="schedule-time">Twice Daily</div>
+                                <div class="schedule-details">8:00 AM and 6:00 PM - 7.5g of Juvenile Pellets</div>
                             </div>
-                            <div class="chart-container">
-                                <canvas id="phChart"></canvas>
-                            </div>
+                            <div class="schedule-status active">Active</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Harvest Management Section -->
+        <section id="harvest" class="dashboard-section">
+            <div class="harvest-management">
+                <div class="section-header">
+                    <h2 class="section-title">Harvest Management</h2>
+                </div>
+
+                <div class="harvest-info">
+                    <div class="harvest-card">
+                        <div class="harvest-value" id="days-harvest-value">120</div>
+                        <div class="harvest-label">Days to Harvest</div>
+                        <div class="harvest-progress">
+                            <div class="harvest-progress-bar progress-20"></div>
+                        </div>
+                        <div class="growth-change info">
+                            <i class="fas fa-info-circle"></i> Crayfish typically reach market size in 4-6 months
+                        </div>
+                    </div>
+
+                    <div class="harvest-card">
+                        <div class="harvest-value" id="weight-harvest-value">5.0g</div>
+                        <div class="harvest-label">Projected Harvest Weight</div>
+                        <div class="harvest-progress">
+                            <div class="harvest-progress-bar progress-15"></div>
+                        </div>
+                        <div class="growth-change info">
+                            <i class="fas fa-info-circle"></i> Market size is typically 30-50g per crayfish
+                        </div>
+                    </div>
+
+                    <div class="harvest-card">
+                        <div class="harvest-value" id="revenue-harvest-value">₱112</div>
+                        <div class="harvest-label">Projected Revenue</div>
+                        <div class="harvest-progress">
+                            <div class="harvest-progress-bar progress-15"></div>
+                        </div>
+                        <div class="growth-change info">
+                            <i class="fas fa-info-circle"></i> Based on ₱150/kg market price
+                        </div>
+                    </div>
+
+                    <div class="harvest-card">
+                        <div class="harvest-value" id="survival-harvest-value">100%</div>
+                        <div class="harvest-label">Survival Rate</div>
+                        <div class="harvest-progress">
+                            <div class="harvest-progress-bar progress-100"></div>
+                        </div>
+                        <div class="growth-change positive">
+                            <i class="fas fa-arrow-up"></i> All crayfish are healthy
                         </div>
                     </div>
                 </div>
 
-                <!-- Alerts Section -->
-                <div class="alerts-section">
-                    <h2 class="section-title">Farm Alerts</h2>
-                    <div class="alerts-container">
-                        <div class="alerts-header">
-                            <h3 class="alerts-title">Recent Notifications</h3>
-                        </div>
-                        <div class="alerts-list" id="alerts-list">
-                            <div class="alert-item info">
-                                <div class="alert-icon">
-                                    <i class="fas fa-info-circle"></i>
-                                </div>
-                                <div class="alert-content">
-                                    <div class="alert-title">System Update</div>
-                                    <div class="alert-message">All systems are functioning optimally. Continue regular monitoring.</div>
-                                </div>
-                                <div class="alert-time">Just now</div>
-                            </div>
-
-                            <div class="alert-item info">
-                                <div class="alert-icon">
-                                    <i class="fas fa-info-circle"></i>
-                                </div>
-                                <div class="alert-content">
-                                    <div class="alert-title">Feeding Schedule</div>
-                                    <div class="alert-message">Next feeding scheduled for today at 6:00 PM.</div>
-                                </div>
-                                <div class="alert-time">2 hours ago</div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="harvest-controls">
+                    <button class="btn btn-primary" id="plan-harvest">
+                        <i class="fas fa-calendar-alt"></i> Plan Harvest
+                    </button>
+                    <button class="btn btn-secondary" id="view-harvest-history">
+                        <i class="fas fa-history"></i> Harvest History
+                    </button>
+                    <button class="btn btn-success" id="record-harvest">
+                        <i class="fas fa-clipboard-check"></i> Record Harvest
+                    </button>
                 </div>
-            </section>
 
-            <!-- Water Quality Section -->
-            <section id="water-quality" class="dashboard-section">
-                <div class="water-quality">
-                    <div class="section-header">
-                        <h2 class="section-title">Water Quality Management</h2>
-                    </div>
-
-                    <div class="quality-parameters">
-                        <div class="parameter-card">
-                            <div class="parameter-icon">
+                <div class="harvest-details">
+                    <h3 class="section-title">Harvest Planning</h3>
+                    <div class="harvest-planning">
+                        <div class="planning-item">
+                            <div class="planning-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="planning-content">
+                                <h4>Optimal Harvest Time</h4>
+                                <p>Crayfish typically reach market size (30-50g) in 4-6 months. Monitor growth rate to determine exact harvest time.</p>
+                            </div>
+                        </div>
+                        <div class="planning-item">
+                            <div class="planning-icon">
+                                <i class="fas fa-weight"></i>
+                            </div>
+                            <div class="planning-content">
+                                <h4>Weight Monitoring</h4>
+                                <p>Regularly sample and weigh crayfish to track growth. Harvest when average weight reaches 30-50g.</p>
+                            </div>
+                        </div>
+                        <div class="planning-item">
+                            <div class="planning-icon">
                                 <i class="fas fa-thermometer-half"></i>
                             </div>
-                            <div class="parameter-name">Temperature</div>
-                            <div class="parameter-value" id="water-temp-value">24.5°C</div>
-                            <div class="parameter-status optimal" id="water-temp-status">Optimal</div>
-                            <div class="parameter-range">Optimal: 20-25°C</div>
-                        </div>
-
-                        <div class="parameter-card">
-                            <div class="parameter-icon">
-                                <i class="fas fa-tint"></i>
-                            </div>
-                            <div class="parameter-name">pH Level</div>
-                            <div class="parameter-value" id="water-ph-value">7.2</div>
-                            <div class="parameter-status optimal" id="water-ph-status">Optimal</div>
-                            <div class="parameter-range">Optimal: 6.5-8.0</div>
-                        </div>
-                    </div>
-
-                    <div class="water-controls">
-                        <button class="btn btn-primary" id="test-water-now">
-                            <i class="fas fa-vial"></i> Test Water Now
-                        </button>
-                        <button class="btn btn-secondary" id="set-water-testing-schedule">
-                            <i class="fas fa-clock"></i> Set Testing Schedule
-                        </button>
-                        <button class="btn btn-success" id="view-water-history">
-                            <i class="fas fa-history"></i> View History
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Water Management Section -->
-            <section id="water-management" class="dashboard-section">
-                <div class="water-management">
-                    <div class="section-header">
-                        <h2 class="section-title">Water Management</h2>
-                    </div>
-
-                    <div class="water-status">
-                        <div class="status-indicator good" id="water-status-indicator"></div>
-                        <div class="water-info">
-                            <h3>Water Quality: Good</h3>
-                            <p id="last-water-change">Last changed: 2 days ago</p>
-                        </div>
-                    </div>
-
-                    <div class="water-controls">
-                        <button class="btn btn-primary" id="change-water-now">
-                            <i class="fas fa-sync-alt"></i> Change Water Now
-                        </button>
-                        <button class="btn btn-secondary" id="set-water-schedule">
-                            <i class="fas fa-clock"></i> Set Schedule
-                        </button>
-                    </div>
-
-                    <div class="schedule-form" id="water-schedule-form">
-                        <h3 class="form-title">Water Change Schedule</h3>
-                        <div class="form-group">
-                            <label for="water-change-time" class="form-label">Water Change Time</label>
-                            <input type="time" id="water-change-time" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="water-frequency" class="form-label">Frequency</label>
-                            <select id="water-frequency" class="form-control">
-                                <option value="daily">Daily</option>
-                                <option value="weekly" selected>Weekly</option>
-                                <option value="biweekly">Bi-weekly</option>
-                                <option value="monthly">Monthly</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="water-change-percentage" class="form-label">Water Change Percentage</label>
-                            <select id="water-change-percentage" class="form-control">
-                                <option value="25">25%</option>
-                                <option value="50" selected>50%</option>
-                                <option value="75">75%</option>
-                                <option value="100">100%</option>
-                            </select>
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn btn-primary" id="save-water-schedule">
-                                <i class="fas fa-save"></i> Save Schedule
-                            </button>
-                            <button class="btn btn-secondary" id="cancel-water-schedule">
-                                <i class="fas fa-times"></i> Cancel
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="upcoming-schedules">
-                        <h3 class="section-title">Scheduled Water Changes</h3>
-                        <div class="schedule-list" id="water-schedule-list">
-                            <div class="schedule-item">
-                                <div class="schedule-info">
-                                    <div class="schedule-time">Weekly</div>
-                                    <div class="schedule-details">Every Monday at 9:00 AM - 50% water change</div>
-                                </div>
-                                <div class="schedule-status active">Active</div>
+                            <div class="planning-content">
+                                <h4>Water Temperature</h4>
+                                <p>Plan harvest during optimal temperature range (20-25°C) to minimize stress on crayfish.</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Feeding Section -->
-            <section id="feeding" class="dashboard-section">
-                <div class="feeding-section">
-                    <div class="section-header">
-                        <h2 class="section-title">Feeding Management</h2>
-                    </div>
-
-                    <div class="feeding-status">
-                        <div class="status-indicator good" id="feeding-status-indicator"></div>
-                        <div class="feeding-info">
-                            <h3>Feeding Status: Active</h3>
-                            <p id="last-feeding">Last fed: Today at 8:00 AM</p>
-                        </div>
-                    </div>
-
-                    <div class="feeding-controls">
-                        <button class="btn btn-primary" id="feed-now">
-                            <i class="fas fa-utensils"></i> Feed Now
-                        </button>
-                        <button class="btn btn-secondary" id="set-feeding-schedule-btn">
-                            <i class="fas fa-clock"></i> Set Schedule
-                        </button>
-                    </div>
-
-                    <!-- Feed Monitoring Section -->
-                    <div class="feed-monitoring">
-                        <h3 class="section-title">Feed Monitoring</h3>
-                        <div class="feed-level-card">
-                            <div class="feed-level-info">
-                                <div class="feed-level-percentage" id="feeding-feed-level-value">75%</div>
-                                <div class="feed-level-bar">
-                                    <div class="feed-level-progress" id="feeding-feed-level-progress"></div>
-                                </div>
-                                <div class="feed-level-status" id="feed-level-status">Adequate</div>
+                        <div class="planning-item">
+                            <div class="planning-icon">
+                                <i class="fas fa-money-bill-wave"></i>
                             </div>
-                            <div class="feed-actions">
-                                <button class="btn btn-primary" id="refill-feed">
-                                    <i class="fas fa-redo"></i> Refill Feed
-                                </button>
-                                <button class="btn btn-secondary" id="set-feed-alert">
-                                    <i class="fas fa-bell"></i> Set Alert
-                                </button>
+                            <div class="planning-content">
+                                <h4>Market Price</h4>
+                                <p>Current market price is approximately ₱150/kg. Time your harvest when prices are favorable.</p>
                             </div>
                         </div>
-                        <div class="feed-stats">
-                            <div class="feed-stat">
-                                <div class="feed-stat-label">Total Capacity</div>
-                                <div class="feed-stat-value" id="feed-capacity">500g</div>
-                            </div>
-                            <div class="feed-stat">
-                                <div class="feed-stat-label">Current Amount</div>
-                                <div class="feed-stat-value" id="feed-current">375g</div>
-                            </div>
-                            <div class="feed-stat">
-                                <div class="feed-stat-label">Estimated Days Left</div>
-                                <div class="feed-stat-value" id="feed-days-left">7 days</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="schedule-form" id="feeding-schedule-form">
-                        <h3 class="form-title">Feeding Schedule</h3>
-                        <div class="form-group">
-                            <label for="feeding-time" class="form-label">Feeding Time</label>
-                            <input type="time" id="feeding-time" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="feeding-frequency" class="form-label">Frequency</label>
-                            <select id="feeding-frequency" class="form-control">
-                                <option value="twice-daily" selected>Twice Daily</option>
-                                <option value="daily">Daily</option>
-                                <option value="every-other-day">Every Other Day</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="food-amount" class="form-label">Food Amount (grams)</label>
-                            <input type="number" id="food-amount" class="form-control" min="1" max="500" value="7.5">
-                        </div>
-                        <div class="form-group">
-                            <label for="food-type" class="form-label">Food Type</label>
-                            <select id="food-type" class="form-control">
-                                <option value="juvenile-pellets" selected>Juvenile Pellets (40%)</option>
-                                <option value="growth-pellets">Growth Pellets (35%)</option>
-                                <option value="breeder-pellets">Breeder Pellets (30%)</option>
-                            </select>
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn btn-primary" id="save-feeding-schedule">
-                                <i class="fas fa-save"></i> Save Schedule
-                            </button>
-                            <button class="btn btn-secondary" id="cancel-feeding-schedule">
-                                <i class="fas fa-times"></i> Cancel
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="upcoming-schedules">
-                        <h3 class="section-title">Scheduled Feedings</h3>
-                        <div class="schedule-list" id="feeding-schedule-list">
-                            <div class="schedule-item">
-                                <div class="schedule-info">
-                                    <div class="schedule-time">Twice Daily</div>
-                                    <div class="schedule-details">8:00 AM and 6:00 PM - 7.5g of Juvenile Pellets</div>
-                                </div>
-                                <div class="schedule-status active">Active</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Harvest Management Section -->
-            <section id="harvest" class="dashboard-section">
-                <div class="harvest-management">
-                    <div class="section-header">
-                        <h2 class="section-title">Harvest Management</h2>
-                    </div>
-
-                    <div class="harvest-info">
-                        <div class="harvest-card">
-                            <div class="harvest-value" id="days-harvest-value">120</div>
-                            <div class="harvest-label">Days to Harvest</div>
-                            <div class="harvest-progress">
-                                <div class="harvest-progress-bar progress-20"></div>
-                            </div>
-                            <div class="growth-change info">
-                                <i class="fas fa-info-circle"></i> Crayfish typically reach market size in 4-6 months
-                            </div>
-                        </div>
-
-                        <div class="harvest-card">
-                            <div class="harvest-value" id="weight-harvest-value">75g</div>
-                            <div class="harvest-label">Projected Harvest Weight</div>
-                            <div class="harvest-progress">
-                                <div class="harvest-progress-bar progress-15"></div>
-                            </div>
-                            <div class="growth-change info">
-                                <i class="fas fa-info-circle"></i> Market size is typically 30-50g per crayfish
-                            </div>
-                        </div>
-
-                        <div class="harvest-card">
-                            <div class="harvest-value" id="revenue-harvest-value">₱1,125</div>
-                            <div class="harvest-label">Projected Revenue</div>
-                            <div class="harvest-progress">
-                                <div class="harvest-progress-bar progress-15"></div>
-                            </div>
-                            <div class="growth-change info">
-                                <i class="fas fa-info-circle"></i> Based on ₱150/kg market price
-                            </div>
-                        </div>
-
-                        <div class="harvest-card">
-                            <div class="harvest-value" id="survival-harvest-value">100%</div>
-                            <div class="harvest-label">Survival Rate</div>
-                            <div class="harvest-progress">
-                                <div class="harvest-progress-bar progress-100"></div>
-                            </div>
-                            <div class="growth-change positive">
-                                <i class="fas fa-arrow-up"></i> All crayfish are healthy
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="harvest-controls">
-                        <button class="btn btn-primary" id="plan-harvest">
-                            <i class="fas fa-calendar-alt"></i> Plan Harvest
-                        </button>
-                        <button class="btn btn-secondary" id="view-harvest-history">
-                            <i class="fas fa-history"></i> Harvest History
-                        </button>
-                        <button class="btn btn-success" id="record-harvest">
-                            <i class="fas fa-clipboard-check"></i> Record Harvest
-                        </button>
-                    </div>
-
-                    <div class="harvest-details">
-                        <h3 class="section-title">Harvest Planning</h3>
-                        <div class="harvest-planning">
-                            <div class="planning-item">
-                                <div class="planning-icon">
-                                    <i class="fas fa-calendar-check"></i>
-                                </div>
-                                <div class="planning-content">
-                                    <h4>Optimal Harvest Time</h4>
-                                    <p>Crayfish typically reach market size (30-50g) in 4-6 months. Monitor growth rate to determine exact harvest time.</p>
-                                </div>
-                            </div>
-                            <div class="planning-item">
-                                <div class="planning-icon">
-                                    <i class="fas fa-weight"></i>
-                                </div>
-                                <div class="planning-content">
-                                    <h4>Weight Monitoring</h4>
-                                    <p>Regularly sample and weigh crayfish to track growth. Harvest when average weight reaches 30-50g.</p>
-                                </div>
-                            </div>
-                            <div class="planning-item">
-                                <div class="planning-icon">
-                                    <i class="fas fa-thermometer-half"></i>
-                                </div>
-                                <div class="planning-content">
-                                    <h4>Water Temperature</h4>
-                                    <p>Plan harvest during optimal temperature range (20-25°C) to minimize stress on crayfish.</p>
-                                </div>
-                            </div>
-                            <div class="planning-item">
-                                <div class="planning-icon">
-                                    <i class="fas fa-money-bill-wave"></i>
-                                </div>
-                                <div class="planning-content">
-                                    <h4>Market Price</h4>
-                                    <p>Current market price is approximately ₱150/kg. Time your harvest when prices are favorable.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Knowledge Base Section -->
-            <section id="knowledge" class="dashboard-section">
-                <div class="knowledge-base">
-                    <div class="section-header">
-                        <h2 class="section-title">Crayfish Farming Knowledge Base</h2>
-                    </div>
-
-                    <div class="knowledge-categories">
-                        <div class="knowledge-category" id="water-quality-category">
-                            <div class="category-icon">
-                                <i class="fas fa-tint"></i>
-                            </div>
-                            <div class="category-title">Water Quality Management</div>
-                            <div class="category-desc">Learn about maintaining optimal water conditions for crayfish health and growth.</div>
-                        </div>
-
-                        <div class="knowledge-category" id="feeding-category">
-                            <div class="category-icon">
-                                <i class="fas fa-utensils"></i>
-                            </div>
-                            <div class="category-title">Feeding & Nutrition</div>
-                            <div class="category-desc">Discover best practices for crayfish nutrition and feeding strategies.</div>
-                        </div>
-
-                        <div class="knowledge-category" id="harvesting-category">
-                            <div class="category-icon">
-                                <i class="fas fa-hand-holding-water"></i>
-                            </div>
-                            <div class="category-title">Harvesting Techniques</div>
-                            <div class="category-desc">Learn effective harvesting methods to maximize yield and quality.</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Settings Section -->
-            <section id="settings" class="dashboard-section">
-                <div class="settings-container">
-                    <div class="section-header">
-                        <h2 class="section-title">Farm Settings</h2>
-                    </div>
-
-                    <div class="settings-form">
-                        <div class="form-group">
-                            <label for="farm-name" class="form-label">Farm Name</label>
-                            <input type="text" id="farm-name" class="form-control" value="My Crayfish Farm">
-                        </div>
-                        <div class="form-group">
-                            <label for="notification-email" class="form-label">Notification Email</label>
-                            <input type="email" id="notification-email" class="form-control" value="farmer@example.com">
-                        </div>
-                        <div class="form-group">
-                            <label for="notification-phone" class="form-label">Notification Phone</label>
-                            <input type="tel" id="notification-phone" class="form-control" value="+63 912 345 6789">
-                        </div>
-                        <div class="form-group">
-                            <label for="measurement-unit" class="form-label">Measurement Unit</label>
-                            <select id="measurement-unit" class="form-control">
-                                <option value="metric" selected>Metric (°C, cm, g)</option>
-                                <option value="imperial">Imperial (°F, in, oz)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="alert-frequency" class="form-label">Alert Frequency</label>
-                            <select id="alert-frequency" class="form-control">
-                                <option value="immediate" selected>Immediate</option>
-                                <option value="daily">Daily Summary</option>
-                                <option value="weekly">Weekly Summary</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="water-testing-frequency" class="form-label">Water Testing Frequency</label>
-                            <select id="water-testing-frequency" class="form-control">
-                                <option value="daily">Daily</option>
-                                <option value="twice-weekly" selected>Twice Weekly</option>
-                                <option value="weekly">Weekly</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-primary" id="save-settings">
-                            <i class="fas fa-save"></i> Save Settings
-                        </button>
-                    </div>
-                </div>
-            </section>
-        </div>
-
-        <!-- Enhanced Chatbot -->
-        <div class="chat-container" id="chat-container">
-            <div class="chat-header">
-                <i class="fas fa-fish"></i>
-                <h3>Crayfish Assistant</h3>
-                <button title="chat" class="chat-toggle" id="chat-toggle">
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-            </div>
-            <div class="chat-messages" id="chat-messages">
-                <div class="message system">
-                    <div class="message-icon">
-                        <i class="fas fa-fish"></i>
-                    </div>
-                    <div class="message-content">
-                        Hello! I'm your Crayfish Assistant. How can I help you today?
                     </div>
                 </div>
             </div>
-            <div class="chat-input">
-                <input type="text" id="chat-input" placeholder="Ask me about feeding, water changes, or sensor data...">
-                <button title="send-button" id="send-button">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
+        </section>
 
-        <!-- Notification -->
-        <div class="notification" id="notification">
-            <div class="notification-header">
-                <div class="notification-icon success" id="notification-icon">
-                    <i class="fas fa-check-circle"></i>
+        <!-- Knowledge Base Section -->
+        <section id="knowledge" class="dashboard-section">
+            <div class="knowledge-base">
+                <div class="section-header">
+                    <h2 class="section-title">Crayfish Farming Knowledge Base</h2>
                 </div>
-                <div class="notification-title" id="notification-title">Success</div>
-                <button class="notification-close" id="notification-close" aria-label="Close notification">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="notification-message" id="notification-message">
-                Action completed successfully
-            </div>
-        </div>
 
-        <!-- Hardware Connection Status -->
-        <div class="connection-status disconnected" id="connection-status">
-            <i class="fas fa-wifi"></i>
-            <span id="connection-text">Demo mode - No hardware connected</span>
-        </div>
+                <div class="knowledge-categories">
+                    <div class="knowledge-category" id="water-quality-category">
+                        <div class="category-icon">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="category-title">Water Quality Management</div>
+                        <div class="category-desc">Learn about maintaining optimal water conditions for crayfish health and growth.</div>
+                    </div>
 
-        <!-- Water Testing Schedule Modal -->
-        <div class="modal" id="water-testing-schedule-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Set Water Testing Schedule</h3>
-                    <button class="modal-close">&times;</button>
+                    <div class="knowledge-category" id="feeding-category">
+                        <div class="category-icon">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <div class="category-title">Feeding & Nutrition</div>
+                        <div class="category-desc">Discover best practices for crayfish nutrition and feeding strategies.</div>
+                    </div>
+
+                    <div class="knowledge-category" id="harvesting-category">
+                        <div class="category-icon">
+                            <i class="fas fa-hand-holding-water"></i>
+                        </div>
+                        <div class="category-title">Harvesting Techniques</div>
+                        <div class="category-desc">Learn effective harvesting methods to maximize yield and quality.</div>
+                    </div>
                 </div>
-                <div class="modal-body">
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="dashboard-section">
+            <div class="settings-container">
+                <div class="section-header">
+                    <h2 class="section-title">Farm Settings</h2>
+                </div>
+
+                <div class="settings-form">
                     <div class="form-group">
-                        <label for="test-frequency" class="form-label">Testing Frequency</label>
-                        <select id="test-frequency" class="form-control">
+                        <label for="farm-name" class="form-label">Farm Name</label>
+                        <input type="text" id="farm-name" class="form-control" value="My Crayfish Farm">
+                    </div>
+                    <div class="form-group">
+                        <label for="notification-email" class="form-label">Notification Email</label>
+                        <input type="email" id="notification-email" class="form-control" value="farmer@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="notification-phone" class="form-label">Notification Phone</label>
+                        <input type="tel" id="notification-phone" class="form-control" value="+63 912 345 6789">
+                    </div>
+                    <div class="form-group">
+                        <label for="measurement-unit" class="form-label">Measurement Unit</label>
+                        <select id="measurement-unit" class="form-control">
+                            <option value="metric" selected>Metric (°C, cm, g)</option>
+                            <option value="imperial">Imperial (°F, in, oz)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="alert-frequency" class="form-label">Alert Frequency</label>
+                        <select id="alert-frequency" class="form-control">
+                            <option value="immediate" selected>Immediate</option>
+                            <option value="daily">Daily Summary</option>
+                            <option value="weekly">Weekly Summary</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="water-testing-frequency" class="form-label">Water Testing Frequency</label>
+                        <select id="water-testing-frequency" class="form-control">
                             <option value="daily">Daily</option>
-                            <option value="twice-daily" selected>Twice Daily</option>
+                            <option value="twice-weekly" selected>Twice Weekly</option>
                             <option value="weekly">Weekly</option>
                         </select>
                     </div>
+                    <button class="btn btn-primary" id="save-settings">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Enhanced Chatbot -->
+    <div class="chat-container" id="chat-container">
+        <div class="chat-header">
+            <i class="fas fa-fish"></i>
+            <h3>Crayfish Assistant</h3>
+            <button title="chat" class="chat-toggle" id="chat-toggle">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message system">
+                <div class="message-icon">
+                    <i class="fas fa-fish"></i>
+                </div>
+                <div class="message-content">
+                    Hello! I'm your Crayfish Assistant. How can I help you today?
+                </div>
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chat-input" placeholder="Ask me about feeding, water changes, or sensor data...">
+            <button title="send-button" id="send-button">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <div class="notification-header">
+            <div class="notification-icon success" id="notification-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="notification-title" id="notification-title">Success</div>
+            <button class="notification-close" id="notification-close" aria-label="Close notification">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notification-message" id="notification-message">
+            Action completed successfully
+        </div>
+    </div>
+
+    <!-- Hardware Connection Status -->
+    <div class="connection-status disconnected" id="connection-status">
+        <i class="fas fa-wifi"></i>
+        <span id="connection-text">Demo mode - No hardware connected</span>
+    </div>
+
+    <!-- Water Testing Schedule Modal -->
+    <div class="modal" id="water-testing-schedule-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Set Water Testing Schedule</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="test-frequency" class="form-label">Testing Frequency</label>
+                    <select id="test-frequency" class="form-control">
+                        <option value="daily">Daily</option>
+                        <option value="twice-daily" selected>Twice Daily</option>
+                        <option value="weekly">Weekly</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="test-time" class="form-label">Testing Time</label>
+                    <input type="time" id="test-time" class="form-control" value="08:00">
+                </div>
+                <div class="form-group">
+                    <label for="test-notifications" class="form-label">Send Notifications</label>
+                    <select id="test-notifications" class="form-control">
+                        <option value="yes" selected>Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="save-test-schedule">Save Schedule</button>
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Water History Modal -->
+    <div class="modal" id="water-history-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Water Quality History</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="history-controls">
                     <div class="form-group">
-                        <label for="test-time" class="form-label">Testing Time</label>
-                        <input type="time" id="test-time" class="form-control" value="08:00">
-                    </div>
-                    <div class="form-group">
-                        <label for="test-notifications" class="form-label">Send Notifications</label>
-                        <select id="test-notifications" class="form-control">
-                            <option value="yes" selected>Yes</option>
-                            <option value="no">No</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" id="save-test-schedule">Save Schedule</button>
-                    <button class="btn btn-secondary modal-cancel">Cancel</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Water History Modal -->
-        <div class="modal" id="water-history-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Water Quality History</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="history-controls">
-                        <div class="form-group">
-                            <label for="history-period" class="form-label">Time Period</label>
-                            <select id="history-period" class="form-control">
-                                <option value="7">Last 7 days</option>
-                                <option value="30" selected>Last 30 days</option>
-                                <option value="90">Last 90 days</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="history-parameter" class="form-label">Parameter</label>
-                            <select id="history-parameter" class="form-control">
-                                <option value="temperature" selected>Temperature</option>
-                                <option value="ph">pH Level</option>
-                                <option value="both">Both</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-primary" id="apply-history-filter">Apply</button>
-                    </div>
-                    <div class="history-chart-container">
-                        <canvas id="historyChart"></canvas>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary modal-cancel">Close</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Harvest Planning Modal -->
-        <div class="modal" id="harvest-planning-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Harvest Planning</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="harvest-planning-form">
-                        <div class="form-group">
-                            <label for="target-size" class="form-label">Target Harvest Size (grams)</label>
-                            <input type="number" id="target-size" class="form-control" value="40" min="30" max="60">
-                        </div>
-                        <div class="form-group">
-                            <label for="harvest-date" class="form-label">Estimated Harvest Date</label>
-                            <input type="date" id="harvest-date" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="harvest-method" class="form-label">Harvest Method</label>
-                            <select id="harvest-method" class="form-control">
-                                <option value="partial" selected>Partial Harvest</option>
-                                <option value="full">Full Harvest</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="market-price" class="form-label">Expected Market Price (₱/kg)</label>
-                            <input type="number" id="market-price" class="form-control" value="150" min="100" max="300">
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" id="save-harvest-plan">Save Plan</button>
-                    <button class="btn btn-secondary modal-cancel">Cancel</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Harvest History Modal -->
-        <div class="modal" id="harvest-history-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Harvest History</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="harvest-history-table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Quantity (kg)</th>
-                                    <th>Price (₱/kg)</th>
-                                    <th>Revenue (₱)</th>
-                                    <th>Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Table rows will be populated dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary modal-cancel">Close</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Record Harvest Modal -->
-        <div class="modal" id="record-harvest-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Record Harvest</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="harvest-record-form">
-                        <div class="form-group">
-                            <label for="harvest-date-record" class="form-label">Harvest Date</label>
-                            <input type="date" id="harvest-date-record" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="harvest-quantity" class="form-label">Quantity (kg)</label>
-                            <input type="number" id="harvest-quantity" class="form-control" min="0.1" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label for="harvest-price-record" class="form-label">Price (₱/kg)</label>
-                            <input type="number" id="harvest-price-record" class="form-control" min="0">
-                        </div>
-                        <div class="form-group">
-                            <label for="harvest-notes" class="form-label">Notes</label>
-                            <textarea id="harvest-notes" class="form-control" rows="3"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" id="save-harvest-record">Save Record</button>
-                    <button class="btn btn-secondary modal-cancel">Cancel</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Knowledge Base Modal -->
-        <div class="modal" id="knowledge-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="knowledge-title">Knowledge Base</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div id="knowledge-content">
-                        <!-- Content will be loaded dynamically -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary modal-cancel">Close</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Feed Alert Modal -->
-        <div class="modal" id="feed-alert-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Set Feed Alert</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="alert-threshold" class="form-label">Alert Threshold</label>
-                        <select id="alert-threshold" class="form-control">
-                            <option value="25">25% remaining</option>
-                            <option value="20" selected>20% remaining</option>
-                            <option value="15">15% remaining</option>
-                            <option value="10">10% remaining</option>
-                            <option value="5">5% remaining</option>
+                        <label for="history-period" class="form-label">Time Period</label>
+                        <select id="history-period" class="form-control">
+                            <option value="7">Last 7 days</option>
+                            <option value="30" selected>Last 30 days</option>
+                            <option value="90">Last 90 days</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="alert-type" class="form-label">Notification Type</label>
-                        <select id="alert-type" class="form-control">
-                            <option value="dashboard" selected>Dashboard notification</option>
-                            <option value="email">Email notification</option>
+                        <label for="history-parameter" class="form-label">Parameter</label>
+                        <select id="history-parameter" class="form-control">
+                            <option value="temperature" selected>Temperature</option>
+                            <option value="ph">pH Level</option>
                             <option value="both">Both</option>
                         </select>
                     </div>
+                    <button class="btn btn-primary" id="apply-history-filter">Apply</button>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" id="save-feed-alert">Save Alert</button>
-                    <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <div class="history-chart-container" style="position: relative; height: 400px; width: 100%;">
+                    <canvas id="historyChart"></canvas>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Close</button>
             </div>
         </div>
+    </div>
 
-        <!-- Footer -->
-        <footer>
-            <div class="footer-grid">
-                <div class="footer-col">
-                    <h3>AquaVision Pro</h3>
-                    <p>Advanced monitoring and management system for optimal crayfish farming and production.</p>
-                </div>
-                <div class="footer-col">
-                    <h3>Quick Links</h3>
-                    <ul class="footer-links">
-                        <li><a href="#dashboard">Dashboard</a></li>
-                        <li><a href="#water-quality">Water Quality</a></li>
-                        <li><a href="#water-management">Water Management</a></li>
-                        <li><a href="#feeding">Feeding</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h3>Resources</h3>
-                    <ul class="footer-links">
-                        <li><a href="#knowledge">Knowledge Base</a></li>
-                        <li><a href="#">Best Practices</a></li>
-                        <li><a href="#">Research Papers</a></li>
-                        <li><a href="#">Video Tutorials</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h3>Contact Us</h3>
-                    <ul class="footer-links">
-                        <li><a href="#">info@aquavisionpro.com</a></li>
-                        <li><a href="#">+63 912 345 6789</a></li>
-                        <li><a href="#">Support Center</a></li>
-                        <li><a href="#">Community Forum</a></li>
-                    </ul>
+    <!-- Harvest Planning Modal -->
+    <div class="modal" id="harvest-planning-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Harvest Planning</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="harvest-planning-form">
+                    <div class="form-group">
+                        <label for="target-size" class="form-label">Target Harvest Size (grams)</label>
+                        <input type="number" id="target-size" class="form-control" value="40" min="30" max="60">
+                    </div>
+                    <div class="form-group">
+                        <label for="harvest-date" class="form-label">Estimated Harvest Date</label>
+                        <input type="date" id="harvest-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="harvest-method" class="form-label">Harvest Method</label>
+                        <select id="harvest-method" class="form-control">
+                            <option value="partial" selected>Partial Harvest</option>
+                            <option value="full">Full Harvest</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="market-price" class="form-label">Expected Market Price (₱/kg)</label>
+                        <input type="number" id="market-price" class="form-control" value="150" min="100" max="300">
+                    </div>
                 </div>
             </div>
-            <div class="copyright">
-                &copy; 2023 AquaVision Pro. All rights reserved.
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="save-harvest-plan">Save Plan</button>
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
             </div>
-        </footer>
+        </div>
+    </div>
 
-    <!-- External Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/js/chart.js"></script>
+    <!-- Harvest History Modal -->
+    <div class="modal" id="harvest-history-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Harvest History</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="harvest-history-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Quantity (kg)</th>
+                                <th>Price (₱/kg)</th>
+                                <th>Revenue (₱)</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Table rows will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Harvest Modal -->
+    <div class="modal" id="record-harvest-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Record Harvest</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="harvest-record-form">
+                    <div class="form-group">
+                        <label for="harvest-date-record" class="form-label">Harvest Date</label>
+                        <input type="date" id="harvest-date-record" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="harvest-quantity" class="form-label">Quantity (kg)</label>
+                        <input type="number" id="harvest-quantity" class="form-control" min="0.1" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="harvest-price-record" class="form-label">Price (₱/kg)</label>
+                        <input type="number" id="harvest-price-record" class="form-control" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="harvest-notes" class="form-label">Notes</label>
+                        <textarea id="harvest-notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="save-harvest-record">Save Record</button>
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Knowledge Base Modal -->
+    <div class="modal" id="knowledge-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="knowledge-title">Knowledge Base</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="knowledge-content">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feed Alert Modal -->
+    <div class="modal" id="feed-alert-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Set Feed Alert</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="alert-threshold" class="form-label">Alert Threshold</label>
+                    <select id="alert-threshold" class="form-control">
+                        <option value="25">25% remaining</option>
+                        <option value="20" selected>20% remaining</option>
+                        <option value="15">15% remaining</option>
+                        <option value="10">10% remaining</option>
+                        <option value="5">5% remaining</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="alert-type" class="form-label">Notification Type</label>
+                    <select id="alert-type" class="form-control">
+                        <option value="dashboard" selected>Dashboard notification</option>
+                        <option value="email">Email notification</option>
+                        <option value="both">Both</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="save-feed-alert">Save Alert</button>
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-col">
+                <h3>AquaVision Pro</h3>
+                <p>Advanced monitoring and management system for optimal crayfish farming and production.</p>
+            </div>
+            <div class="footer-col">
+                <h3>Quick Links</h3>
+                <ul class="footer-links">
+                    <li><a href="#dashboard">Dashboard</a></li>
+                    <li><a href="#water-quality">Water Quality</a></li>
+                    <li><a href="#water-management">Water Management</a></li>
+                    <li><a href="#feeding">Feeding</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h3>Resources</h3>
+                <ul class="footer-links">
+                    <li><a href="#knowledge">Knowledge Base</a></li>
+                    <li><a href="#">Best Practices</a></li>
+                    <li><a href="#">Research Papers</a></li>
+                    <li><a href="#">Video Tutorials</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h3>Contact Us</h3>
+                <ul class="footer-links">
+                    <li><a href="#">info@aquavisionpro.com</a></li>
+                    <li><a href="#">+63 912 345 6789</a></li>
+                    <li><a href="#">Support Center</a></li>
+                    <li><a href="#">Community Forum</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="copyright">
+            &copy; 2024 AquaVision Pro. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- CRITICAL: External Libraries - CORRECT ORDER -->
+    <!-- 1. Chart.js and Date Adapter (MUST BE FIRST) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- 2. Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- Your Scripts -->
+    <!-- 3. Your Scripts (CORRECT ORDER) -->
     <script src="supabase-init.js"></script>
     <script src="auth.js"></script>
     <script src="database.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
     <script src="js/dashboard.js"></script>
-    <script src="js/chart.js"></script>
 
-    </body>
-    </html>
+</body>
+</html>

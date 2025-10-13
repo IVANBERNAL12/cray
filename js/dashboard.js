@@ -216,6 +216,11 @@ async function saveSensorReading(reading) {
 // DEVICE STATUS & COMMANDS
 // ========================================
 
+// ========================================
+// IMPROVED DEVICE STATUS & COMMANDS
+// Replace the checkDeviceStatus function in dashboard.js
+// ========================================
+
 async function checkDeviceStatus() {
     const statusIndicator = document.getElementById('device-status-indicator');
     const statusText = document.getElementById('device-status-text');
@@ -223,76 +228,124 @@ async function checkDeviceStatus() {
 
     try {
         if (!window.supabase) {
-            updateOfflineStatus();
+            updateOfflineStatus('Supabase not initialized');
             return;
         }
 
         const user = await getCurrentUser();
         if (!user) {
-            updateOfflineStatus();
+            updateOfflineStatus('User not authenticated');
             return;
         }
 
-        // Check for recent sensor readings (within last 2 minutes)
-        const twoMinutesAgo = new Date();
-        twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
+        // Check for recent sensor readings (within last 5 minutes)
+        const fiveMinutesAgo = new Date();
+        fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
 
         const { data, error } = await window.supabase
             .from('sensor_readings')
             .select('created_at, temperature, ph')
             .eq('user_id', user.id)
-            .gte('created_at', twoMinutesAgo.toISOString())
+            .gte('created_at', fiveMinutesAgo.toISOString())
             .order('created_at', { ascending: false })
             .limit(1);
 
-        if (error) throw error;
+        if (error) {
+            console.error('[Device] Supabase query error:', error);
+            throw error;
+        }
+
+        console.log('[Device] Recent readings found:', data?.length || 0);
 
         if (data && data.length > 0) {
-            // Device is online
+            // Device is online - we have recent data
             isConnected = true;
-            if (statusIndicator) statusIndicator.className = 'status-indicator online';
-            if (statusText) statusText.textContent = 'Device Connected';
+            if (statusIndicator) {
+                statusIndicator.className = 'status-indicator online';
+                statusIndicator.style.backgroundColor = '#00ff88';
+            }
+            if (statusText) {
+                statusText.textContent = 'Device Connected';
+                statusText.style.color = '#00ff88';
+            }
             if (lastUpdate) {
                 const updateTime = new Date(data[0].created_at);
-                lastUpdate.textContent = `Last update: ${updateTime.toLocaleTimeString()}`;
+                const now = new Date();
+                const diffMinutes = Math.floor((now - updateTime) / 60000);
+                
+                if (diffMinutes < 1) {
+                    lastUpdate.textContent = 'Last update: Just now';
+                } else if (diffMinutes === 1) {
+                    lastUpdate.textContent = 'Last update: 1 minute ago';
+                } else {
+                    lastUpdate.textContent = `Last update: ${diffMinutes} minutes ago`;
+                }
             }
 
             // Update with real data
-            hardwareData.temperature = data[0].temperature;
-            hardwareData.ph = data[0].ph;
-            hardwareData.lastUpdated = new Date(data[0].created_at);
-            
-            updateDashboardWithNewData(hardwareData);
-            stopMockData(); // Stop mock data when real data available
+            if (data[0].temperature !== null && data[0].ph !== null) {
+                hardwareData.temperature = data[0].temperature;
+                hardwareData.ph = data[0].ph;
+                hardwareData.lastUpdated = new Date(data[0].created_at);
+                
+                updateDashboardWithNewData(hardwareData);
+                stopMockData(); // Stop mock data when real data available
+                
+                console.log('[Device] Updated with real data:', {
+                    temp: hardwareData.temperature,
+                    ph: hardwareData.ph
+                });
+            }
         } else {
-            updateOfflineStatus();
+            // No recent data - device is offline
+            updateOfflineStatus('No recent data from device');
         }
     } catch (error) {
-        console.error('Error checking device status:', error);
-        updateOfflineStatus();
+        console.error('[Device] Error checking device status:', error);
+        updateOfflineStatus(`Error: ${error.message}`);
     }
 
-    function updateOfflineStatus() {
+    function updateOfflineStatus(reason) {
+        console.log('[Device] Device offline:', reason);
         isConnected = false;
-        if (statusIndicator) statusIndicator.className = 'status-indicator offline';
-        if (statusText) statusText.textContent = 'Device Offline - Showing Mock Data';
-        if (lastUpdate) lastUpdate.textContent = 'Last update: Never';
         
-        startMockData(); // Start mock data when offline
+        if (statusIndicator) {
+            statusIndicator.className = 'status-indicator offline';
+            statusIndicator.style.backgroundColor = '#ff4444';
+        }
+        if (statusText) {
+            statusText.textContent = 'Device Offline';
+            statusText.style.color = '#ff4444';
+        }
+        if (lastUpdate) {
+            lastUpdate.textContent = 'Using mock data for demonstration';
+        }
+        
+        // Start mock data when offline
+        startMockData();
     }
 }
 
+// Enhanced sendCommand function with better feedback
 async function sendCommand(command) {
     try {
+        console.log('[Device] Sending command:', command);
+        
         if (!window.supabase) {
-            showNotification('Offline', 'Cannot send commands while offline', 'warning');
-            return { success: false };
+            showNotification('Offline Mode', 'Cannot send commands in offline mode', 'warning');
+            return { success: false, reason: 'offline' };
         }
 
         const user = await getCurrentUser();
         if (!user) {
             showNotification('Authentication Required', 'Please log in to send commands', 'warning');
-            return { success: false };
+            return { success: false, reason: 'not_authenticated' };
+        }
+
+        // Check if device is connected
+        if (!isConnected) {
+            showNotification('Device Offline', 'Device is not connected. Command will be queued.', 'warning');
+            // Still allow sending command - it will be queued for when device comes online
         }
 
         showNotification('Sending Command', `Sending ${command} command to device...`, 'info');
@@ -302,69 +355,264 @@ async function sendCommand(command) {
             .insert([{
                 user_id: user.id,
                 command: command,
-                status: 'pending'
+                status: 'pending',
+                created_at: new Date().toISOString()
             }])
             .select();
 
         if (error) throw error;
 
-        console.log('Command sent:', data);
-        showNotification('Success', `${command} command sent successfully`, 'success');
+        console.log('[Device] Command sent successfully:', data);
+        
+        if (isConnected) {
+            showNotification('Success', `${command} command sent successfully`, 'success');
+        } else {
+            showNotification('Command Queued', `${command} command queued for when device reconnects`, 'info');
+        }
+        
         return { success: true, data: data };
     } catch (error) {
-        console.error('Error sending command:', error);
+        console.error('[Device] Error sending command:', error);
         showNotification('Error', `Failed to send command: ${error.message}`, 'error');
         return { success: false, error: error.message };
     }
 }
 
-// ========================================
-// MOCK DATA GENERATION
-// ========================================
+// Add this to listen for real-time sensor updates from Supabase
+function setupRealtimeSubscription() {
+    if (!window.supabase) {
+        console.log('[Device] Supabase not available, skipping realtime setup');
+        return;
+    }
 
-function startMockData() {
-    if (mockDataInterval) return; // Already running
-    
-    console.log('Starting mock data generation...');
-    
-    // Generate some initial history
-    const now = Date.now();
-    for (let i = 50; i > 0; i--) {
-        const timestamp = new Date(now - (i * 60000)); // 1 minute intervals
-        const temp = 20 + Math.sin(i * 0.1) * 2 + (Math.random() - 0.5) * 1;
-        const ph = 7.2 + Math.cos(i * 0.08) * 0.2 + (Math.random() - 0.5) * 0.1;
-        
-        if (window.chartManager) {
-            window.chartManager.updateAllChartsFromHistory([{
-                timestamp: timestamp,
-                temperature: parseFloat(temp.toFixed(2)),
-                ph: parseFloat(ph.toFixed(2))
-            }]);
+    getCurrentUser().then(user => {
+        if (!user) {
+            console.log('[Device] User not authenticated, skipping realtime setup');
+            return;
         }
+
+        console.log('[Device] Setting up realtime subscription for user:', user.id);
+
+        // Subscribe to sensor_readings changes
+        const subscription = window.supabase
+            .channel('sensor_readings_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'sensor_readings',
+                    filter: `user_id=eq.${user.id}`
+                },
+                (payload) => {
+                    console.log('[Device] Real-time sensor data received:', payload);
+                    
+                    if (payload.new) {
+                        // Update device status to online
+                        isConnected = true;
+                        const statusIndicator = document.getElementById('device-status-indicator');
+                        const statusText = document.getElementById('device-status-text');
+                        const lastUpdate = document.getElementById('last-device-update');
+                        
+                        if (statusIndicator) {
+                            statusIndicator.className = 'status-indicator online';
+                            statusIndicator.style.backgroundColor = '#00ff88';
+                        }
+                        if (statusText) {
+                            statusText.textContent = 'Device Connected';
+                            statusText.style.color = '#00ff88';
+                        }
+                        if (lastUpdate) {
+                            lastUpdate.textContent = 'Last update: Just now';
+                        }
+                        
+                        // Update dashboard with new data
+                        hardwareData.temperature = payload.new.temperature;
+                        hardwareData.ph = payload.new.ph;
+                        hardwareData.lastUpdated = new Date(payload.new.created_at);
+                        
+                        updateDashboardWithNewData(hardwareData);
+                        stopMockData(); // Stop mock data when real data comes in
+                        
+                        // Dispatch event for charts
+                        document.dispatchEvent(new CustomEvent('sensorDataUpdate', {
+                            detail: {
+                                temperature: payload.new.temperature,
+                                ph: payload.new.ph,
+                                timestamp: payload.new.created_at
+                            }
+                        }));
+                    }
+                }
+            )
+            .subscribe((status) => {
+                console.log('[Device] Realtime subscription status:', status);
+                if (status === 'SUBSCRIBED') {
+                    showNotification('Real-time Updates', 'Connected to real-time sensor updates', 'success');
+                }
+            });
+
+        // Store subscription for cleanup
+        window.sensorSubscription = subscription;
+    }).catch(error => {
+        console.error('[Device] Error setting up realtime subscription:', error);
+    });
+}
+
+// Add this to the initDashboard function to enable realtime updates
+// Call this after initializing: setupRealtimeSubscription();
+
+// Improved startMockData with better visual indicators
+function startMockData() {
+    if (mockDataInterval) {
+        console.log('[Mock] Mock data already running');
+        return;
     }
     
+    console.log('[Mock] Starting mock data generation...');
+    
+    // Show notification that we're in mock mode
+    const notification = document.createElement('div');
+    notification.id = 'mock-mode-banner';
+    notification.style.cssText = `
+        position: fixed;
+        top: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 193, 7, 0.9);
+        color: #000;
+        padding: 10px 20px;
+        border-radius: 8px;
+        z-index: 9999;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    notification.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Demo Mode: Showing simulated data';
+    
+    // Remove existing banner if any
+    const existingBanner = document.getElementById('mock-mode-banner');
+    if (existingBanner) existingBanner.remove();
+    
+    document.body.appendChild(notification);
+    
+    // Generate some initial history for charts
+    const now = Date.now();
+    const historicalData = [];
+    for (let i = 100; i > 0; i--) {
+        const timestamp = new Date(now - (i * 60000)); // 1 minute intervals
+        const temp = 22 + Math.sin(i * 0.1) * 2 + (Math.random() - 0.5) * 1;
+        const ph = 7.2 + Math.cos(i * 0.08) * 0.3 + (Math.random() - 0.5) * 0.1;
+        
+        historicalData.push({
+            timestamp: timestamp,
+            created_at: timestamp.toISOString(),
+            temperature: parseFloat(temp.toFixed(2)),
+            ph: parseFloat(ph.toFixed(2))
+        });
+    }
+    
+    // Update charts with historical data
+    if (window.chartManager) {
+        window.chartManager.updateAllChartsFromHistory(historicalData);
+    }
+    
+    // Generate new data points every 3 seconds
     mockDataInterval = setInterval(() => {
-        // Generate realistic varying data
-        const baseTemp = 22;
+        const baseTemp = 23;
         const basePh = 7.2;
         const time = Date.now() / 100000;
         
-        hardwareData.temperature = baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1;
-        hardwareData.ph = basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2;
+        hardwareData.temperature = parseFloat((baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1).toFixed(2));
+        hardwareData.ph = parseFloat((basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2).toFixed(2));
         hardwareData.lastUpdated = new Date();
         
         updateDashboardWithNewData(hardwareData);
-    }, 3000); // Update every 3 seconds
+        
+        // Also update charts with new data
+        document.dispatchEvent(new CustomEvent('sensorDataUpdate', {
+            detail: {
+                temperature: hardwareData.temperature,
+                ph: hardwareData.ph,
+                timestamp: hardwareData.lastUpdated
+            }
+        }));
+        
+        console.log('[Mock] Generated data:', {
+            temp: hardwareData.temperature,
+            ph: hardwareData.ph
+        });
+    }, 3000);
 }
 
 function stopMockData() {
     if (mockDataInterval) {
         clearInterval(mockDataInterval);
         mockDataInterval = null;
-        console.log('Mock data stopped');
+        console.log('[Mock] Mock data stopped');
+        
+        // Remove mock mode banner
+        const banner = document.getElementById('mock-mode-banner');
+        if (banner) {
+            banner.style.transition = 'opacity 0.5s';
+            banner.style.opacity = '0';
+            setTimeout(() => banner.remove(), 500);
+        }
     }
 }
 
+// Enhanced initDashboard to include realtime setup
+async function initDashboard() {
+    try {
+        console.log('[Dashboard] Initializing dashboard...');
+        
+        await loadFarmSettings();
+        await loadDashboardData();
+        setupEventListeners();
+        
+        // Setup realtime subscription for sensor updates
+        setupRealtimeSubscription();
+        
+        // Start device status checking
+        checkDeviceStatus();
+        deviceCheckInterval = setInterval(checkDeviceStatus, 30000); // Check every 30 seconds
+        
+        // Start with mock data if offline (will be stopped when real data arrives)
+        if (!isConnected) {
+            startMockData();
+        }
+
+        console.log('[Dashboard] Dashboard initialized successfully');
+        showNotification('Dashboard Ready', 'AquaVision Pro dashboard loaded successfully', 'success');
+    } catch (error) {
+        console.error('[Dashboard] Failed to initialize dashboard:', error);
+        showNotification('Error', 'Failed to initialize dashboard', 'error');
+        
+        // Fall back to mock data if initialization fails
+        startMockData();
+    }
+}
+
+// Cleanup function to call on page unload
+window.addEventListener('beforeunload', () => {
+    console.log('[Dashboard] Cleaning up...');
+    
+    if (mockDataInterval) clearInterval(mockDataInterval);
+    if (deviceCheckInterval) clearInterval(deviceCheckInterval);
+    if (dataUpdateInterval) clearInterval(dataUpdateInterval);
+    
+    // Unsubscribe from realtime updates
+    if (window.sensorSubscription) {
+        window.sensorSubscription.unsubscribe();
+        console.log('[Device] Unsubscribed from realtime updates');
+    }
+});
+
+// Export functions for global access
+window.checkDeviceStatus = checkDeviceStatus;
+window.sendCommand = sendCommand;
+window.setupRealtimeSubscription = setupRealtimeSubscription;
+window.startMockData = startMockData;
+window.stopMockData = stopMockData;
 // ========================================
 // AUTHENTICATION & INITIALIZATION
 // ========================================
@@ -554,8 +802,9 @@ function updateFeedLevelUI(data) {
     updateElement('feed-level-value', `${percentage}%`);
     updateElement('feeding-feed-level-value', `${percentage}%`);
     
-    const progressBar = document.getElementById('feeding-feed-level-progress');
-    if (progressBar) progressBar.style.width = `${percentage}%`;
+    // In updateFeedLevelUI function, update this line:
+const progressBar = document.getElementById('feeding-feed-level-progress');
+if (progressBar) progressBar.style.width = `${percentage}%`;
 
     let statusText = 'Adequate', statusClass = 'adequate';
     if (percentage < 20) { statusText = 'Critical'; statusClass = 'critical'; }

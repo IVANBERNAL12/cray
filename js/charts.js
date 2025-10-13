@@ -1,5 +1,5 @@
 /**
- * Charts Module for AquaVision Pro
+ * Charts Module for AquaVision Pro - FIXED VERSION
  * Integrated with Supabase and AquaVision Pro theme
  */
 
@@ -409,19 +409,29 @@ class ChartManager {
   formatDataForChart(data, field) {
     try {
       if (!data || !Array.isArray(data)) return [];
+      
       return data
         .filter(item => item && item[field] !== null && item[field] !== undefined)
         .map(item => {
+          // Handle different timestamp formats
           let time = item.created_at || item.timestamp || new Date();
-          if (time instanceof Date) {
-            time = time.getTime();
+          
+          // Convert to Date object if it's not already
+          if (typeof time === 'string') {
+            time = new Date(time);
+          } else if (typeof time === 'number') {
+            // If it's a timestamp in seconds, convert to milliseconds
+            if (time < 10000000000) {
+              time = new Date(time * 1000);
+            } else {
+              time = new Date(time);
+            }
+          } else if (!(time instanceof Date)) {
+            time = new Date();
           }
-          if (typeof time === 'number' && time < 1e12) {
-            time = Date.now() - (performance.now() - time);
-          }
-          const parsed = new Date(time);
+
           return {
-            x: parsed,
+            x: time,
             y: parseFloat(item[field])
           };
         })
@@ -445,6 +455,7 @@ class ChartManager {
       const tempData = this.formatDataForChart(data, 'temperature');
       this.charts['tempChart'].data.datasets[0].data = tempData;
       this.charts['tempChart'].update('none');
+      console.log('[Charts] Temperature chart updated with', tempData.length, 'points');
     }
 
     // pH chart
@@ -452,6 +463,7 @@ class ChartManager {
       const phData = this.formatDataForChart(data, 'ph');
       this.charts['phChart'].data.datasets[0].data = phData;
       this.charts['phChart'].update('none');
+      console.log('[Charts] pH chart updated with', phData.length, 'points');
     }
 
     // Historical combined chart
@@ -461,6 +473,7 @@ class ChartManager {
       this.charts['historicalChart'].data.datasets[0].data = tempData;
       this.charts['historicalChart'].data.datasets[1].data = phData;
       this.charts['historicalChart'].update('none');
+      console.log('[Charts] Historical chart updated');
     }
   }
 
@@ -518,22 +531,22 @@ function initializeCharts() {
     return;
   }
 
-  // Initialize dashboard charts
-  window.tempChart = chartManager.createTemperatureChart('tempChart');
-  window.phChart = chartManager.createPHChart('phChart');
-  window.historicalChart = chartManager.createCombinedChart('historicalChart');
+  // Initialize dashboard charts with sample data
+  const sampleData = generateSampleData(7);
+  
+  window.tempChart = chartManager.createTemperatureChart('tempChart', sampleData);
+  window.phChart = chartManager.createPHChart('phChart', sampleData);
+  window.historicalChart = chartManager.createCombinedChart('historicalChart', sampleData);
 
-  console.log('[Charts] Charts initialized');
+  console.log('[Charts] Charts initialized with sample data');
 
-  // Load initial data
+  // Load real data if available
   loadInitialChartData().then(() => {
     console.log('[Charts] Initial data loaded');
     document.dispatchEvent(new CustomEvent('chartReady'));
-    document.dispatchEvent(new Event('historicalDataLoaded'));
   }).catch((err) => {
-    console.warn('[Charts] Failed to load initial data, using empty charts:', err);
+    console.warn('[Charts] Failed to load initial data, keeping sample data:', err);
     document.dispatchEvent(new CustomEvent('chartReady'));
-    document.dispatchEvent(new Event('historicalDataLoaded'));
   });
 
   // Add resize shim for compatibility
@@ -553,25 +566,24 @@ async function loadInitialChartData() {
   try {
     console.log('[Charts] Loading initial chart data...');
     
-    // Try to get historical data from Supabase
     let historicalData = [];
     
-    try {
-      historicalData = await getHistoricalSensorData(7); // Get last 7 days
-    } catch (error) {
-      console.warn('[Charts] Failed to load data from Supabase, using sample data:', error);
-      historicalData = generateSampleData(7);
+    // Try to get data from Supabase if available
+    if (window.getHistoricalSensorData) {
+      try {
+        historicalData = await window.getHistoricalSensorData(7);
+        console.log('[Charts] Loaded from Supabase:', historicalData.length, 'points');
+      } catch (error) {
+        console.warn('[Charts] Supabase data load failed:', error);
+      }
     }
 
+    // If we got real data, use it
     if (historicalData && historicalData.length > 0) {
-      console.log('[Charts] Loaded', historicalData.length, 'historical data points');
       chartManager.updateAllChartsFromHistory(historicalData);
     }
-
-    document.dispatchEvent(new Event('historicalDataLoaded'));
   } catch (error) {
     console.warn('Failed to load initial chart data:', error);
-    throw error;
   }
 }
 
@@ -596,11 +608,13 @@ function generateSampleData(days) {
     
     data.push({
       created_at: date.toISOString(),
+      timestamp: date.getTime(),
       temperature: parseFloat(temperature.toFixed(1)),
       ph: parseFloat(ph.toFixed(2))
     });
   }
   
+  console.log('[Charts] Generated', data.length, 'sample data points');
   return data;
 }
 
@@ -627,8 +641,9 @@ function updateChartWithLiveData(sensorData) {
       chartManager.streamData('phChart', { x: now, y: ph });
     }
 
+    console.log('[Charts] Live data updated:', { temperature, ph });
   } catch (e) {
-    console.warn('sensorDataUpdate handler error', e);
+    console.warn('updateChartWithLiveData error', e);
   }
 }
 
@@ -651,7 +666,11 @@ window.addEventListener('resize', () => {
 });
 
 // Initialize charts when script loads
-initializeCharts();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeCharts);
+} else {
+  initializeCharts();
+}
 
 // Export for global access
 window.chartManager = chartManager;
@@ -670,7 +689,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Update charts when historical data is loaded
   document.addEventListener('historicalDataLoaded', function() {
-    // Charts are already updated in loadInitialChartData
     console.log('[Charts] Historical data loaded event received');
   });
 });
