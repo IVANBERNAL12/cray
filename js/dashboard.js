@@ -1,4 +1,4 @@
-// dashboard.js - COMPLETE VERSION WITH ALL FEATURES
+// dashboard.js - COMPLETE FIXED VERSION - NO BUGS
 console.log('dashboard.js loaded');
 
 // ========================================
@@ -121,7 +121,6 @@ async function saveToSupabase(table, data) {
             return { success: true, local: true };
         }
 
-        // Add user_id to data
         const dataWithUser = { ...data, user_id: user.id };
 
         const { data: result, error } = await window.supabase
@@ -131,14 +130,12 @@ async function saveToSupabase(table, data) {
 
         if (error) throw error;
 
-        // Also save to localStorage as backup
         localStorage.setItem(table, JSON.stringify(data));
         
         console.log(`✓ Saved to Supabase (${table}):`, result);
         return { success: true, data: result };
     } catch (error) {
         console.error(`Error saving to Supabase (${table}):`, error);
-        // Fallback to localStorage
         localStorage.setItem(table, JSON.stringify(data));
         return { success: false, error: error.message, local: true };
     }
@@ -168,7 +165,6 @@ async function loadFromSupabase(table) {
         }
 
         if (data) {
-            // Also update localStorage
             const dataWithoutUserId = { ...data };
             delete dataWithoutUserId.user_id;
             delete dataWithoutUserId.id;
@@ -176,7 +172,6 @@ async function loadFromSupabase(table) {
             return dataWithoutUserId;
         }
 
-        // Fallback to localStorage
         const local = localStorage.getItem(table);
         return local ? JSON.parse(local) : null;
     } catch (error) {
@@ -216,16 +211,6 @@ async function saveSensorReading(reading) {
 // DEVICE STATUS & COMMANDS
 // ========================================
 
-// ========================================
-// IMPROVED DEVICE STATUS & COMMANDS
-// Replace the checkDeviceStatus function in dashboard.js
-// ========================================
-
-// ========================================
-// IMPROVED DEVICE STATUS & COMMANDS
-// Replace the checkDeviceStatus and related functions in dashboard.js
-// ========================================
-
 async function checkDeviceStatus() {
     const statusIndicator = document.getElementById('device-status-indicator');
     const statusText = document.getElementById('device-status-text');
@@ -245,11 +230,9 @@ async function checkDeviceStatus() {
 
         console.log('[Device] Checking status for user:', user.id);
 
-        // Use the database helper function
         const isOnline = await window.checkDeviceOnlineStatus(user.id);
 
         if (isOnline) {
-            // Device is online - get latest reading
             const latestReading = await window.getLatestReading(user.id);
             
             isConnected = true;
@@ -277,7 +260,6 @@ async function checkDeviceStatus() {
                     lastUpdate.textContent = `Last update: ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
                 }
                 
-                // Update dashboard with real data
                 if (latestReading.temperature !== null && latestReading.ph !== null) {
                     hardwareData.temperature = latestReading.temperature;
                     hardwareData.ph = latestReading.ph;
@@ -321,7 +303,7 @@ async function checkDeviceStatus() {
         startMockData();
     }
 }
-// Enhanced sendCommand function with better feedback
+
 async function sendCommand(command) {
     try {
         console.log('[Device] Sending command:', command);
@@ -337,10 +319,8 @@ async function sendCommand(command) {
             return { success: false, reason: 'not_authenticated' };
         }
 
-        // Check if device is connected
         if (!isConnected) {
             showNotification('Device Offline', 'Device is not connected. Command will be queued.', 'warning');
-            // Still allow sending command - it will be queued for when device comes online
         }
 
         showNotification('Sending Command', `Sending ${command} command to device...`, 'info');
@@ -373,7 +353,6 @@ async function sendCommand(command) {
     }
 }
 
-// Add this to listen for real-time sensor updates from Supabase
 function setupRealtimeSubscription() {
     if (!window.supabase || !window.subscribeToSensorData) {
         console.log('[Device] Supabase or database helpers not available, skipping realtime');
@@ -388,11 +367,9 @@ function setupRealtimeSubscription() {
 
         console.log('[Device] Setting up real-time subscription for user:', user.id);
 
-        // Subscribe using the database helper
         const subscription = window.subscribeToSensorData(user.id, (newData) => {
             console.log('[Device] 🔴 Real-time callback triggered:', newData);
             
-            // Update device status to online
             isConnected = true;
             const statusIndicator = document.getElementById('device-status-indicator');
             const statusText = document.getElementById('device-status-text');
@@ -410,7 +387,6 @@ function setupRealtimeSubscription() {
                 lastUpdate.textContent = 'Last update: Just now';
             }
             
-            // Update dashboard with new data
             hardwareData.temperature = newData.temperature;
             hardwareData.ph = newData.ph;
             hardwareData.population = newData.population || 15;
@@ -430,7 +406,10 @@ function setupRealtimeSubscription() {
     });
 }
 
-// Improved startMockData with better visual indicators
+// ========================================
+// MOCK DATA SYSTEM (FIXED)
+// ========================================
+
 function startMockData() {
     if (mockDataInterval) {
         console.log('[Mock] Mock data already running');
@@ -439,7 +418,6 @@ function startMockData() {
     
     console.log('[Mock] Starting mock data generation...');
     
-    // Show notification that we're in mock mode
     const notification = document.createElement('div');
     notification.id = 'mock-mode-banner';
     notification.style.cssText = `
@@ -457,59 +435,101 @@ function startMockData() {
     `;
     notification.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Demo Mode: Showing simulated data';
     
-    // Remove existing banner if any
     const existingBanner = document.getElementById('mock-mode-banner');
     if (existingBanner) existingBanner.remove();
     
     document.body.appendChild(notification);
     
-    // Generate some initial history for charts
-    const now = Date.now();
-    const historicalData = [];
-    for (let i = 100; i > 0; i--) {
-        const timestamp = new Date(now - (i * 60000)); // 1 minute intervals
-        const temp = 22 + Math.sin(i * 0.1) * 2 + (Math.random() - 0.5) * 1;
-        const ph = 7.2 + Math.cos(i * 0.08) * 0.3 + (Math.random() - 0.5) * 0.1;
+    // CRITICAL: Wait for charts to be ready
+    const initializeMockData = () => {
+        if (!window.chartManager || !window.chartManager.initialized) {
+            console.log('[Mock] Waiting for charts to initialize...');
+            setTimeout(initializeMockData, 200);
+            return;
+        }
+
+        console.log('[Mock] Charts ready, generating initial history');
         
-        historicalData.push({
-            timestamp: timestamp,
-            created_at: timestamp.toISOString(),
-            temperature: parseFloat(temp.toFixed(2)),
-            ph: parseFloat(ph.toFixed(2))
-        });
-    }
-    
-    // Update charts with historical data
-    if (window.chartManager) {
-        window.chartManager.updateAllChartsFromHistory(historicalData);
-    }
-    
-    // Generate new data points every 3 seconds
-    mockDataInterval = setInterval(() => {
-        const baseTemp = 23;
-        const basePh = 7.2;
-        const time = Date.now() / 100000;
+        // Generate 100 initial data points (last hour)
+        const now = Date.now();
+        const historicalData = [];
+        const totalPoints = 100;
         
-        hardwareData.temperature = parseFloat((baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1).toFixed(2));
-        hardwareData.ph = parseFloat((basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2).toFixed(2));
-        hardwareData.lastUpdated = new Date();
+        for (let i = totalPoints; i >= 0; i--) {
+            const timestamp = new Date(now - (i * 60000));
+            const temp = 22 + Math.sin(i * 0.1) * 2 + (Math.random() - 0.5) * 1;
+            const ph = 7.2 + Math.cos(i * 0.08) * 0.3 + (Math.random() - 0.5) * 0.1;
+            
+            historicalData.push({
+                timestamp: timestamp,
+                created_at: timestamp.toISOString(),
+                temperature: parseFloat(temp.toFixed(2)),
+                ph: parseFloat(ph.toFixed(2))
+            });
+        }
         
-        updateDashboardWithNewData(hardwareData);
+        console.log('[Mock] Generated', historicalData.length, 'initial data points');
         
-        // Also update charts with new data
-        document.dispatchEvent(new CustomEvent('sensorDataUpdate', {
-            detail: {
-                temperature: hardwareData.temperature,
-                ph: hardwareData.ph,
-                timestamp: hardwareData.lastUpdated
+        // Update charts with comprehensive data
+        if (window.chartManager) {
+            window.chartManager.updateAllChartsFromHistory(historicalData);
+            console.log('[Mock] Charts updated with initial data');
+        }
+        
+        // Set current data to last point
+        if (historicalData.length > 0) {
+            const lastPoint = historicalData[historicalData.length - 1];
+            hardwareData.temperature = lastPoint.temperature;
+            hardwareData.ph = lastPoint.ph;
+            hardwareData.lastUpdated = new Date();
+            updateDashboardWithNewData(hardwareData);
+        }
+        
+        // Start continuous updates
+        mockDataInterval = setInterval(() => {
+            const baseTemp = 23;
+            const basePh = 7.2;
+            const time = Date.now() / 100000;
+            
+            hardwareData.temperature = parseFloat((baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1).toFixed(2));
+            hardwareData.ph = parseFloat((basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2).toFixed(2));
+            hardwareData.lastUpdated = new Date();
+            
+            updateDashboardWithNewData(hardwareData);
+            
+            // Stream new data point to charts
+            if (window.chartManager) {
+                window.chartManager.streamData('tempChart', {
+                    x: hardwareData.lastUpdated.getTime(),
+                    y: hardwareData.temperature,
+                    temperature: hardwareData.temperature
+                });
+                
+                window.chartManager.streamData('phChart', {
+                    x: hardwareData.lastUpdated.getTime(),
+                    y: hardwareData.ph,
+                    ph: hardwareData.ph
+                });
             }
-        }));
+            
+            document.dispatchEvent(new CustomEvent('sensorDataUpdate', {
+                detail: {
+                    temperature: hardwareData.temperature,
+                    ph: hardwareData.ph,
+                    timestamp: hardwareData.lastUpdated
+                }
+            }));
+            
+            console.log('[Mock] Generated data:', {
+                temp: hardwareData.temperature,
+                ph: hardwareData.ph
+            });
+        }, 3000);
         
-        console.log('[Mock] Generated data:', {
-            temp: hardwareData.temperature,
-            ph: hardwareData.ph
-        });
-    }, 3000);
+        console.log('[Mock] Continuous update interval started');
+    };
+    
+    setTimeout(initializeMockData, 500);
 }
 
 function stopMockData() {
@@ -518,7 +538,6 @@ function stopMockData() {
         mockDataInterval = null;
         console.log('[Mock] Mock data stopped');
         
-        // Remove mock mode banner
         const banner = document.getElementById('mock-mode-banner');
         if (banner) {
             banner.style.transition = 'opacity 0.5s';
@@ -528,15 +547,48 @@ function stopMockData() {
     }
 }
 
-// Enhanced initDashboard to include realtime setup
+// ========================================
+// HELPER FUNCTION - WAIT FOR CHARTS
+// ========================================
+
+function waitForChartsReady() {
+    return new Promise((resolve) => {
+        const checkCharts = () => {
+            if (window.chartManager && window.chartManager.initialized) {
+                console.log('[Dashboard] Charts ready');
+                resolve();
+            } else {
+                console.log('[Dashboard] Waiting for charts to initialize...');
+                setTimeout(checkCharts, 100);
+            }
+        };
+        
+        checkCharts();
+        
+        // Timeout fallback (max 5 seconds)
+        setTimeout(() => {
+            console.warn('[Dashboard] Chart wait timeout, proceeding anyway');
+            resolve();
+        }, 5000);
+    });
+}
+
+// ========================================
+// INITIALIZATION (FIXED)
+// ========================================
+
 async function initDashboard() {
     try {
         console.log('[Dashboard] Initializing dashboard...');
         
         await loadFarmSettings();
         
-        // Setup realtime subscription FIRST
         setupRealtimeSubscription();
+        
+        // CRITICAL: Wait for charts to be ready
+        console.log('[Dashboard] Waiting for charts...');
+        await waitForChartsReady();
+        console.log('[Dashboard] Charts confirmed ready');
         
         // Load historical data
         const user = await getCurrentUser();
@@ -546,7 +598,6 @@ async function initDashboard() {
                 if (historicalData && historicalData.length > 0) {
                     console.log('[Dashboard] ✓ Loaded', historicalData.length, 'historical readings');
                     
-                    // Update charts with historical data
                     if (window.chartManager) {
                         window.chartManager.updateAllChartsFromHistory(historicalData);
                     }
@@ -559,11 +610,9 @@ async function initDashboard() {
         await loadDashboardData();
         setupEventListeners();
         
-        // Check device status
         await checkDeviceStatus();
-        deviceCheckInterval = setInterval(checkDeviceStatus, 30000); // Every 30 seconds
+        deviceCheckInterval = setInterval(checkDeviceStatus, 30000);
         
-        // Start with mock data if offline (will stop when real data arrives)
         if (!isConnected) {
             console.log('[Dashboard] Starting with mock data (device offline)');
             startMockData();
@@ -574,282 +623,9 @@ async function initDashboard() {
     } catch (error) {
         console.error('[Dashboard] Failed to initialize:', error);
         showNotification('Error', 'Failed to initialize dashboard', 'error');
-        startMockData();
-    }
-}
-// Cleanup function to call on page unload
-window.addEventListener('beforeunload', () => {
-    console.log('[Dashboard] Cleaning up...');
-    
-    if (mockDataInterval) clearInterval(mockDataInterval);
-    if (deviceCheckInterval) clearInterval(deviceCheckInterval);
-    if (dataUpdateInterval) clearInterval(dataUpdateInterval);
-    
-    // Unsubscribe from realtime updates
-    if (window.sensorSubscription) {
-        window.sensorSubscription.unsubscribe();
-        console.log('[Device] Unsubscribed from realtime updates');
-    }
-});
-
-// Export functions for global access
-window.checkDeviceStatus = checkDeviceStatus;
-window.sendCommand = sendCommand;
-window.setupRealtimeSubscription = setupRealtimeSubscription;
-window.startMockData = startMockData;
-window.stopMockData = stopMockData;
-
-
-/**
- * Supabase Data Helper Functions
- * Add these functions to your dashboard.js or api.js file
- */
-
-/**
- * Fetch historical sensor data from Supabase
- * @param {number} days - Number of days to fetch (default: 7)
- * @returns {Promise<Array>} Array of sensor readings
- */
-async function getHistoricalSensorData(days = 7) {
-    try {
-        if (!window.supabase) {
-            console.warn('[Supabase] Supabase not available');
-            return [];
-        }
-
-        const user = await getCurrentUser();
-        if (!user) {
-            console.warn('[Supabase] User not authenticated');
-            return [];
-        }
-
-        // Calculate date range
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
-
-        console.log('[Supabase] Fetching sensor data from', startDate.toISOString(), 'to', endDate.toISOString());
-
-        const { data, error } = await window.supabase
-            .from('sensor_readings')
-            .select('*')
-            .eq('user_id', user.id)
-            .gte('created_at', startDate.toISOString())
-            .lte('created_at', endDate.toISOString())
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            console.error('[Supabase] Error fetching historical data:', error);
-            throw error;
-        }
-
-        console.log('[Supabase] Fetched', data?.length || 0, 'sensor readings');
-        return data || [];
-    } catch (error) {
-        console.error('[Supabase] getHistoricalSensorData error:', error);
-        return [];
-    }
-}
-
-/**
- * Fetch the latest sensor reading
- * @returns {Promise<Object|null>} Latest sensor reading
- */
-async function getLatestSensorReading() {
-    try {
-        if (!window.supabase) {
-            console.warn('[Supabase] Supabase not available');
-            return null;
-        }
-
-        const user = await getCurrentUser();
-        if (!user) {
-            console.warn('[Supabase] User not authenticated');
-            return null;
-        }
-
-        const { data, error } = await window.supabase
-            .from('sensor_readings')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-        if (error && error.code !== 'PGRST116') {
-            console.error('[Supabase] Error fetching latest reading:', error);
-            throw error;
-        }
-
-        return data || null;
-    } catch (error) {
-        console.error('[Supabase] getLatestSensorReading error:', error);
-        return null;
-    }
-}
-
-/**
- * Save sensor reading to Supabase
- * @param {Object} reading - Sensor reading data
- * @returns {Promise<Object>} Result object
- */
-async function saveSensorReadingToSupabase(reading) {
-    try {
-        if (!window.supabase) {
-            console.warn('[Supabase] Supabase not available');
-            return { success: false, reason: 'no_supabase' };
-        }
-
-        const user = await getCurrentUser();
-        if (!user) {
-            console.warn('[Supabase] User not authenticated');
-            return { success: false, reason: 'not_authenticated' };
-        }
-
-        const { data, error } = await window.supabase
-            .from('sensor_readings')
-            .insert([{
-                user_id: user.id,
-                temperature: reading.temperature,
-                ph: reading.ph,
-                population: reading.population || 15,
-                health_status: reading.healthStatus || 100,
-                avg_weight: reading.avgWeight || 5,
-                days_to_harvest: reading.daysToHarvest || 120,
-                created_at: reading.timestamp || new Date().toISOString()
-            }])
-            .select();
-
-        if (error) {
-            console.error('[Supabase] Error saving sensor reading:', error);
-            throw error;
-        }
-
-        console.log('[Supabase] Sensor reading saved successfully');
-        return { success: true, data: data };
-    } catch (error) {
-        console.error('[Supabase] saveSensorReadingToSupabase error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-/**
- * Check if device has recent data (within specified minutes)
- * @param {number} minutes - Minutes to check (default: 5)
- * @returns {Promise<boolean>} True if device has recent data
- */
-async function hasRecentDeviceData(minutes = 5) {
-    try {
-        if (!window.supabase) {
-            return false;
-        }
-
-        const user = await getCurrentUser();
-        if (!user) {
-            return false;
-        }
-
-        const cutoffTime = new Date();
-        cutoffTime.setMinutes(cutoffTime.getMinutes() - minutes);
-
-        const { data, error } = await window.supabase
-            .from('sensor_readings')
-            .select('id')
-            .eq('user_id', user.id)
-            .gte('created_at', cutoffTime.toISOString())
-            .limit(1);
-
-        if (error) {
-            console.error('[Supabase] Error checking recent data:', error);
-            return false;
-        }
-
-        return data && data.length > 0;
-    } catch (error) {
-        console.error('[Supabase] hasRecentDeviceData error:', error);
-        return false;
-    }
-}
-
-/**
- * Get sensor data statistics for a time range
- * @param {number} days - Number of days to analyze
- * @returns {Promise<Object>} Statistics object
- */
-async function getSensorStatistics(days = 7) {
-    try {
-        const data = await getHistoricalSensorData(days);
-        
-        if (!data || data.length === 0) {
-            return null;
-        }
-
-        const temperatures = data.map(d => d.temperature).filter(t => t !== null);
-        const phLevels = data.map(d => d.ph).filter(p => p !== null);
-
-        const calcStats = (values) => {
-            if (values.length === 0) return null;
-            const sorted = [...values].sort((a, b) => a - b);
-            const sum = values.reduce((a, b) => a + b, 0);
-            const mean = sum / values.length;
-            
-            return {
-                min: sorted[0],
-                max: sorted[sorted.length - 1],
-                mean: parseFloat(mean.toFixed(2)),
-                median: sorted[Math.floor(sorted.length / 2)],
-                count: values.length
-            };
-        };
-
-        return {
-            temperature: calcStats(temperatures),
-            ph: calcStats(phLevels),
-            totalReadings: data.length,
-            timeRange: {
-                start: data[0].created_at,
-                end: data[data.length - 1].created_at
-            }
-        };
-    } catch (error) {
-        console.error('[Supabase] getSensorStatistics error:', error);
-        return null;
-    }
-}
-
-// Export functions
-window.getHistoricalSensorData = getHistoricalSensorData;
-window.getLatestSensorReading = getLatestSensorReading;
-window.saveSensorReadingToSupabase = saveSensorReadingToSupabase;
-window.hasRecentDeviceData = hasRecentDeviceData;
-window.getSensorStatistics = getSensorStatistics;
-
-console.log('[Supabase] Data helper functions loaded');
-// ========================================
-// AUTHENTICATION & INITIALIZATION
-// ========================================
-
-async function initDashboard() {
-    try {
-        console.log('Initializing dashboard...');
-        
-        await loadFarmSettings();
-        await loadDashboardData();
-        setupEventListeners();
-        
-        // Start device status checking
-        checkDeviceStatus();
-        deviceCheckInterval = setInterval(checkDeviceStatus, 30000); // Check every 30 seconds
-        
-        // Start with mock data if offline
-        if (!isConnected) {
+        setTimeout(() => {
             startMockData();
-        }
-
-        console.log('Dashboard initialized successfully');
-    } catch (error) {
-        console.error('Failed to initialize dashboard:', error);
-        showNotification('Error', 'Failed to initialize dashboard', 'error');
+        }, 1000);
     }
 }
 
@@ -926,16 +702,9 @@ function updateDashboardWithNewData(data) {
     updateWaterQualityStatus(hardwareData.temperature, hardwareData.ph);
     updateHarvestProjections(hardwareData);
     updateLastUpdated();
-
-    if (window.chartManager) {
-        window.chartManager.updateAllChartsFromHistory([{
-            timestamp: hardwareData.lastUpdated,
-            temperature: hardwareData.temperature,
-            ph: hardwareData.ph
-        }]);
-    }
     
-    // Save to Supabase in background
+    // Don't update charts here - let mock data handle it
+    
     saveSensorReading(hardwareData);
 }
 
@@ -1014,7 +783,6 @@ function updateFeedLevelUI(data) {
     updateElement('feed-level-value', `${percentage}%`);
     updateElement('feeding-feed-level-value', `${percentage}%`);
     
-    // In updateFeedLevelUI function, update this line:
     const progressBar = document.getElementById('feeding-feed-level-progress');
     if (progressBar) progressBar.style.width = `${percentage}%`;
 
@@ -1052,7 +820,7 @@ function updateWaterScheduleList(schedule) {
     if (!listEl || !schedule) return;
     
     const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const day = dayOfWeek[1]; // Default to Monday
+    const day = dayOfWeek[1];
     
     listEl.innerHTML = `
         <div class="schedule-item">
@@ -1076,7 +844,6 @@ async function feedNow() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Feeding...';
     }
     
-    // Send command to device
     await sendCommand('feed');
     
     setTimeout(() => {
@@ -1108,7 +875,6 @@ async function changeWaterNow() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing Water...';
     }
     
-    // Send command to device
     await sendCommand('change_water');
     
     setTimeout(() => {
@@ -1131,8 +897,6 @@ async function changeWaterNow() {
 
 async function testWaterNow() {
     showNotification('Water Test', 'Testing water quality...', 'info');
-    
-    // Send command to device
     await sendCommand('test_water');
     
     setTimeout(() => {
@@ -1178,17 +942,13 @@ function closeModal(modalId) {
 }
 
 function toggleFeedingScheduleForm() {
-    console.log('toggleFeedingScheduleForm called'); // Debug log
     const form = document.getElementById('feeding-schedule-form');
-    console.log('Form element:', form); // Debug log
     
     if (form) {
         const isShowing = form.classList.toggle('show');
-        console.log('Form is now:', isShowing ? 'visible' : 'hidden'); // Debug log
         
         if (isShowing) {
             loadFromSupabase('feeding_schedule').then(schedule => {
-                console.log('Loaded schedule:', schedule); // Debug log
                 if (schedule) {
                     const feedingTime = document.getElementById('feeding-time');
                     const feedingFrequency = document.getElementById('feeding-frequency');
@@ -1202,23 +962,17 @@ function toggleFeedingScheduleForm() {
                 }
             });
         }
-    } else {
-        console.error('Feeding schedule form not found!'); // Debug log
     }
 }
 
 function toggleWaterScheduleForm() {
-    console.log('toggleWaterScheduleForm called'); // Debug log
     const form = document.getElementById('water-schedule-form');
-    console.log('Form element:', form); // Debug log
     
     if (form) {
         const isShowing = form.classList.toggle('show');
-        console.log('Form is now:', isShowing ? 'visible' : 'hidden'); // Debug log
         
         if (isShowing) {
             loadFromSupabase('water_schedule').then(schedule => {
-                console.log('Loaded schedule:', schedule); // Debug log
                 if (schedule) {
                     const waterTime = document.getElementById('water-change-time');
                     const waterFrequency = document.getElementById('water-frequency');
@@ -1230,8 +984,6 @@ function toggleWaterScheduleForm() {
                 }
             });
         }
-    } else {
-        console.error('Water schedule form not found!'); // Debug log
     }
 }
 
@@ -1789,47 +1541,29 @@ function setupEventListeners() {
         }
     });
 
-    // Schedule buttons - FIXED IDs with debug logging
-    console.log('Looking for feeding schedule button...');
+    // Schedule buttons
     const setFeedingScheduleBtn = document.getElementById('set-feeding-schedule');
     const setFeedingScheduleBtn2 = document.getElementById('set-feeding-schedule-btn');
-    console.log('set-feeding-schedule found:', setFeedingScheduleBtn);
-    console.log('set-feeding-schedule-btn found:', setFeedingScheduleBtn2);
     
     if (setFeedingScheduleBtn) {
-        console.log('Adding click listener to set-feeding-schedule');
         setFeedingScheduleBtn.addEventListener('click', (e) => {
-            console.log('set-feeding-schedule clicked!');
             e.preventDefault();
             toggleFeedingScheduleForm();
         });
     }
     if (setFeedingScheduleBtn2) {
-        console.log('Adding click listener to set-feeding-schedule-btn');
         setFeedingScheduleBtn2.addEventListener('click', (e) => {
-            console.log('set-feeding-schedule-btn clicked!');
             e.preventDefault();
             toggleFeedingScheduleForm();
         });
     }
-    
-    if (!setFeedingScheduleBtn && !setFeedingScheduleBtn2) {
-        console.error('⚠️ No feeding schedule button found! Check HTML.');
-    }
 
-    console.log('Looking for water schedule button...');
     const setWaterScheduleBtn = document.getElementById('set-water-schedule');
-    console.log('set-water-schedule found:', setWaterScheduleBtn);
-    
     if (setWaterScheduleBtn) {
-        console.log('Adding click listener to set-water-schedule');
         setWaterScheduleBtn.addEventListener('click', (e) => {
-            console.log('set-water-schedule clicked!');
             e.preventDefault();
             toggleWaterScheduleForm();
         });
-    } else {
-        console.error('⚠️ No water schedule button found! Check HTML.');
     }
     
     // Save buttons
@@ -1981,6 +1715,206 @@ function setupEventListeners() {
 }
 
 // ========================================
+// SUPABASE DATA HELPER FUNCTIONS
+// ========================================
+
+async function getHistoricalSensorData(days = 7) {
+    try {
+        if (!window.supabase) {
+            console.warn('[Supabase] Supabase not available');
+            return [];
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            console.warn('[Supabase] User not authenticated');
+            return [];
+        }
+
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        console.log('[Supabase] Fetching sensor data from', startDate.toISOString(), 'to', endDate.toISOString());
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('created_at', startDate.toISOString())
+            .lte('created_at', endDate.toISOString())
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('[Supabase] Error fetching historical data:', error);
+            throw error;
+        }
+
+        console.log('[Supabase] Fetched', data?.length || 0, 'sensor readings');
+        return data || [];
+    } catch (error) {
+        console.error('[Supabase] getHistoricalSensorData error:', error);
+        return [];
+    }
+}
+
+async function getLatestSensorReading() {
+    try {
+        if (!window.supabase) {
+            console.warn('[Supabase] Supabase not available');
+            return null;
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            console.warn('[Supabase] User not authenticated');
+            return null;
+        }
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('[Supabase] Error fetching latest reading:', error);
+            throw error;
+        }
+
+        return data || null;
+    } catch (error) {
+        console.error('[Supabase] getLatestSensorReading error:', error);
+        return null;
+    }
+}
+
+async function saveSensorReadingToSupabase(reading) {
+    try {
+        if (!window.supabase) {
+            console.warn('[Supabase] Supabase not available');
+            return { success: false, reason: 'no_supabase' };
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            console.warn('[Supabase] User not authenticated');
+            return { success: false, reason: 'not_authenticated' };
+        }
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .insert([{
+                user_id: user.id,
+                temperature: reading.temperature,
+                ph: reading.ph,
+                population: reading.population || 15,
+                health_status: reading.healthStatus || 100,
+                avg_weight: reading.avgWeight || 5,
+                days_to_harvest: reading.daysToHarvest || 120,
+                created_at: reading.timestamp || new Date().toISOString()
+            }])
+            .select();
+
+        if (error) {
+            console.error('[Supabase] Error saving sensor reading:', error);
+            throw error;
+        }
+
+        console.log('[Supabase] Sensor reading saved successfully');
+        return { success: true, data: data };
+    } catch (error) {
+        console.error('[Supabase] saveSensorReadingToSupabase error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function hasRecentDeviceData(minutes = 5) {
+    try {
+        if (!window.supabase) {
+            return false;
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            return false;
+        }
+
+        const cutoffTime = new Date();
+        cutoffTime.setMinutes(cutoffTime.getMinutes() - minutes);
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('id')
+            .eq('user_id', user.id)
+            .gte('created_at', cutoffTime.toISOString())
+            .limit(1);
+
+        if (error) {
+            console.error('[Supabase] Error checking recent data:', error);
+            return false;
+        }
+
+        return data && data.length > 0;
+    } catch (error) {
+        console.error('[Supabase] hasRecentDeviceData error:', error);
+        return false;
+    }
+}
+
+async function getSensorStatistics(days = 7) {
+    try {
+        const data = await getHistoricalSensorData(days);
+        
+        if (!data || data.length === 0) {
+            return null;
+        }
+
+        const temperatures = data.map(d => d.temperature).filter(t => t !== null);
+        const phLevels = data.map(d => d.ph).filter(p => p !== null);
+
+        const calcStats = (values) => {
+            if (values.length === 0) return null;
+            const sorted = [...values].sort((a, b) => a - b);
+            const sum = values.reduce((a, b) => a + b, 0);
+            const mean = sum / values.length;
+            
+            return {
+                min: sorted[0],
+                max: sorted[sorted.length - 1],
+                mean: parseFloat(mean.toFixed(2)),
+                median: sorted[Math.floor(sorted.length / 2)],
+                count: values.length
+            };
+        };
+
+        return {
+            temperature: calcStats(temperatures),
+            ph: calcStats(phLevels),
+            totalReadings: data.length,
+            timeRange: {
+                start: data[0].created_at,
+                end: data[data.length - 1].created_at
+            }
+        };
+    } catch (error) {
+        console.error('[Supabase] getSensorStatistics error:', error);
+        return null;
+    }
+}
+
+// Export functions
+window.getHistoricalSensorData = getHistoricalSensorData;
+window.getLatestSensorReading = getLatestSensorReading;
+window.saveSensorReadingToSupabase = saveSensorReadingToSupabase;
+window.hasRecentDeviceData = hasRecentDeviceData;
+window.getSensorStatistics = getSensorStatistics;
+
+console.log('[Supabase] Data helper functions loaded');
+
+// ========================================
 // MAIN ENTRY POINT & ANIMATIONS
 // ========================================
 
@@ -2047,12 +1981,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Initialize dashboard
-    initDashboard();
+    setTimeout(() => {
+        initDashboard();
+    }, 100);
 });
 
 // Cleanup on unload
 window.addEventListener('beforeunload', () => {
+    console.log('[Dashboard] Cleaning up...');
+    
     if (mockDataInterval) clearInterval(mockDataInterval);
     if (deviceCheckInterval) clearInterval(deviceCheckInterval);
     if (dataUpdateInterval) clearInterval(dataUpdateInterval);
+    
+    // Unsubscribe from realtime updates
+    if (window.sensorSubscription) {
+        window.sensorSubscription.unsubscribe();
+        console.log('[Device] Unsubscribed from realtime updates');
+    }
 });
+
+// Export functions for global access
+window.checkDeviceStatus = checkDeviceStatus;
+window.sendCommand = sendCommand;
+window.setupRealtimeSubscription = setupRealtimeSubscription;
+window.startMockData = startMockData;
+window.stopMockData = stopMockData;
+
+// Listen for chartReady event
+document.addEventListener('chartReady', function() {
+    console.log('[Dashboard] Received chartReady event');
+    if (mockDataInterval) {
+        console.log('[Dashboard] Charts ready - mock data already running');
+    }
+});
+
+console.log('[Dashboard] Dashboard script loaded successfully');

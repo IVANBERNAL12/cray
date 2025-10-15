@@ -1,7 +1,7 @@
 /**
- * Charts Module for AquaVision Pro - COMPLETE FIXED VERSION
+ * Charts Module for AquaVision Pro - FIXED VERSION
  * Integrated with Supabase and AquaVision Pro theme
- * NO ERRORS - FULLY FUNCTIONAL
+ * Fixed chart initialization and data display issues
  */
 
 class ChartManager {
@@ -28,6 +28,7 @@ class ChartManager {
 
     this.chartOptions = this.getDefaultChartOptions();
     this.isChartJsAvailable = this.checkChartJs();
+    this.initialized = false;
   }
 
   checkChartJs() {
@@ -154,7 +155,7 @@ class ChartManager {
           borderWidth: 2,
           fill: true,
           tension: 0.4,
-          pointRadius: 2,
+          pointRadius: 3,
           pointHoverRadius: 6,
           pointHoverBorderWidth: 2,
           pointHoverBackgroundColor: '#ffffff',
@@ -164,6 +165,9 @@ class ChartManager {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 750
+        },
         interaction: {
           intersect: false,
           mode: 'index'
@@ -268,8 +272,9 @@ class ChartManager {
     
     chart.updateData = (newData) => {
       try {
-        chart.data.datasets[0].data = this.formatDataForChart(newData, 'temperature');
-        chart.update('none');
+        const formatted = this.formatDataForChart(newData, 'temperature');
+        chart.data.datasets[0].data = formatted;
+        chart.update('active');
       } catch (e) { 
         console.warn('[Charts] temperatureChart.updateData error', e); 
       }
@@ -310,7 +315,7 @@ class ChartManager {
           borderWidth: 2,
           fill: true,
           tension: 0.4,
-          pointRadius: 2,
+          pointRadius: 3,
           pointHoverRadius: 6,
           pointHoverBorderWidth: 2,
           pointHoverBackgroundColor: '#ffffff',
@@ -320,6 +325,9 @@ class ChartManager {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 750
+        },
         interaction: {
           intersect: false,
           mode: 'index'
@@ -424,8 +432,9 @@ class ChartManager {
     
     chart.updateData = (newData) => {
       try {
-        chart.data.datasets[0].data = this.formatDataForChart(newData, 'ph');
-        chart.update('none');
+        const formatted = this.formatDataForChart(newData, 'ph');
+        chart.data.datasets[0].data = formatted;
+        chart.update('active');
       } catch (e) { 
         console.warn('[Charts] phChart.updateData error', e); 
       }
@@ -464,7 +473,7 @@ class ChartManager {
             borderWidth: 2,
             fill: false,
             tension: 0.4,
-            pointRadius: 2,
+            pointRadius: 3,
             pointHoverRadius: 6,
             pointBackgroundColor: this.chartColors.combined.temperature,
             yAxisID: 'y'
@@ -477,7 +486,7 @@ class ChartManager {
             borderWidth: 2,
             fill: false,
             tension: 0.4,
-            pointRadius: 2,
+            pointRadius: 3,
             pointHoverRadius: 6,
             pointBackgroundColor: this.chartColors.combined.ph,
             yAxisID: 'y1'
@@ -487,6 +496,9 @@ class ChartManager {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 750
+        },
         interaction: {
           intersect: false,
           mode: 'index'
@@ -624,9 +636,11 @@ class ChartManager {
     
     chart.updateData = (newData) => {
       try {
-        chart.data.datasets[0].data = this.formatDataForChart(newData, 'temperature');
-        chart.data.datasets[1].data = this.formatDataForChart(newData, 'ph');
-        chart.update('none');
+        const tempFormatted = this.formatDataForChart(newData, 'temperature');
+        const phFormatted = this.formatDataForChart(newData, 'ph');
+        chart.data.datasets[0].data = tempFormatted;
+        chart.data.datasets[1].data = phFormatted;
+        chart.update('active');
       } catch (e) { 
         console.warn('[Charts] historicalChart.updateData error', e); 
       }
@@ -676,7 +690,9 @@ class ChartManager {
             } else {
               time = new Date(time);
             }
-          } else if (!(time instanceof Date)) {
+          } else if (time instanceof Date) {
+            // Already a Date object
+          } else {
             time = new Date();
           }
 
@@ -695,8 +711,8 @@ class ChartManager {
   }
 
   updateAllChartsFromHistory(data) {
-    if (!data || !Array.isArray(data)) {
-      console.warn('[Charts] Invalid data provided to updateAllChartsFromHistory');
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.warn('[Charts] Invalid or empty data provided to updateAllChartsFromHistory');
       return;
     }
 
@@ -705,14 +721,14 @@ class ChartManager {
     if (this.charts['tempChart']) {
       const tempData = this.formatDataForChart(data, 'temperature');
       this.charts['tempChart'].data.datasets[0].data = tempData;
-      this.charts['tempChart'].update('none');
+      this.charts['tempChart'].update('active');
       console.log('[Charts] Temperature chart updated with', tempData.length, 'points');
     }
 
     if (this.charts['phChart']) {
       const phData = this.formatDataForChart(data, 'ph');
       this.charts['phChart'].data.datasets[0].data = phData;
-      this.charts['phChart'].update('none');
+      this.charts['phChart'].update('active');
       console.log('[Charts] pH chart updated with', phData.length, 'points');
     }
 
@@ -721,7 +737,7 @@ class ChartManager {
       const phData = this.formatDataForChart(data, 'ph');
       this.charts['historicalChart'].data.datasets[0].data = tempData;
       this.charts['historicalChart'].data.datasets[1].data = phData;
-      this.charts['historicalChart'].update('none');
+      this.charts['historicalChart'].update('active');
       console.log('[Charts] Historical chart updated');
     }
   }
@@ -739,7 +755,7 @@ class ChartManager {
         }
         
         const point = {
-          x: newDataPoint.x || Date.now(),
+          x: newDataPoint.x || newDataPoint.timestamp || Date.now(),
           y: newDataPoint.y || newDataPoint.temperature || newDataPoint.ph
         };
         
@@ -794,15 +810,18 @@ function initializeCharts() {
     return;
   }
 
-  const sampleData = generateSampleData(7);
+  // Generate comprehensive sample data (100 points over the last hour)
+  const sampleData = generateSampleData(1, 100);
   console.log('[Charts] Generated', sampleData.length, 'sample data points');
   
   window.tempChart = chartManager.createTemperatureChart('tempChart', sampleData);
   window.phChart = chartManager.createPHChart('phChart', sampleData);
   window.historicalChart = chartManager.createCombinedChart('historicalChart', sampleData);
 
+  chartManager.initialized = true;
   console.log('[Charts] All charts initialized');
 
+  // Try to load real data from Supabase
   loadInitialChartData().then(() => {
     console.log('[Charts] Initial data load complete');
     document.dispatchEvent(new CustomEvent('chartReady'));
@@ -838,22 +857,22 @@ async function loadInitialChartData() {
   }
 }
 
-function generateSampleData(days) {
+function generateSampleData(hours = 1, pointsPerHour = 60) {
   const data = [];
   const now = new Date();
-  const pointsPerDay = 24;
+  const totalPoints = hours * pointsPerHour;
   
-  for (let i = days * pointsPerDay; i >= 0; i--) {
+  for (let i = totalPoints; i >= 0; i--) {
     const date = new Date(now);
-    date.setHours(date.getHours() - i);
+    date.setMinutes(date.getMinutes() - i);
     
-    const baseTemp = 23;
-    const dailyCycle = Math.sin((i / pointsPerDay) * Math.PI * 2) * 2;
+    const baseTemp = 22;
+    const dailyCycle = Math.sin((i / pointsPerHour) * Math.PI * 2) * 2;
     const randomNoise = (Math.random() - 0.5) * 0.8;
     const temperature = baseTemp + dailyCycle + randomNoise;
     
     const basePh = 7.2;
-    const slowCycle = Math.sin((i / (pointsPerDay * 3)) * Math.PI * 2) * 0.3;
+    const slowCycle = Math.sin((i / (pointsPerHour * 3)) * Math.PI * 2) * 0.3;
     const phNoise = (Math.random() - 0.5) * 0.15;
     const ph = basePh + slowCycle + phNoise;
     
@@ -879,13 +898,13 @@ function updateChartWithLiveData(sensorData) {
 
     if (!sensor) return;
 
-    const now = new Date();
+    const now = Date.now();
     const temperature = (typeof sensor.temperature === 'number') ? sensor.temperature : null;
     const ph = (typeof sensor.ph === 'number') ? sensor.ph : null;
 
     if (window.tempChart && typeof temperature === 'number') {
       chartManager.streamData('tempChart', { 
-        x: now.getTime(), 
+        x: now, 
         y: temperature, 
         temperature: temperature 
       });
@@ -893,7 +912,7 @@ function updateChartWithLiveData(sensorData) {
 
     if (window.phChart && typeof ph === 'number') {
       chartManager.streamData('phChart', { 
-        x: now.getTime(), 
+        x: now, 
         y: ph, 
         ph: ph 
       });
