@@ -1,4 +1,4 @@
-// database.js - FIXED VERSION WITH COMPLETE SUPABASE INTEGRATION
+// database.js - COMPLETE VERSION WITH ALL MISSING FUNCTIONS
 console.log('database.js loaded');
 
 // Export all functions to window for global access
@@ -114,6 +114,136 @@ async function getHistoricalSensorData(days = 7) {
         console.error('Error fetching historical data:', error);
         return [];
     }
+}
+
+// ========================================
+// NEW: DEVICE STATUS & CONNECTIVITY FUNCTIONS
+// ========================================
+
+async function checkDeviceOnlineStatus(userId, minutesThreshold = 2) {
+    try {
+        if (!window.supabase) {
+            console.warn('[Database] Supabase not initialized');
+            return false;
+        }
+
+        const cutoffTime = new Date();
+        cutoffTime.setMinutes(cutoffTime.getMinutes() - minutesThreshold);
+
+        console.log('[Database] Checking for readings after:', cutoffTime.toISOString());
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('id, created_at, temperature, ph')
+            .eq('user_id', userId)
+            .gte('created_at', cutoffTime.toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (error) {
+            console.error('[Database] Error checking device status:', error);
+            return false;
+        }
+
+        const isOnline = data && data.length > 0;
+        console.log('[Database] Device online:', isOnline, 'Recent readings:', data?.length || 0);
+        
+        return isOnline;
+    } catch (error) {
+        console.error('[Database] checkDeviceOnlineStatus error:', error);
+        return false;
+    }
+}
+
+async function getLatestReading(userId) {
+    try {
+        if (!window.supabase) {
+            console.warn('[Database] Supabase not initialized');
+            return null;
+        }
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('[Database] Error fetching latest reading:', error);
+            return null;
+        }
+
+        return data;
+    } catch (error) {
+        console.error('[Database] getLatestReading error:', error);
+        return null;
+    }
+}
+
+async function getHistoricalReadings(userId, hours = 24) {
+    try {
+        if (!window.supabase) {
+            console.warn('[Database] Supabase not initialized');
+            return [];
+        }
+
+        const startTime = new Date();
+        startTime.setHours(startTime.getHours() - hours);
+
+        console.log('[Database] Fetching readings from:', startTime.toISOString());
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('*')
+            .eq('user_id', userId)
+            .gte('created_at', startTime.toISOString())
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('[Database] Error fetching historical readings:', error);
+            return [];
+        }
+
+        console.log('[Database] Fetched', data?.length || 0, 'historical readings');
+        return data || [];
+    } catch (error) {
+        console.error('[Database] getHistoricalReadings error:', error);
+        return [];
+    }
+}
+
+function subscribeToSensorData(userId, callback) {
+    if (!window.supabase) {
+        console.warn('[Database] Supabase not available for subscriptions');
+        return null;
+    }
+
+    console.log('[Database] Setting up real-time subscription for user:', userId);
+
+    const subscription = window.supabase
+        .channel('sensor_readings_channel')
+        .on(
+            'postgres_changes',
+            {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'sensor_readings',
+                filter: `user_id=eq.${userId}`
+            },
+            (payload) => {
+                console.log('[Database] 🔴 Real-time update received:', payload);
+                if (callback && typeof callback === 'function') {
+                    callback(payload.new);
+                }
+            }
+        )
+        .subscribe((status) => {
+            console.log('[Database] Subscription status:', status);
+        });
+
+    return subscription;
 }
 
 // ========================================
@@ -557,6 +687,7 @@ async function getFarmSettings() {
 // EXPORT ALL FUNCTIONS
 // ========================================
 
+// Original exports
 window.saveSensorReading = saveSensorReading;
 window.getLatestSensorReading = getLatestSensorReading;
 window.getHistoricalSensorData = getHistoricalSensorData;
@@ -577,4 +708,10 @@ window.getDeviceStatus = getDeviceStatus;
 window.saveFarmSettings = saveFarmSettings;
 window.getFarmSettings = getFarmSettings;
 
-console.log('[Database] All database functions loaded and exported');
+// NEW: Export missing functions
+window.checkDeviceOnlineStatus = checkDeviceOnlineStatus;
+window.getLatestReading = getLatestReading;
+window.getHistoricalReadings = getHistoricalReadings;
+window.subscribeToSensorData = subscribeToSensorData;
+
+console.log('[Database] All database functions loaded and exported (including device connectivity functions)');
