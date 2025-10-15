@@ -450,13 +450,14 @@ function startMockData() {
 
         console.log('[Mock] Charts ready, generating initial history');
         
-        // Generate 100 initial data points (last hour)
+        // Generate 100 initial data points (last 50 minutes - 30 second intervals)
         const now = Date.now();
         const historicalData = [];
         const totalPoints = 100;
+        const intervalMs = 30000; // 30 seconds
         
         for (let i = totalPoints; i >= 0; i--) {
-            const timestamp = new Date(now - (i * 60000));
+            const timestamp = new Date(now - (i * intervalMs));
             const temp = 22 + Math.sin(i * 0.1) * 2 + (Math.random() - 0.5) * 1;
             const ph = 7.2 + Math.cos(i * 0.08) * 0.3 + (Math.random() - 0.5) * 0.1;
             
@@ -468,7 +469,7 @@ function startMockData() {
             });
         }
         
-        console.log('[Mock] Generated', historicalData.length, 'initial data points');
+        console.log('[Mock] Generated', historicalData.length, 'initial data points (30-second intervals)');
         
         // Update charts with comprehensive data
         if (window.chartManager) {
@@ -485,7 +486,7 @@ function startMockData() {
             updateDashboardWithNewData(hardwareData);
         }
         
-        // Start continuous updates
+        // Start continuous updates every 30 seconds
         mockDataInterval = setInterval(() => {
             const baseTemp = 23;
             const basePh = 7.2;
@@ -496,6 +497,13 @@ function startMockData() {
             hardwareData.lastUpdated = new Date();
             
             updateDashboardWithNewData(hardwareData);
+            
+            // Save to Supabase every 30 seconds
+            saveSensorReading(hardwareData).then(() => {
+                console.log('[Mock] Data saved to Supabase at', hardwareData.lastUpdated.toLocaleTimeString());
+            }).catch(err => {
+                console.warn('[Mock] Failed to save to Supabase:', err.message);
+            });
             
             // Stream new data point to charts
             if (window.chartManager) {
@@ -520,13 +528,14 @@ function startMockData() {
                 }
             }));
             
-            console.log('[Mock] Generated data:', {
+            console.log('[Mock] Generated & saved data:', {
                 temp: hardwareData.temperature,
-                ph: hardwareData.ph
+                ph: hardwareData.ph,
+                time: hardwareData.lastUpdated.toLocaleTimeString()
             });
-        }, 3000);
+        }, 30000); // Update every 30 seconds
         
-        console.log('[Mock] Continuous update interval started');
+        console.log('[Mock] Continuous update interval started (30-second intervals)');
     };
     
     setTimeout(initializeMockData, 500);
@@ -546,6 +555,72 @@ function stopMockData() {
         }
     }
 }
+
+// ========================================
+// DATA CLEANUP FUNCTION (Prevent Database Overflow)
+// ========================================
+
+async function cleanupOldSensorData(daysToKeep = 30) {
+    try {
+        if (!window.supabase) {
+            console.warn('[Cleanup] Supabase not available');
+            return { success: false, reason: 'no_supabase' };
+        }
+
+        const user = await getCurrentUser();
+        if (!user) {
+            console.warn('[Cleanup] User not authenticated');
+            return { success: false, reason: 'not_authenticated' };
+        }
+
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+        console.log('[Cleanup] Deleting sensor data older than', cutoffDate.toISOString());
+
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .delete()
+            .eq('user_id', user.id)
+            .lt('created_at', cutoffDate.toISOString());
+
+        if (error) {
+            console.error('[Cleanup] Error deleting old data:', error);
+            throw error;
+        }
+
+        console.log('[Cleanup] ✓ Successfully cleaned up old sensor data');
+        return { success: true, deletedRecords: data?.length || 0 };
+    } catch (error) {
+        console.error('[Cleanup] cleanupOldSensorData error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Schedule automatic cleanup (runs every 24 hours)
+function scheduleDataCleanup() {
+    // Run cleanup immediately on load
+    setTimeout(() => {
+        cleanupOldSensorData(30).then(result => {
+            if (result.success) {
+                console.log('[Cleanup] Initial cleanup completed');
+            }
+        });
+    }, 60000); // Wait 1 minute after page load
+
+    // Schedule cleanup every 24 hours
+    setInterval(() => {
+        cleanupOldSensorData(30).then(result => {
+            if (result.success) {
+                console.log('[Cleanup] Scheduled cleanup completed');
+                showNotification('Database Cleanup', 'Old sensor data cleaned up successfully', 'info');
+            }
+        });
+    }, 24 * 60 * 60 * 1000); // Every 24 hours
+}
+
+// Export cleanup function
+window.cleanupOldSensorData = cleanupOldSensorData;
 
 // ========================================
 // HELPER FUNCTION - WAIT FOR CHARTS
