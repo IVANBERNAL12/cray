@@ -396,6 +396,21 @@ function setupRealtimeSubscription() {
             updateDashboardWithNewData(hardwareData);
             stopMockData();
             
+            // Update charts with new data
+            if (window.chartManager) {
+                window.chartManager.streamData('tempChart', {
+                    x: hardwareData.lastUpdated.getTime(),
+                    y: hardwareData.temperature,
+                    temperature: hardwareData.temperature
+                });
+                
+                window.chartManager.streamData('phChart', {
+                    x: hardwareData.lastUpdated.getTime(),
+                    y: hardwareData.ph,
+                    ph: hardwareData.ph
+                });
+            }
+            
             console.log('[Device] ✓ Dashboard updated from real-time data');
         });
 
@@ -636,14 +651,18 @@ async function initDashboard() {
     try {
         console.log('[Dashboard] Initializing dashboard...');
         
+        // Load farm settings first
         await loadFarmSettings();
         
-        setupRealtimeSubscription();
-        
+        // Wait for charts to be ready
         console.log('[Dashboard] Waiting for charts...');
         await waitForChartsReady();
         console.log('[Dashboard] Charts confirmed ready');
         
+        // Setup real-time subscription BEFORE loading data
+        setupRealtimeSubscription();
+        
+        // Load historical data if user is authenticated
         const user = await getCurrentUser();
         if (user && window.getHistoricalReadings) {
             try {
@@ -660,15 +679,18 @@ async function initDashboard() {
             }
         }
         
+        // Load dashboard data
         await loadDashboardData();
         setupEventListeners();
         
+        // Check device status
         await checkDeviceStatus();
         deviceCheckInterval = setInterval(checkDeviceStatus, 30000);
         
+        // Start mock data if device is offline
         if (!isConnected) {
             console.log('[Dashboard] Starting with mock data (device offline)');
-            startMockData();
+            setTimeout(() => startMockData(), 1000);
         }
 
         console.log('[Dashboard] ✓ Dashboard initialized successfully');

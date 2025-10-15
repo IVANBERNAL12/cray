@@ -544,7 +544,7 @@ void sendDataToESP() {
   // Get current time from RTC
   DateTime now = rtc.now();
   
-  // Build JSON data packet
+  // Build JSON data packet - FIXED: Proper boolean formatting
   String data = "DATA:{";
   data += "\"temperature\":";
   data += (currentTemperature > -900) ? String(currentTemperature, 2) : "null";
@@ -566,15 +566,18 @@ void sendDataToESP() {
     data += "ok";
   }
   
+  // FIXED: No spaces around booleans
   data += "\",\"temp_sensor_ok\":";
   data += tempSensorOK ? "true" : "false";
   data += ",\"ph_sensor_ok\":";
   data += phSensorOK ? "true" : "false";
   data += "}";
   
+  Serial.println("[Arduino] Sending data to ESP8266:");
+  Serial.println(data);
+  
   ESP_SERIAL.println(data);
 }
-
 void sendStatusToESP() {
   String status = "STATUS:{";
   status += "\"initialized\":true";

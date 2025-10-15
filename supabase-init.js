@@ -1,29 +1,58 @@
-// supabase-init.js - FAIL-SAFE VERSION
-console.log('supabase-init.js loaded');
+// supabase-init.js - CORRECTED VERSION
+console.log('supabase-init.js loading...');
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, checking for Supabase...');
-    
-    const supabaseUrl = 'https://qleubfvmydnitmsylqxo.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsZXViZnZteWRuaXRtc3lscXhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODg2MjksImV4cCI6MjA3NDk2NDYyOX0.1LtaFFXPadqUZM7iaN-0fJbLcDvbkYZkhdLYpfBBReA';
+// Supabase Configuration
+const SUPABASE_URL = 'https://qleubfvmydnitmsylqxo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsZXViZnZteWRuaXRtc3lscXhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODg2MjksImV4cCI6MjA3NDk2NDYyOX0.1LtaFFXPadqUZM7iaN-0fJbLcDvbkYZkhdLYpfBBReA';
 
-    // Check if Supabase library loaded
-    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-        try {
-            const { createClient } = window.supabase;
-            window.supabase = createClient(supabaseUrl, supabaseKey);
-            console.log('✓ Supabase initialized successfully');
-        } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
-            window.supabase = null;
+// Initialize immediately (don't wait for DOMContentLoaded)
+if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
+    try {
+        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true,
+                storage: window.localStorage
+            },
+            realtime: {
+                params: {
+                    eventsPerSecond: 10
+                }
+            }
+        });
+        
+        console.log('[Supabase] ✓ Client initialized successfully');
+        console.log('[Supabase] URL:', SUPABASE_URL);
+        
+        // Test connection immediately
+        window.supabase.auth.getSession().then(({ data, error }) => {
+            if (error) {
+                console.warn('[Supabase] Session check warning:', error.message);
+            } else {
+                console.log('[Supabase] ✓ Connection verified');
+                if (data.session) {
+                    console.log('[Supabase] ✓ Active session found for:', data.session.user.email);
+                }
+            }
+        });
+        
+        // Dispatch ready event
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.dispatchEvent(new CustomEvent('supabaseReady'));
+            });
+        } else {
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('supabaseReady'));
+            }, 10);
         }
-    } else {
-        console.warn('⚠ Supabase library not loaded - authentication will be disabled');
+        
+    } catch (error) {
+        console.error('[Supabase] Initialization error:', error);
         window.supabase = null;
     }
-    
-    // Always dispatch ready event so page loads
-    setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('supabaseReady'));
-    }, 100);
-});
+} else {
+    console.error('[Supabase] Library not loaded! Check script tag in HTML.');
+    window.supabase = null;
+}
