@@ -440,7 +440,6 @@ function startMockData() {
     
     document.body.appendChild(notification);
     
-    // CRITICAL: Wait for charts to be ready
     const initializeMockData = () => {
         if (!window.chartManager || !window.chartManager.initialized) {
             console.log('[Mock] Waiting for charts to initialize...');
@@ -450,11 +449,10 @@ function startMockData() {
 
         console.log('[Mock] Charts ready, generating initial history');
         
-        // Generate 100 initial data points (last 50 minutes - 30 second intervals)
         const now = Date.now();
         const historicalData = [];
         const totalPoints = 100;
-        const intervalMs = 30000; // 30 seconds
+        const intervalMs = 30000;
         
         for (let i = totalPoints; i >= 0; i--) {
             const timestamp = new Date(now - (i * intervalMs));
@@ -469,15 +467,13 @@ function startMockData() {
             });
         }
         
-        console.log('[Mock] Generated', historicalData.length, 'initial data points (30-second intervals)');
+        console.log('[Mock] Generated', historicalData.length, 'initial data points');
         
-        // Update charts with comprehensive data
         if (window.chartManager) {
             window.chartManager.updateAllChartsFromHistory(historicalData);
             console.log('[Mock] Charts updated with initial data');
         }
         
-        // Set current data to last point
         if (historicalData.length > 0) {
             const lastPoint = historicalData[historicalData.length - 1];
             hardwareData.temperature = lastPoint.temperature;
@@ -486,47 +482,45 @@ function startMockData() {
             updateDashboardWithNewData(hardwareData);
         }
         
-        // Start continuous updates every 30 seconds
-     mockDataInterval = setInterval(() => {
-    const baseTemp = 23;
-    const basePh = 7.2;
-    const time = Date.now() / 100000;
-    
-    hardwareData.temperature = parseFloat((baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1).toFixed(2));
-    hardwareData.ph = parseFloat((basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2).toFixed(2));
-    hardwareData.lastUpdated = new Date();
-    
-    updateDashboardWithNewData(hardwareData);
-    
-    // ✅ ONLY SAVE IF NO DEVICE IS CONNECTED (prevents spam)
-    if (!isConnected) {
-        saveSensorReading(hardwareData).catch(err => {
-            console.warn('[Mock] Failed to save:', err.message);
-        });
-        console.log('[Mock] Generated mock data:', {
-            temp: hardwareData.temperature,
-            ph: hardwareData.ph
-        });
-    } else {
-        console.log('[Mock] Device connected - skipping save');
-    }
-    
-    // Stream new data point to charts
-    if (window.chartManager) {
-        window.chartManager.streamData('tempChart', {
-            x: hardwareData.lastUpdated.getTime(),
-            y: hardwareData.temperature,
-            temperature: hardwareData.temperature
-        });
+        mockDataInterval = setInterval(() => {
+            const baseTemp = 23;
+            const basePh = 7.2;
+            const time = Date.now() / 100000;
+            
+            hardwareData.temperature = parseFloat((baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1).toFixed(2));
+            hardwareData.ph = parseFloat((basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2).toFixed(2));
+            hardwareData.lastUpdated = new Date();
+            
+            updateDashboardWithNewData(hardwareData);
+            
+            if (!isConnected) {
+                saveSensorReading(hardwareData).catch(err => {
+                    console.warn('[Mock] Failed to save:', err.message);
+                });
+                console.log('[Mock] Generated mock data:', {
+                    temp: hardwareData.temperature,
+                    ph: hardwareData.ph
+                });
+            } else {
+                console.log('[Mock] Device connected - skipping save');
+            }
+            
+            if (window.chartManager) {
+                window.chartManager.streamData('tempChart', {
+                    x: hardwareData.lastUpdated.getTime(),
+                    y: hardwareData.temperature,
+                    temperature: hardwareData.temperature
+                });
+                
+                window.chartManager.streamData('phChart', {
+                    x: hardwareData.lastUpdated.getTime(),
+                    y: hardwareData.ph,
+                    ph: hardwareData.ph
+                });
+            }
+        }, 30000);
         
-        window.chartManager.streamData('phChart', {
-            x: hardwareData.lastUpdated.getTime(),
-            y: hardwareData.ph,
-            ph: hardwareData.ph
-        });
-    }
-}, 30000); // Update every 30 
-        console.log('[Mock] Continuous update interval started (30-second intervals)');
+        console.log('[Mock] Continuous update interval started');
     };
     
     setTimeout(initializeMockData, 500);
@@ -548,7 +542,7 @@ function stopMockData() {
 }
 
 // ========================================
-// DATA CLEANUP FUNCTION (Prevent Database Overflow)
+// DATA CLEANUP FUNCTION
 // ========================================
 
 async function cleanupOldSensorData(daysToKeep = 30) {
@@ -588,18 +582,15 @@ async function cleanupOldSensorData(daysToKeep = 30) {
     }
 }
 
-// Schedule automatic cleanup (runs every 24 hours)
 function scheduleDataCleanup() {
-    // Run cleanup immediately on load
     setTimeout(() => {
         cleanupOldSensorData(30).then(result => {
             if (result.success) {
                 console.log('[Cleanup] Initial cleanup completed');
             }
         });
-    }, 60000); // Wait 1 minute after page load
+    }, 60000);
 
-    // Schedule cleanup every 24 hours
     setInterval(() => {
         cleanupOldSensorData(30).then(result => {
             if (result.success) {
@@ -607,10 +598,9 @@ function scheduleDataCleanup() {
                 showNotification('Database Cleanup', 'Old sensor data cleaned up successfully', 'info');
             }
         });
-    }, 24 * 60 * 60 * 1000); // Every 24 hours
+    }, 24 * 60 * 60 * 1000);
 }
 
-// Export cleanup function
 window.cleanupOldSensorData = cleanupOldSensorData;
 
 // ========================================
@@ -631,7 +621,6 @@ function waitForChartsReady() {
         
         checkCharts();
         
-        // Timeout fallback (max 5 seconds)
         setTimeout(() => {
             console.warn('[Dashboard] Chart wait timeout, proceeding anyway');
             resolve();
@@ -651,12 +640,10 @@ async function initDashboard() {
         
         setupRealtimeSubscription();
         
-        // CRITICAL: Wait for charts to be ready
         console.log('[Dashboard] Waiting for charts...');
         await waitForChartsReady();
         console.log('[Dashboard] Charts confirmed ready');
         
-        // Load historical data
         const user = await getCurrentUser();
         if (user && window.getHistoricalReadings) {
             try {
@@ -768,10 +755,6 @@ function updateDashboardWithNewData(data) {
     updateWaterQualityStatus(hardwareData.temperature, hardwareData.ph);
     updateHarvestProjections(hardwareData);
     updateLastUpdated();
-    
-    // Don't update charts here - let mock data handle it
-    
-    
 }
 
 function updateWaterQualityStatus(temperature, ph) {
@@ -1515,7 +1498,6 @@ const knowledgeContent = {
 function setupEventListeners() {
     console.log('Setting up event listeners...');
 
-    // Navigation
     const navLinks = document.querySelectorAll('.nav-link');
     const sections = document.querySelectorAll('.dashboard-section');
     navLinks.forEach(link => {
@@ -1530,7 +1512,6 @@ function setupEventListeners() {
         });
     });
 
-    // Mobile menu toggle
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     if (mobileMenuBtn) {
         mobileMenuBtn.addEventListener('click', () => {
@@ -1550,7 +1531,6 @@ function setupEventListeners() {
         });
     }
 
-    // Command buttons
     const feedNowBtn = document.getElementById('feed-now');
     if (feedNowBtn) feedNowBtn.addEventListener('click', feedNow);
     
@@ -1563,7 +1543,6 @@ function setupEventListeners() {
     const testConnectionBtn = document.getElementById('test-connection');
     if (testConnectionBtn) testConnectionBtn.addEventListener('click', testConnection);
 
-    // Refresh button
     const refreshBtn = document.getElementById('refresh-data');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {
@@ -1575,7 +1554,6 @@ function setupEventListeners() {
         });
     }
 
-    // Logout button
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
@@ -1592,7 +1570,6 @@ function setupEventListeners() {
         });
     }
 
-    // Modal close buttons
     document.querySelectorAll('.modal-close, .modal-cancel').forEach(button => {
         button.addEventListener('click', () => {
             const modal = button.closest('.modal');
@@ -1600,14 +1577,12 @@ function setupEventListeners() {
         });
     });
 
-    // Close modal on outside click
     window.addEventListener('click', (event) => {
         if (event.target.classList.contains('modal')) {
             event.target.style.display = 'none';
         }
     });
 
-    // Schedule buttons
     const setFeedingScheduleBtn = document.getElementById('set-feeding-schedule');
     const setFeedingScheduleBtn2 = document.getElementById('set-feeding-schedule-btn');
     
@@ -1632,7 +1607,6 @@ function setupEventListeners() {
         });
     }
     
-    // Save buttons
     const saveFeedingScheduleBtn = document.getElementById('save-feeding-schedule');
     if (saveFeedingScheduleBtn) {
         saveFeedingScheduleBtn.addEventListener('click', saveFeedingSchedule);
@@ -1643,7 +1617,6 @@ function setupEventListeners() {
         saveWaterScheduleBtn.addEventListener('click', saveWaterSchedule);
     }
     
-    // Cancel buttons
     const cancelFeedingScheduleBtn = document.getElementById('cancel-feeding-schedule');
     if (cancelFeedingScheduleBtn) {
         cancelFeedingScheduleBtn.addEventListener('click', () => {
@@ -1660,7 +1633,6 @@ function setupEventListeners() {
         });
     }
 
-    // History and modal buttons
     const viewWaterHistoryBtn = document.getElementById('view-water-history');
     if (viewWaterHistoryBtn) {
         viewWaterHistoryBtn.addEventListener('click', viewWaterHistory);
@@ -1696,7 +1668,6 @@ function setupEventListeners() {
         refillFeedBtn.addEventListener('click', refillFeed);
     }
 
-    // Modal save buttons
     const saveTestScheduleBtn = document.getElementById('save-test-schedule');
     if (saveTestScheduleBtn) {
         saveTestScheduleBtn.addEventListener('click', saveWaterTestSchedule);
@@ -1722,7 +1693,6 @@ function setupEventListeners() {
         saveSettingsBtn.addEventListener('click', saveSettings);
     }
 
-    // Knowledge base categories
     const waterQualityCategory = document.getElementById('water-quality-category');
     if (waterQualityCategory) {
         waterQualityCategory.addEventListener('click', (e) => {
@@ -1747,7 +1717,6 @@ function setupEventListeners() {
         });
     }
 
-    // Chat functionality
     const sendButton = document.getElementById('send-button');
     if (sendButton) {
         sendButton.addEventListener('click', sendMessage);
@@ -1768,7 +1737,6 @@ function setupEventListeners() {
         });
     }
 
-    // Notification close button
     const notificationClose = document.getElementById('notification-close');
     if (notificationClose) {
         notificationClose.addEventListener('click', () => {
@@ -1971,7 +1939,6 @@ async function getSensorStatistics(days = 7) {
     }
 }
 
-// Export functions
 window.getHistoricalSensorData = getHistoricalSensorData;
 window.getLatestSensorReading = getLatestSensorReading;
 window.saveSensorReadingToSupabase = saveSensorReadingToSupabase;
@@ -1989,7 +1956,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     loadFarmSettings();
     
-    // Set form values from saved settings
     const farmNameInput = document.getElementById('farm-name');
     const emailInput = document.getElementById('notification-email');
     const phoneInput = document.getElementById('notification-phone');
@@ -2004,7 +1970,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (alertFreqInput) alertFreqInput.value = farmSettings.alertFrequency;
     if (waterTestFreqInput) waterTestFreqInput.value = farmSettings.waterTestingFrequency;
     
-    // Generate ocean elements - ANIMATIONS
     const oceanElements = document.querySelector('.ocean-elements');
     if (oceanElements) {
         const elementCount = 15;
@@ -2027,7 +1992,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Generate bioluminescence particles - ANIMATIONS
     const bioluminescence = document.querySelector('.bioluminescence');
     if (bioluminescence) {
         const particleCount = 30;
@@ -2046,13 +2010,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Initialize dashboard
     setTimeout(() => {
         initDashboard();
     }, 100);
 });
 
-// Cleanup on unload
 window.addEventListener('beforeunload', () => {
     console.log('[Dashboard] Cleaning up...');
     
@@ -2060,21 +2022,18 @@ window.addEventListener('beforeunload', () => {
     if (deviceCheckInterval) clearInterval(deviceCheckInterval);
     if (dataUpdateInterval) clearInterval(dataUpdateInterval);
     
-    // Unsubscribe from realtime updates
     if (window.sensorSubscription) {
         window.sensorSubscription.unsubscribe();
         console.log('[Device] Unsubscribed from realtime updates');
     }
 });
 
-// Export functions for global access
 window.checkDeviceStatus = checkDeviceStatus;
 window.sendCommand = sendCommand;
 window.setupRealtimeSubscription = setupRealtimeSubscription;
 window.startMockData = startMockData;
 window.stopMockData = stopMockData;
 
-// Listen for chartReady event
 document.addEventListener('chartReady', function() {
     console.log('[Dashboard] Received chartReady event');
     if (mockDataInterval) {
