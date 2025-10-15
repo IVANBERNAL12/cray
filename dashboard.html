@@ -1019,18 +1019,32 @@
 
     <!-- CRITICAL: External Libraries - CORRECT ORDER -->
     <!-- 1. Chart.js and Date Adapter (MUST BE FIRST) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     
-    <!-- 2. Supabase -->
+    <!-- 2. Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- 3. Your Scripts (CORRECT ORDER) -->
+    <!-- ============================================ -->
+    <!-- YOUR APPLICATION SCRIPTS - LOAD IN ORDER -->
+    <!-- ============================================ -->
+    
+    <!-- 3. Supabase Initialization (MUST BE FIRST) -->
     <script src="supabase-init.js"></script>
+    
+    <!-- 4. Authentication -->
     <script src="auth.js"></script>
+    
+    <!-- 5. Database Functions (CRITICAL - BEFORE dashboard.js) -->
     <script src="database.js"></script>
+    
+    <!-- 6. API Helper -->
     <script src="js/api.js"></script>
+    
+    <!-- 7. Charts -->
     <script src="js/charts.js"></script>
+    
+    <!-- 8. Dashboard (MUST BE LAST) -->
     <script src="js/dashboard.js"></script>
 
 </body>

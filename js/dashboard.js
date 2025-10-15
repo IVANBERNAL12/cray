@@ -243,28 +243,17 @@ async function checkDeviceStatus() {
             return;
         }
 
-        // Check for recent sensor readings (within last 5 minutes)
-        const fiveMinutesAgo = new Date();
-        fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+        console.log('[Device] Checking status for user:', user.id);
 
-        const { data, error } = await window.supabase
-            .from('sensor_readings')
-            .select('created_at, temperature, ph')
-            .eq('user_id', user.id)
-            .gte('created_at', fiveMinutesAgo.toISOString())
-            .order('created_at', { ascending: false })
-            .limit(1);
+        // Use the database helper function
+        const isOnline = await window.checkDeviceOnlineStatus(user.id);
 
-        if (error) {
-            console.error('[Device] Supabase query error:', error);
-            throw error;
-        }
-
-        console.log('[Device] Recent readings found:', data?.length || 0);
-
-        if (data && data.length > 0) {
-            // Device is online - we have recent data
+        if (isOnline) {
+            // Device is online - get latest reading
+            const latestReading = await window.getLatestReading(user.id);
+            
             isConnected = true;
+            
             if (statusIndicator) {
                 statusIndicator.className = 'status-indicator online';
                 statusIndicator.style.backgroundColor = '#00ff88';
@@ -273,36 +262,39 @@ async function checkDeviceStatus() {
                 statusText.textContent = 'Device Connected';
                 statusText.style.color = '#00ff88';
             }
-            if (lastUpdate) {
-                const updateTime = new Date(data[0].created_at);
+            
+            if (lastUpdate && latestReading) {
+                const updateTime = new Date(latestReading.created_at);
                 const now = new Date();
-                const diffMinutes = Math.floor((now - updateTime) / 60000);
+                const diffSeconds = Math.floor((now - updateTime) / 1000);
                 
-                if (diffMinutes < 1) {
+                if (diffSeconds < 10) {
                     lastUpdate.textContent = 'Last update: Just now';
-                } else if (diffMinutes === 1) {
-                    lastUpdate.textContent = 'Last update: 1 minute ago';
+                } else if (diffSeconds < 60) {
+                    lastUpdate.textContent = `Last update: ${diffSeconds} seconds ago`;
                 } else {
-                    lastUpdate.textContent = `Last update: ${diffMinutes} minutes ago`;
+                    const diffMinutes = Math.floor(diffSeconds / 60);
+                    lastUpdate.textContent = `Last update: ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+                }
+                
+                // Update dashboard with real data
+                if (latestReading.temperature !== null && latestReading.ph !== null) {
+                    hardwareData.temperature = latestReading.temperature;
+                    hardwareData.ph = latestReading.ph;
+                    hardwareData.population = latestReading.population || 15;
+                    hardwareData.healthStatus = latestReading.health_status || 100;
+                    hardwareData.lastUpdated = new Date(latestReading.created_at);
+                    
+                    updateDashboardWithNewData(hardwareData);
+                    stopMockData();
+                    
+                    console.log('[Device] ✓ Updated with real data:', {
+                        temp: hardwareData.temperature,
+                        ph: hardwareData.ph
+                    });
                 }
             }
-
-            // Update with real data
-            if (data[0].temperature !== null && data[0].ph !== null) {
-                hardwareData.temperature = data[0].temperature;
-                hardwareData.ph = data[0].ph;
-                hardwareData.lastUpdated = new Date(data[0].created_at);
-                
-                updateDashboardWithNewData(hardwareData);
-                stopMockData(); // Stop mock data when real data available
-                
-                console.log('[Device] Updated with real data:', {
-                    temp: hardwareData.temperature,
-                    ph: hardwareData.ph
-                });
-            }
         } else {
-            // No recent data - device is offline
             updateOfflineStatus('No recent data from device');
         }
     } catch (error) {
@@ -326,11 +318,9 @@ async function checkDeviceStatus() {
             lastUpdate.textContent = 'Using mock data for demonstration';
         }
         
-        // Start mock data when offline
         startMockData();
     }
 }
-
 // Enhanced sendCommand function with better feedback
 async function sendCommand(command) {
     try {
@@ -385,82 +375,58 @@ async function sendCommand(command) {
 
 // Add this to listen for real-time sensor updates from Supabase
 function setupRealtimeSubscription() {
-    if (!window.supabase) {
-        console.log('[Device] Supabase not available, skipping realtime setup');
+    if (!window.supabase || !window.subscribeToSensorData) {
+        console.log('[Device] Supabase or database helpers not available, skipping realtime');
         return;
     }
 
     getCurrentUser().then(user => {
         if (!user) {
-            console.log('[Device] User not authenticated, skipping realtime setup');
+            console.log('[Device] User not authenticated, skipping realtime');
             return;
         }
 
-        console.log('[Device] Setting up realtime subscription for user:', user.id);
+        console.log('[Device] Setting up real-time subscription for user:', user.id);
 
-        // Subscribe to sensor_readings changes
-        const subscription = window.supabase
-            .channel('sensor_readings_changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'sensor_readings',
-                    filter: `user_id=eq.${user.id}`
-                },
-                (payload) => {
-                    console.log('[Device] Real-time sensor data received:', payload);
-                    
-                    if (payload.new) {
-                        // Update device status to online
-                        isConnected = true;
-                        const statusIndicator = document.getElementById('device-status-indicator');
-                        const statusText = document.getElementById('device-status-text');
-                        const lastUpdate = document.getElementById('last-device-update');
-                        
-                        if (statusIndicator) {
-                            statusIndicator.className = 'status-indicator online';
-                            statusIndicator.style.backgroundColor = '#00ff88';
-                        }
-                        if (statusText) {
-                            statusText.textContent = 'Device Connected';
-                            statusText.style.color = '#00ff88';
-                        }
-                        if (lastUpdate) {
-                            lastUpdate.textContent = 'Last update: Just now';
-                        }
-                        
-                        // Update dashboard with new data
-                        hardwareData.temperature = payload.new.temperature;
-                        hardwareData.ph = payload.new.ph;
-                        hardwareData.lastUpdated = new Date(payload.new.created_at);
-                        
-                        updateDashboardWithNewData(hardwareData);
-                        stopMockData(); // Stop mock data when real data comes in
-                        
-                        // Dispatch event for charts
-                        document.dispatchEvent(new CustomEvent('sensorDataUpdate', {
-                            detail: {
-                                temperature: payload.new.temperature,
-                                ph: payload.new.ph,
-                                timestamp: payload.new.created_at
-                            }
-                        }));
-                    }
-                }
-            )
-            .subscribe((status) => {
-                console.log('[Device] Realtime subscription status:', status);
-                if (status === 'SUBSCRIBED') {
-                    showNotification('Real-time Updates', 'Connected to real-time sensor updates', 'success');
-                }
-            });
+        // Subscribe using the database helper
+        const subscription = window.subscribeToSensorData(user.id, (newData) => {
+            console.log('[Device] 🔴 Real-time callback triggered:', newData);
+            
+            // Update device status to online
+            isConnected = true;
+            const statusIndicator = document.getElementById('device-status-indicator');
+            const statusText = document.getElementById('device-status-text');
+            const lastUpdate = document.getElementById('last-device-update');
+            
+            if (statusIndicator) {
+                statusIndicator.className = 'status-indicator online';
+                statusIndicator.style.backgroundColor = '#00ff88';
+            }
+            if (statusText) {
+                statusText.textContent = 'Device Connected';
+                statusText.style.color = '#00ff88';
+            }
+            if (lastUpdate) {
+                lastUpdate.textContent = 'Last update: Just now';
+            }
+            
+            // Update dashboard with new data
+            hardwareData.temperature = newData.temperature;
+            hardwareData.ph = newData.ph;
+            hardwareData.population = newData.population || 15;
+            hardwareData.healthStatus = newData.health_status || 100;
+            hardwareData.lastUpdated = new Date(newData.created_at);
+            
+            updateDashboardWithNewData(hardwareData);
+            stopMockData();
+            
+            console.log('[Device] ✓ Dashboard updated from real-time data');
+        });
 
-        // Store subscription for cleanup
         window.sensorSubscription = subscription;
+        console.log('[Device] ✓ Real-time subscription created');
     }).catch(error => {
-        console.error('[Device] Error setting up realtime subscription:', error);
+        console.error('[Device] Error setting up subscription:', error);
     });
 }
 
@@ -568,32 +534,49 @@ async function initDashboard() {
         console.log('[Dashboard] Initializing dashboard...');
         
         await loadFarmSettings();
+        
+        // Setup realtime subscription FIRST
+        setupRealtimeSubscription();
+        
+        // Load historical data
+        const user = await getCurrentUser();
+        if (user && window.getHistoricalReadings) {
+            try {
+                const historicalData = await window.getHistoricalReadings(user.id, 24);
+                if (historicalData && historicalData.length > 0) {
+                    console.log('[Dashboard] ✓ Loaded', historicalData.length, 'historical readings');
+                    
+                    // Update charts with historical data
+                    if (window.chartManager) {
+                        window.chartManager.updateAllChartsFromHistory(historicalData);
+                    }
+                }
+            } catch (error) {
+                console.warn('[Dashboard] Could not load historical data:', error);
+            }
+        }
+        
         await loadDashboardData();
         setupEventListeners();
         
-        // Setup realtime subscription for sensor updates
-        setupRealtimeSubscription();
+        // Check device status
+        await checkDeviceStatus();
+        deviceCheckInterval = setInterval(checkDeviceStatus, 30000); // Every 30 seconds
         
-        // Start device status checking
-        checkDeviceStatus();
-        deviceCheckInterval = setInterval(checkDeviceStatus, 30000); // Check every 30 seconds
-        
-        // Start with mock data if offline (will be stopped when real data arrives)
+        // Start with mock data if offline (will stop when real data arrives)
         if (!isConnected) {
+            console.log('[Dashboard] Starting with mock data (device offline)');
             startMockData();
         }
 
-        console.log('[Dashboard] Dashboard initialized successfully');
-        showNotification('Dashboard Ready', 'AquaVision Pro dashboard loaded successfully', 'success');
+        console.log('[Dashboard] ✓ Dashboard initialized successfully');
+        showNotification('Dashboard Ready', 'AquaVision Pro loaded successfully', 'success');
     } catch (error) {
-        console.error('[Dashboard] Failed to initialize dashboard:', error);
+        console.error('[Dashboard] Failed to initialize:', error);
         showNotification('Error', 'Failed to initialize dashboard', 'error');
-        
-        // Fall back to mock data if initialization fails
         startMockData();
     }
 }
-
 // Cleanup function to call on page unload
 window.addEventListener('beforeunload', () => {
     console.log('[Dashboard] Cleaning up...');
