@@ -487,54 +487,45 @@ function startMockData() {
         }
         
         // Start continuous updates every 30 seconds
-        mockDataInterval = setInterval(() => {
-            const baseTemp = 23;
-            const basePh = 7.2;
-            const time = Date.now() / 100000;
-            
-            hardwareData.temperature = parseFloat((baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1).toFixed(2));
-            hardwareData.ph = parseFloat((basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2).toFixed(2));
-            hardwareData.lastUpdated = new Date();
-            
-            updateDashboardWithNewData(hardwareData);
-            
-            // Save to Supabase every 30 seconds
-            saveSensorReading(hardwareData).then(() => {
-                console.log('[Mock] Data saved to Supabase at', hardwareData.lastUpdated.toLocaleTimeString());
-            }).catch(err => {
-                console.warn('[Mock] Failed to save to Supabase:', err.message);
-            });
-            
-            // Stream new data point to charts
-            if (window.chartManager) {
-                window.chartManager.streamData('tempChart', {
-                    x: hardwareData.lastUpdated.getTime(),
-                    y: hardwareData.temperature,
-                    temperature: hardwareData.temperature
-                });
-                
-                window.chartManager.streamData('phChart', {
-                    x: hardwareData.lastUpdated.getTime(),
-                    y: hardwareData.ph,
-                    ph: hardwareData.ph
-                });
-            }
-            
-            document.dispatchEvent(new CustomEvent('sensorDataUpdate', {
-                detail: {
-                    temperature: hardwareData.temperature,
-                    ph: hardwareData.ph,
-                    timestamp: hardwareData.lastUpdated
-                }
-            }));
-            
-            console.log('[Mock] Generated & saved data:', {
-                temp: hardwareData.temperature,
-                ph: hardwareData.ph,
-                time: hardwareData.lastUpdated.toLocaleTimeString()
-            });
-        }, 30000); // Update every 30 seconds
+     mockDataInterval = setInterval(() => {
+    const baseTemp = 23;
+    const basePh = 7.2;
+    const time = Date.now() / 100000;
+    
+    hardwareData.temperature = parseFloat((baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1).toFixed(2));
+    hardwareData.ph = parseFloat((basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2).toFixed(2));
+    hardwareData.lastUpdated = new Date();
+    
+    updateDashboardWithNewData(hardwareData);
+    
+    // ✅ ONLY SAVE IF NO DEVICE IS CONNECTED (prevents spam)
+    if (!isConnected) {
+        saveSensorReading(hardwareData).catch(err => {
+            console.warn('[Mock] Failed to save:', err.message);
+        });
+        console.log('[Mock] Generated mock data:', {
+            temp: hardwareData.temperature,
+            ph: hardwareData.ph
+        });
+    } else {
+        console.log('[Mock] Device connected - skipping save');
+    }
+    
+    // Stream new data point to charts
+    if (window.chartManager) {
+        window.chartManager.streamData('tempChart', {
+            x: hardwareData.lastUpdated.getTime(),
+            y: hardwareData.temperature,
+            temperature: hardwareData.temperature
+        });
         
+        window.chartManager.streamData('phChart', {
+            x: hardwareData.lastUpdated.getTime(),
+            y: hardwareData.ph,
+            ph: hardwareData.ph
+        });
+    }
+}, 30000); // Update every 30 
         console.log('[Mock] Continuous update interval started (30-second intervals)');
     };
     
@@ -780,7 +771,7 @@ function updateDashboardWithNewData(data) {
     
     // Don't update charts here - let mock data handle it
     
-    saveSensorReading(hardwareData);
+    
 }
 
 function updateWaterQualityStatus(temperature, ph) {
