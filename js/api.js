@@ -1,26 +1,21 @@
 /**
- * web-interface/js/api.js
- * Client-side API helper for AquaVision / Crayfish Monitor
- * Fixed version with better error handling and mock data
+ * api.js - COMPLETE CORRECTED VERSION
  */
 
 class APIClient {
   constructor() {
-    // Default to same origin
     this.baseURL = window.location.origin || `${window.location.protocol}//${window.location.hostname}:${window.location.port || 3000}`;
-    this.timeout = 10000; // 10 seconds
+    this.timeout = 10000;
     this.retryAttempts = 3;
-    this.retryDelay = 800; // ms
+    this.retryDelay = 800;
   }
 
-  // Normalize base URL (no trailing slash)
   setBaseURL(url) {
     if (!url) return;
     this.baseURL = url.replace(/\/$/, '');
     console.log('[API] baseURL set to', this.baseURL);
   }
 
-  // Build full URL from endpoint
   buildURL(endpoint) {
     if (!endpoint) endpoint = '/';
     if (!endpoint.startsWith('/')) endpoint = '/' + endpoint;
@@ -67,13 +62,11 @@ class APIClient {
         if (attempt === this.retryAttempts) {
           throw err;
         }
-        // backoff
         await new Promise(r => setTimeout(r, this.retryDelay * attempt));
       }
     }
   }
 
-  // API endpoints
   async getCurrentData() {
     return this.makeRequest('/api/current');
   }
@@ -95,7 +88,6 @@ class APIClient {
     return this.makeRequest('/api/reset', { method: 'POST' });
   }
 
-  // Mock data generators (improved)
   async getMockCurrentData() {
     await new Promise(r => setTimeout(r, 80));
     const now = Date.now();
@@ -119,7 +111,7 @@ class APIClient {
     const now = Date.now();
     
     for (let i = points; i >= 0; i--) {
-      const timestamp = now - (i * 60000); // 1 minute intervals
+      const timestamp = now - (i * 60000);
       const temp = 21 + Math.sin(i * 0.1) * 2 + (Math.random() - 0.5) * 0.5;
       const ph = 7.2 + Math.cos(i * 0.08) * 0.3 + (Math.random() - 0.5) * 0.1;
       
@@ -132,7 +124,6 @@ class APIClient {
     return data;
   }
 
-  // Fallback wrappers
   async getCurrentDataWithFallback() {
     try {
       const data = await this.getCurrentData();
@@ -173,44 +164,8 @@ class APIClient {
       };
     }
   }
-
-  // WebSocket helper
-  connectWebSocket(path = '') {
-    try {
-      let wsBase = this.baseURL || `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
-      wsBase = wsBase.replace(/^http/, (m) => m === 'http' ? 'ws' : 'wss');
-      const url = wsBase + (path || '');
-      console.log('[API] connecting websocket to', url);
-      
-      const ws = new WebSocket(url);
-
-      ws.onopen = () => console.log('[API] WebSocket open');
-      ws.onmessage = (ev) => {
-        try {
-          const payload = JSON.parse(ev.data);
-          const event = new CustomEvent('sensorDataUpdate', { detail: payload });
-          document.dispatchEvent(event);
-        } catch (err) {
-          console.warn('[API] WS parse error', err);
-        }
-      };
-      ws.onclose = () => {
-        console.log('[API] WebSocket closed — reconnect in 5s');
-        setTimeout(() => this.connectWebSocket(path), 5000);
-      };
-      ws.onerror = (err) => {
-        console.error('[API] WebSocket error', err);
-      };
-
-      return ws;
-    } catch (err) {
-      console.error('[API] WebSocket connect failed', err);
-      return null;
-    }
-  }
 }
 
-// Data Processing Utilities
 class DataProcessor {
   static smoothData(data, windowSize = 5) {
     if (!data || data.length < windowSize) return data || [];
@@ -219,7 +174,7 @@ class DataProcessor {
       const start = Math.max(0, i - Math.floor(windowSize / 2));
       const end = Math.min(data.length - 1, i + Math.floor(windowSize / 2));
       const window = data.slice(start, end + 1);
-      const avgTemp = window.reduce((s, d) => s + d.temperature, 0) / window.length;
+     const avgTemp = window.reduce((s, d) => s + d.temperature, 0) / window.length;
       const avgPH = window.reduce((s, d) => s + d.ph, 0) / window.length;
       smoothed.push({
         ...data[i],
@@ -262,7 +217,6 @@ class DataProcessor {
   }
 }
 
-// Simple Cache Manager
 class APICache {
   constructor(maxAge = 30000) {
     this.cache = new Map();
@@ -300,7 +254,6 @@ class APICache {
 const API = new APIClient();
 const apiCache = new APICache(30000);
 
-// Enhanced API with caching
 API.getCurrentDataCached = async function () {
   const cached = apiCache.get('current');
   if (cached) return cached;
@@ -309,21 +262,52 @@ API.getCurrentDataCached = async function () {
   return data;
 };
 
-// Supabase authentication functions
+// Supabase authentication functions with timeout protection
 async function getCurrentUser() {
     try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error) throw error;
+        if (!window.supabase) {
+            console.warn('[API] Supabase not available');
+            return null;
+        }
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 5000)
+        );
+        
+        const userPromise = window.supabase.auth.getUser();
+        
+        const { data: { user }, error } = await Promise.race([userPromise, timeoutPromise]);
+        
+        if (error) {
+            console.error('[API] Error getting user:', error);
+            return null;
+        }
+        
         return user;
     } catch (error) {
-        console.error('Error getting current user:', error);
+        // Handle timeout and network errors gracefully
+        if (error.message === 'Timeout' || error.name === 'AuthRetryableFetchError') {
+            console.warn('[API] Auth check timed out or network error - using cached session');
+            // Try to get user from localStorage
+            const userId = localStorage.getItem('userId');
+            if (userId) {
+                return { id: userId }; // Return minimal user object
+            }
+        }
+        console.error('[API] Failed to get current user:', error);
         return null;
     }
 }
 
 async function checkAuth() {
     try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        if (!window.supabase) {
+            console.warn('[API] Supabase not available');
+            return { authenticated: false, user: null };
+        }
+        
+        const { data: { session }, error } = await window.supabase.auth.getSession();
         if (error) throw error;
         
         return {
@@ -339,42 +323,11 @@ async function checkAuth() {
     }
 }
 
-// Device command functions
-async function sendDeviceCommand(command) {
-    try {
-        const user = await getCurrentUser();
-        if (!user) throw new Error('User not authenticated');
-        
-        console.log('Sending device command:', command);
-        
-        const { data, error } = await supabase
-            .from('device_commands')
-            .insert([
-                { 
-                    user_id: user.id,
-                    command: command,
-                    status: 'pending',
-                    created_at: new Date().toISOString()
-                }
-            ])
-            .select();
-            
-        if (error) throw error;
-        
-        console.log('Device command sent successfully:', data);
-        return { success: true, data: data };
-    } catch (error) {
-        console.error('Error sending device command:', error);
-        return { success: false, message: error.message };
-    }
-}
-
 // Export global objects
 window.API = API;
 window.DataProcessor = DataProcessor;
 window.APICache = APICache;
 window.getCurrentUser = getCurrentUser;
 window.checkAuth = checkAuth;
-window.sendDeviceCommand = sendDeviceCommand;
 
-console.log('[API] API client initialized');
+console.log('[API] ✓ API client initialized');

@@ -1,4 +1,4 @@
-// supabase-init.js - CORRECTED VERSION
+// supabase-init.js - COMPLETE CORRECTED VERSION
 console.log('supabase-init.js loading...');
 
 // Supabase Configuration

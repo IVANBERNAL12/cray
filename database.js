@@ -1,4 +1,4 @@
-// database.js - COMPLETE VERSION WITH ALL MISSING FUNCTIONS
+// database.js - COMPLETE CORRECTED VERSION (ALL FUNCTIONS INCLUDED)
 console.log('database.js loaded');
 
 // Export all functions to window for global access
@@ -22,102 +22,7 @@ async function ensureAuthenticated() {
 }
 
 // ========================================
-// SENSOR READINGS
-// ========================================
-
-async function saveSensorReading(reading) {
-    try {
-        const user = await ensureAuthenticated();
-        
-        const { data, error } = await window.supabase
-            .from('sensor_readings')
-            .insert([{
-                user_id: user.id,
-                temperature: reading.temperature || 0,
-                ph: reading.ph || 7.0,
-                population: reading.population || 15,
-                health_status: reading.health_status || reading.healthStatus || 100,
-                avg_weight: reading.avg_weight || reading.avgWeight || 5.0,
-                days_to_harvest: reading.days_to_harvest || reading.daysToHarvest || 120
-            }])
-            .select();
-            
-        if (error) throw error;
-        
-        console.log('✓ Sensor reading saved:', data);
-        return { success: true, data: data };
-    } catch (error) {
-        console.error('Error saving sensor reading:', error);
-        return { success: false, message: error.message };
-    }
-}
-
-async function getLatestSensorReading() {
-    try {
-        const user = await ensureAuthenticated();
-        
-        const { data, error } = await window.supabase
-            .from('sensor_readings')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-            
-        if (error && error.code !== 'PGRST116') throw error;
-        
-        if (data) {
-            return {
-                temperature: data.temperature,
-                ph: data.ph,
-                population: data.population,
-                healthStatus: data.health_status,
-                avgWeight: data.avg_weight,
-                daysToHarvest: data.days_to_harvest,
-                lastUpdated: new Date(data.created_at)
-            };
-        }
-        
-        return null;
-    } catch (error) {
-        console.error('Error fetching sensor data:', error);
-        return null;
-    }
-}
-
-async function getHistoricalSensorData(days = 7) {
-    try {
-        const user = await ensureAuthenticated();
-        
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
-        
-        const { data, error } = await window.supabase
-            .from('sensor_readings')
-            .select('*')
-            .eq('user_id', user.id)
-            .gte('created_at', startDate.toISOString())
-            .order('created_at', { ascending: true });
-            
-        if (error) throw error;
-        
-        return data.map(item => ({
-            timestamp: new Date(item.created_at),
-            temperature: item.temperature,
-            ph: item.ph,
-            population: item.population,
-            healthStatus: item.health_status,
-            avgWeight: item.avg_weight,
-            daysToHarvest: item.days_to_harvest
-        }));
-    } catch (error) {
-        console.error('Error fetching historical data:', error);
-        return [];
-    }
-}
-
-// ========================================
-// NEW: DEVICE STATUS & CONNECTIVITY FUNCTIONS
+// DEVICE STATUS & CONNECTIVITY FUNCTIONS
 // ========================================
 
 async function checkDeviceOnlineStatus(userId, minutesThreshold = 2) {
@@ -244,6 +149,102 @@ function subscribeToSensorData(userId, callback) {
         });
 
     return subscription;
+}
+
+// ========================================
+// SENSOR READINGS
+// ========================================
+
+async function saveSensorReading(reading) {
+    try {
+        const user = await ensureAuthenticated();
+        
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .insert([{
+                user_id: user.id,
+                temperature: reading.temperature || 0,
+                ph: reading.ph || 7.0,
+                population: reading.population || 15,
+                health_status: reading.health_status || reading.healthStatus || 100,
+                avg_weight: reading.avg_weight || reading.avgWeight || 5.0,
+                days_to_harvest: reading.days_to_harvest || reading.daysToHarvest || 120
+            }])
+            .select();
+            
+        if (error) throw error;
+        
+        console.log('✓ Sensor reading saved:', data);
+        return { success: true, data: data };
+    } catch (error) {
+        console.error('Error saving sensor reading:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+async function getLatestSensorReading() {
+    try {
+        const user = await ensureAuthenticated();
+        
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+        if (error && error.code !== 'PGRST116') throw error;
+        
+        if (data) {
+            return {
+                temperature: data.temperature,
+                ph: data.ph,
+                population: data.population,
+                healthStatus: data.health_status,
+                avgWeight: data.avg_weight,
+                daysToHarvest: data.days_to_harvest,
+                lastUpdated: new Date(data.created_at)
+            };
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error fetching sensor data:', error);
+        return null;
+    }
+}
+
+async function getHistoricalSensorData(days = 7) {
+    try {
+        const user = await ensureAuthenticated();
+        
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        
+        const { data, error } = await window.supabase
+            .from('sensor_readings')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('created_at', startDate.toISOString())
+            .order('created_at', { ascending: true });
+            
+        if (error) throw error;
+        
+        return data.map(item => ({
+            timestamp: new Date(item.created_at),
+            created_at: item.created_at,
+            temperature: item.temperature,
+            ph: item.ph,
+            population: item.population,
+            healthStatus: item.health_status,
+            avgWeight: item.avg_weight,
+            daysToHarvest: item.days_to_harvest
+        }));
+    } catch (error) {
+        console.error('Error fetching historical data:', error);
+        return [];
+    }
 }
 
 // ========================================
@@ -589,7 +590,6 @@ async function getDeviceStatus() {
     try {
         const user = await ensureAuthenticated();
         
-        // Check if there are any recent sensor readings (within last 2 minutes)
         const twoMinutesAgo = new Date();
         twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
         
@@ -622,22 +622,27 @@ async function getDeviceStatus() {
 }
 
 // ========================================
-// FARM SETTINGS
+// FARM SETTINGS (UPDATED TO USE farm_settings TABLE)
 // ========================================
 
 async function saveFarmSettings(settings) {
     try {
         const user = await ensureAuthenticated();
         
-        // Store settings in a custom table or user metadata
-        // For simplicity, we'll use localStorage + user profile
+        // Use the farm_settings table
         const { data, error } = await window.supabase
-            .from('users')
-            .update({
-                farm_name: settings.name,
-                email: settings.email
+            .from('farm_settings')
+            .upsert([{
+                user_id: user.id,
+                name: settings.name || 'My Crayfish Farm',
+                email: settings.email || user.email || '',
+                phone: settings.phone || '',
+                unit: settings.unit || 'metric',
+                alert_frequency: settings.alertFrequency || settings.alert_frequency || 'immediate',
+                water_testing_frequency: settings.waterTestingFrequency || settings.water_testing_frequency || 'twice-weekly'
+            }], {
+                onConflict: 'user_id'
             })
-            .eq('id', user.id)
             .select();
             
         if (error) throw error;
@@ -660,21 +665,27 @@ async function getFarmSettings() {
         const user = await ensureAuthenticated();
         
         const { data, error } = await window.supabase
-            .from('users')
-            .select('farm_name, email, name')
-            .eq('id', user.id)
+            .from('farm_settings')
+            .select('*')
+            .eq('user_id', user.id)
             .single();
             
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error;
         
         if (data) {
             return {
-                name: data.farm_name || data.name || 'My Crayfish Farm',
-                email: data.email || ''
+                name: data.name || 'My Crayfish Farm',
+                email: data.email || '',
+                phone: data.phone || '',
+                unit: data.unit || 'metric',
+                alertFrequency: data.alert_frequency || 'immediate',
+                waterTestingFrequency: data.water_testing_frequency || 'twice-weekly'
             };
         }
         
-        return null;
+        // Fallback to localStorage
+        const local = localStorage.getItem('farmSettings');
+        return local ? JSON.parse(local) : null;
     } catch (error) {
         console.error('Error fetching farm settings:', error);
         // Fallback to localStorage
@@ -684,34 +695,46 @@ async function getFarmSettings() {
 }
 
 // ========================================
-// EXPORT ALL FUNCTIONS
+// EXPORT ALL FUNCTIONS TO WINDOW
 // ========================================
 
-// Original exports
-window.saveSensorReading = saveSensorReading;
-window.getLatestSensorReading = getLatestSensorReading;
-window.getHistoricalSensorData = getHistoricalSensorData;
-window.saveFeedData = saveFeedData;
-window.getFeedData = getFeedData;
-window.saveFeedingSchedule = saveFeedingSchedule;
-window.getFeedingSchedule = getFeedingSchedule;
-window.saveWaterSchedule = saveWaterSchedule;
-window.getWaterSchedule = getWaterSchedule;
-window.saveHarvestRecord = saveHarvestRecord;
-window.getHarvestRecords = getHarvestRecords;
-window.saveWaterQualityTest = saveWaterQualityTest;
-window.getWaterQualityTests = getWaterQualityTests;
-window.sendDeviceCommand = sendDeviceCommand;
-window.getPendingDeviceCommands = getPendingDeviceCommands;
-window.markCommandProcessed = markCommandProcessed;
-window.getDeviceStatus = getDeviceStatus;
-window.saveFarmSettings = saveFarmSettings;
-window.getFarmSettings = getFarmSettings;
-
-// NEW: Export missing functions
+// Device connectivity functions
 window.checkDeviceOnlineStatus = checkDeviceOnlineStatus;
 window.getLatestReading = getLatestReading;
 window.getHistoricalReadings = getHistoricalReadings;
 window.subscribeToSensorData = subscribeToSensorData;
 
-console.log('[Database] All database functions loaded and exported (including device connectivity functions)');
+// Sensor readings
+window.saveSensorReading = saveSensorReading;
+window.getLatestSensorReading = getLatestSensorReading;
+window.getHistoricalSensorData = getHistoricalSensorData;
+
+// Feed management
+window.saveFeedData = saveFeedData;
+window.getFeedData = getFeedData;
+window.saveFeedingSchedule = saveFeedingSchedule;
+window.getFeedingSchedule = getFeedingSchedule;
+
+// Water management
+window.saveWaterSchedule = saveWaterSchedule;
+window.getWaterSchedule = getWaterSchedule;
+
+// Harvest records
+window.saveHarvestRecord = saveHarvestRecord;
+window.getHarvestRecords = getHarvestRecords;
+
+// Water quality tests
+window.saveWaterQualityTest = saveWaterQualityTest;
+window.getWaterQualityTests = getWaterQualityTests;
+
+// Device commands
+window.sendDeviceCommand = sendDeviceCommand;
+window.getPendingDeviceCommands = getPendingDeviceCommands;
+window.markCommandProcessed = markCommandProcessed;
+window.getDeviceStatus = getDeviceStatus;
+
+// Farm settings
+window.saveFarmSettings = saveFarmSettings;
+window.getFarmSettings = getFarmSettings;
+
+console.log('[Database] ✓ All database functions loaded and exported (COMPLETE VERSION)');
