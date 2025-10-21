@@ -447,14 +447,19 @@ function setupRealtimeSubscription() {
 // MOCK DATA SYSTEM (FIXED)
 // ========================================
 
+// ========================================
+// MOCK DATA SYSTEM (FIXED - VISUAL ONLY!)
+// ========================================
+
 function startMockData() {
     if (mockDataInterval) {
         console.log('[Mock] Mock data already running');
         return;
     }
     
-    console.log('[Mock] Starting mock data generation...');
+    console.log('[Mock] Starting mock data generation (VISUAL ONLY)...');
     
+    // Show demo mode banner
     const notification = document.createElement('div');
     notification.id = 'mock-mode-banner';
     notification.style.cssText = `
@@ -470,7 +475,7 @@ function startMockData() {
         font-weight: 500;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     `;
-    notification.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Demo Mode: Showing simulated data';
+    notification.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Demo Mode: Showing simulated data (NOT saved to database)';
     
     const existingBanner = document.getElementById('mock-mode-banner');
     if (existingBanner) existingBanner.remove();
@@ -484,13 +489,14 @@ function startMockData() {
             return;
         }
 
-        console.log('[Mock] Charts ready, generating initial history');
+        console.log('[Mock] Charts ready, generating initial history (VISUAL ONLY)');
         
         const now = Date.now();
         const historicalData = [];
         const totalPoints = 100;
         const intervalMs = 30000;
         
+        // Generate historical mock data for charts
         for (let i = totalPoints; i >= 0; i--) {
             const timestamp = new Date(now - (i * intervalMs));
             const temp = 22 + Math.sin(i * 0.1) * 2 + (Math.random() - 0.5) * 1;
@@ -504,13 +510,15 @@ function startMockData() {
             });
         }
         
-        console.log('[Mock] Generated', historicalData.length, 'initial data points');
+        console.log('[Mock] Generated', historicalData.length, 'visual data points (NOT saved)');
         
+        // Update charts with mock data (visual only)
         if (window.chartManager) {
             window.chartManager.updateAllChartsFromHistory(historicalData);
-            console.log('[Mock] Charts updated with initial data');
+            console.log('[Mock] Charts updated with visual data');
         }
         
+        // Update dashboard display
         if (historicalData.length > 0) {
             const lastPoint = historicalData[historicalData.length - 1];
             hardwareData.temperature = lastPoint.temperature;
@@ -519,29 +527,28 @@ function startMockData() {
             updateDashboardWithNewData(hardwareData);
         }
         
+        // Start continuous mock data generation (VISUAL ONLY!)
         mockDataInterval = setInterval(() => {
             const baseTemp = 23;
             const basePh = 7.2;
             const time = Date.now() / 100000;
             
+            // Generate new mock values
             hardwareData.temperature = parseFloat((baseTemp + Math.sin(time) * 2 + (Math.random() - 0.5) * 1).toFixed(2));
             hardwareData.ph = parseFloat((basePh + Math.cos(time) * 0.3 + (Math.random() - 0.5) * 0.2).toFixed(2));
             hardwareData.lastUpdated = new Date();
             
+            // Update UI only - DO NOT SAVE TO DATABASE!
             updateDashboardWithNewData(hardwareData);
             
-            if (!isConnected) {
-                saveSensorReading(hardwareData).catch(err => {
-                    console.warn('[Mock] Failed to save:', err.message);
-                });
-                console.log('[Mock] Generated mock data:', {
-                    temp: hardwareData.temperature,
-                    ph: hardwareData.ph
-                });
-            } else {
-                console.log('[Mock] Device connected - skipping save');
-            }
+            // Log to console (not database)
+            console.log('[Mock] Generated visual data (NOT saved):', {
+                temp: hardwareData.temperature,
+                ph: hardwareData.ph,
+                note: 'Display only - not in database'
+            });
             
+            // Update charts visually
             if (window.chartManager) {
                 window.chartManager.streamData('tempChart', {
                     x: hardwareData.lastUpdated.getTime(),
@@ -555,9 +562,9 @@ function startMockData() {
                     ph: hardwareData.ph
                 });
             }
-        }, 30000);
+        }, 30000); // Update every 30 seconds
         
-        console.log('[Mock] Continuous update interval started');
+        console.log('[Mock] Continuous visual updates started (NOT saving to database)');
     };
     
     setTimeout(initializeMockData, 500);
@@ -577,6 +584,7 @@ function stopMockData() {
         }
     }
 }
+
 
 // ========================================
 // DATA CLEANUP FUNCTION
@@ -2077,5 +2085,5 @@ document.addEventListener('chartReady', function() {
         console.log('[Dashboard] Charts ready - mock data already running');
     }
 });
-
+console.log('[Mock] ✓ Mock data system loaded (VISUAL ONLY - NO DATABASE SAVES)');
 console.log('[Dashboard] ✓ Dashboard script loaded successfully');

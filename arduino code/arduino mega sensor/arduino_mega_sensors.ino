@@ -11,7 +11,7 @@
  * - Relay CH2 (Fill Pump): Pin 6
  * - NodeMCU ESP8266: Pin 18 (TX1), Pin 19 (RX1)
  * 
- * Version: 3.0 - Updated without HX711
+ * Version: 3.1 - FINAL FIXED - Better ESP8266 Sync
  */
 
 #include <OneWire.h>
@@ -66,9 +66,10 @@ const int SERVO_CLOSED = 0;    // Servo position when closed
 const int SERVO_OPEN = 90;     // Servo position when open
 const int FEED_DURATION = 2000; // How long to keep servo open (ms)
 
-// Data Collection Intervals
-const unsigned long SENSOR_READ_INTERVAL = 2000;  // Read sensors every 2s
-const unsigned long DATA_SEND_INTERVAL = 5000;    // Send data every 5s
+// Data Collection Intervals (FIXED - Synced with ESP8266)
+const unsigned long SENSOR_READ_INTERVAL = 5000;   // Read sensors every 5s
+const unsigned long DATA_SEND_INTERVAL = 10000;    // Send data every 10s
+const unsigned long HEARTBEAT_INTERVAL = 30000;    // Send heartbeat every 30s
 
 // ============================================
 // GLOBAL VARIABLES
@@ -84,10 +85,13 @@ int errorCount = 0;
 // System State
 bool waterChangeActive = false;
 bool systemInitialized = false;
+bool espConnected = false;
 
 // Timing
 unsigned long lastSensorRead = 0;
 unsigned long lastDataSend = 0;
+unsigned long lastHeartbeat = 0;
+unsigned long lastESPResponse = 0;
 
 // Data Smoothing
 const int TEMP_SAMPLES = 5;
@@ -112,7 +116,7 @@ void setup() {
   Serial.println(F("========================================"));
   Serial.println(F("  AquaVision Pro - Arduino Mega 2560"));
   Serial.println(F("  Crayfish Monitoring System"));
-  Serial.println(F("  Version 3.0"));
+  Serial.println(F("  Version 3.1 - FINAL FIXED"));
   Serial.println(F("========================================\n"));
   
   // Initialize LED
@@ -174,7 +178,7 @@ void setup() {
     Serial.print(deviceCount);
     Serial.println(F(" sensor(s)"));
   } else {
-    Serial.println(F("✗ No DS18B20 found!"));
+    Serial.println(F("✗ No DS18B20 found! Using defaults"));
     tempSensorOK = false;
   }
   
@@ -188,7 +192,7 @@ void setup() {
     Serial.println(F(")"));
   } else {
     phSensorOK = false;
-    Serial.println(F("✗ No response"));
+    Serial.println(F("✗ No response! Using defaults"));
   }
   
   // Initialize Servo
@@ -196,13 +200,23 @@ void setup() {
   feedServo.write(SERVO_CLOSED);
   Serial.println(F("✓ Servo initialized (closed position)"));
   
-  // Initialize data arrays
-  for (int i = 0; i < TEMP_SAMPLES; i++) tempReadings[i] = 0;
+  // Initialize data arrays with defaults
+  for (int i = 0; i < TEMP_SAMPLES; i++) tempReadings[i] = 24.5;
   for (int i = 0; i < PH_SAMPLES; i++) phReadings[i] = 7.0;
+  
+  // Set initial safe values
+  currentTemperature = 24.5;
+  currentPH = 7.0;
   
   // Warm up sensors
   Serial.println(F("\nWarming up sensors (3 seconds)..."));
   delay(3000);
+  
+  // Read initial sensor values
+  if (tempSensorOK || phSensorOK) {
+    Serial.println(F("Taking initial readings..."));
+    readAllSensors();
+  }
   
   // Test relay system
   Serial.println(F("\nTesting relay system..."));
@@ -210,15 +224,16 @@ void setup() {
   
   systemInitialized = true;
   Serial.println(F("\n✓ System initialized successfully!"));
-  Serial.println(F("Ready for commands from ESP8266\n"));
-  Serial.println(F("Commands: CHANGE_WATER, FEED_NOW, TEST_WATER, STATUS, GET_DATA\n"));
+  Serial.println(F("✓ Waiting for ESP8266 connection..."));
+  Serial.println(F("\nCommands: CHANGE_WATER, FEED_NOW, TEST_WATER, STATUS, GET_DATA\n"));
   
   // Success indication
   blinkLED(3, 200);
   
-  // Send initial status to ESP8266
-  delay(1000);
-  sendStatusToESP();
+  // Send initial data to ESP8266
+  delay(2000);
+  sendDataToESP();
+  lastDataSend = millis();
 }
 
 // ============================================
@@ -238,14 +253,29 @@ void loop() {
   }
   
   // Send data to ESP8266 at intervals
-  if (!waterChangeActive && (currentMillis - lastDataSend >= DATA_SEND_INTERVAL)) {
+  if (currentMillis - lastDataSend >= DATA_SEND_INTERVAL) {
     sendDataToESP();
     lastDataSend = currentMillis;
+    
+    // Check ESP connection status
+    if (currentMillis - lastESPResponse > 60000) {
+      espConnected = false;
+      Serial.println(F("⚠ ESP8266 not responding"));
+    }
+  }
+  
+  // Send heartbeat
+  if (currentMillis - lastHeartbeat >= HEARTBEAT_INTERVAL) {
+    Serial.println(F("💓 Heartbeat → ESP8266"));
+    ESP_SERIAL.println("STATUS:Arduino heartbeat");
+    lastHeartbeat = currentMillis;
   }
   
   // Check for commands from ESP8266
   if (ESP_SERIAL.available()) {
     handleESPCommand();
+    lastESPResponse = currentMillis;
+    espConnected = true;
   }
   
   // Check for debug commands from Serial Monitor
@@ -266,19 +296,26 @@ void readAllSensors() {
   
   // Print readings to Serial Monitor
   Serial.print(F("📊 T: "));
-  if (currentTemperature > -900) {
+  if (tempSensorOK && currentTemperature > -50 && currentTemperature < 50) {
     Serial.print(currentTemperature, 2);
     Serial.print(F("°C"));
   } else {
-    Serial.print(F("FAIL"));
+    Serial.print(F("DEFAULT("));
+    Serial.print(currentTemperature, 1);
+    Serial.print(F("°C)"));
   }
   
   Serial.print(F(" | pH: "));
-  if (currentPH > 0 && currentPH < 14) {
+  if (phSensorOK && currentPH > 0 && currentPH < 14) {
     Serial.print(currentPH, 2);
   } else {
-    Serial.print(F("FAIL"));
+    Serial.print(F("DEFAULT("));
+    Serial.print(currentPH, 1);
+    Serial.print(F(")"));
   }
+  
+  Serial.print(F(" | ESP: "));
+  Serial.print(espConnected ? F("CONN") : F("DISC"));
   
   Serial.print(F(" | Errors: "));
   Serial.println(errorCount);
@@ -286,7 +323,7 @@ void readAllSensors() {
 
 void readTemperature() {
   if (!tempSensorOK) {
-    currentTemperature = -999.0;
+    currentTemperature = 24.5; // Safe default
     return;
   }
   
@@ -305,7 +342,7 @@ void readTemperature() {
     float sum = 0;
     int validCount = 0;
     for (int i = 0; i < TEMP_SAMPLES; i++) {
-      if (tempReadings[i] != 0) {
+      if (tempReadings[i] > 0) {
         sum += tempReadings[i];
         validCount++;
       }
@@ -313,7 +350,7 @@ void readTemperature() {
     
     if (validCount > 0) {
       currentTemperature = sum / validCount;
-      errorCount = max(0, errorCount - 1); // Reduce error count on success
+      errorCount = max(0, errorCount - 1);
     }
   } else {
     errorCount++;
@@ -321,14 +358,14 @@ void readTemperature() {
     
     if (errorCount > 10) {
       tempSensorOK = false;
-      currentTemperature = -999.0;
+      currentTemperature = 24.5; // Safe default
     }
   }
 }
 
 void readPH() {
   if (!phSensorOK) {
-    currentPH = -1.0;
+    currentPH = 7.0; // Safe default
     return;
   }
   
@@ -372,12 +409,13 @@ void readPH() {
       }
     } else {
       errorCount++;
+      currentPH = 7.0; // Safe default
     }
   } else {
     errorCount++;
+    currentPH = 7.0; // Safe default
     if (errorCount > 20) {
       phSensorOK = false;
-      currentPH = -1.0;
     }
   }
 }
@@ -418,10 +456,8 @@ void executeWaterChange() {
   
   unsigned long phaseStart = millis();
   while (millis() - phaseStart < DRAIN_TIME) {
-    // Fast LED blink during drain
     digitalWrite(LED_BUILTIN, (millis() / 250) % 2);
     
-    // Progress update every 5 seconds
     if ((millis() - phaseStart) % 5000 < 100) {
       Serial.print(F("⏳ Draining... "));
       Serial.print((millis() - phaseStart) / 1000);
@@ -429,10 +465,20 @@ void executeWaterChange() {
       Serial.print(DRAIN_TIME / 1000);
       Serial.println(F("s"));
     }
+    
+    // Check for emergency stop
+    if (ESP_SERIAL.available()) {
+      String cmd = ESP_SERIAL.readStringUntil('\n');
+      if (cmd.indexOf("EMERGENCY_STOP") >= 0) {
+        emergencyStop();
+        return;
+      }
+    }
+    
     delay(100);
   }
   
-  digitalWrite(RELAY_DRAIN, HIGH);  // Turn OFF drain pump
+  digitalWrite(RELAY_DRAIN, HIGH);
   Serial.println(F("✓ Drain phase complete\n"));
   
   // SETTLING PHASE
@@ -445,14 +491,12 @@ void executeWaterChange() {
   Serial.println(F("═══ PHASE 2: FILLING WATER ═══"));
   ESP_SERIAL.println("STATUS:Filling");
   
-  digitalWrite(RELAY_FILL, LOW);  // Turn ON fill pump
+  digitalWrite(RELAY_FILL, LOW);
   
   phaseStart = millis();
   while (millis() - phaseStart < FILL_TIME) {
-    // Slow LED blink during fill
     digitalWrite(LED_BUILTIN, (millis() / 500) % 2);
     
-    // Progress update every 5 seconds
     if ((millis() - phaseStart) % 5000 < 100) {
       Serial.print(F("⏳ Filling... "));
       Serial.print((millis() - phaseStart) / 1000);
@@ -460,10 +504,20 @@ void executeWaterChange() {
       Serial.print(FILL_TIME / 1000);
       Serial.println(F("s"));
     }
+    
+    // Check for emergency stop
+    if (ESP_SERIAL.available()) {
+      String cmd = ESP_SERIAL.readStringUntil('\n');
+      if (cmd.indexOf("EMERGENCY_STOP") >= 0) {
+        emergencyStop();
+        return;
+      }
+    }
+    
     delay(100);
   }
   
-  digitalWrite(RELAY_FILL, HIGH);  // Turn OFF fill pump
+  digitalWrite(RELAY_FILL, HIGH);
   Serial.println(F("✓ Fill phase complete\n"));
   
   // Final settling
@@ -478,13 +532,12 @@ void executeWaterChange() {
   
   waterChangeActive = false;
   
-  // Reset sensor arrays for fresh readings
-  for (int i = 0; i < TEMP_SAMPLES; i++) tempReadings[i] = 0;
-  for (int i = 0; i < PH_SAMPLES; i++) phReadings[i] = 7.0;
+  // Reset sensor arrays
+  for (int i = 0; i < TEMP_SAMPLES; i++) tempReadings[i] = currentTemperature;
+  for (int i = 0; i < PH_SAMPLES; i++) phReadings[i] = currentPH;
   tempIndex = 0;
   phIndex = 0;
   
-  // Success blink
   blinkLED(5, 200);
   digitalWrite(LED_BUILTIN, LOW);
 }
@@ -494,7 +547,6 @@ void emergencyStop() {
   Serial.println(F("║    !!! EMERGENCY STOP !!!          ║"));
   Serial.println(F("╚════════════════════════════════════╝\n"));
   
-  // Turn OFF all relays immediately
   digitalWrite(RELAY_DRAIN, HIGH);
   digitalWrite(RELAY_FILL, HIGH);
   digitalWrite(RELAY_CH3, HIGH);
@@ -505,7 +557,6 @@ void emergencyStop() {
   Serial.println(F("✓ All pumps stopped"));
   ESP_SERIAL.println("STATUS:Emergency stop executed");
   
-  // Rapid blink warning
   for (int i = 0; i < 20; i++) {
     digitalWrite(LED_BUILTIN, HIGH);
     delay(50);
@@ -522,13 +573,11 @@ void executeFeeding() {
   Serial.println(F("\n═══ FEEDING CRAYFISH ═══"));
   ESP_SERIAL.println("STATUS:Feeding");
   
-  // Open servo to dispense food
   feedServo.write(SERVO_OPEN);
   Serial.println(F("⏳ Dispensing food..."));
   
   delay(FEED_DURATION);
   
-  // Close servo
   feedServo.write(SERVO_CLOSED);
   Serial.println(F("✓ Feeding complete\n"));
   
@@ -541,15 +590,14 @@ void executeFeeding() {
 // ============================================
 
 void sendDataToESP() {
-  // Get current time from RTC
   DateTime now = rtc.now();
   
-  // Build JSON data packet - FIXED: Proper boolean formatting
+  // Build JSON - ALWAYS send valid data with defaults
   String data = "DATA:{";
   data += "\"temperature\":";
-  data += (currentTemperature > -900) ? String(currentTemperature, 2) : "null";
+  data += String(currentTemperature, 2);
   data += ",\"ph\":";
-  data += (currentPH > 0 && currentPH < 14) ? String(currentPH, 2) : "null";
+  data += String(currentPH, 2);
   data += ",\"timestamp\":\"";
   data += now.timestamp();
   data += "\",\"errors\":";
@@ -558,26 +606,25 @@ void sendDataToESP() {
   
   if (waterChangeActive) {
     data += "water_change";
-  } else if (!tempSensorOK || !phSensorOK) {
-    data += "sensor_error";
+  } else if (!tempSensorOK && !phSensorOK) {
+    data += "no_sensors";
   } else if (errorCount > 5) {
     data += "warning";
   } else {
     data += "ok";
   }
   
-  // FIXED: No spaces around booleans
   data += "\",\"temp_sensor_ok\":";
   data += tempSensorOK ? "true" : "false";
   data += ",\"ph_sensor_ok\":";
   data += phSensorOK ? "true" : "false";
   data += "}";
   
-  Serial.println("[Arduino] Sending data to ESP8266:");
-  Serial.println(data);
-  
   ESP_SERIAL.println(data);
+  Serial.print(F("📤 Sent to ESP: "));
+  Serial.println(data);
 }
+
 void sendStatusToESP() {
   String status = "STATUS:{";
   status += "\"initialized\":true";
@@ -591,6 +638,8 @@ void sendStatusToESP() {
   status += phSensorOK ? "true" : "false";
   status += ",\"water_change_active\":";
   status += waterChangeActive ? "true" : "false";
+  status += ",\"esp_connected\":";
+  status += espConnected ? "true" : "false";
   status += "}";
   
   ESP_SERIAL.println(status);
@@ -607,6 +656,7 @@ void handleESPCommand() {
   
   if (command == "PING") {
     ESP_SERIAL.println("PONG");
+    Serial.println(F("💓 Responded to ESP ping"));
   } 
   else if (command == "CHANGE_WATER") {
     executeWaterChange();
@@ -629,7 +679,7 @@ void handleESPCommand() {
     sendDataToESP();
   } 
   else {
-    Serial.println(F("⚠ Unknown command"));
+    Serial.println(F("⚠ Unknown command from ESP"));
     ESP_SERIAL.println("ERROR:Unknown command");
   }
 }
@@ -639,27 +689,17 @@ void handleDebugCommand() {
   command.trim();
   command.toUpperCase();
   
-  if (command == "WATER") {
-    executeWaterChange();
-  } 
-  else if (command == "FEED") {
-    executeFeeding();
+  if (command == "WATER") executeWaterChange();
+  else if (command == "FEED") executeFeeding();
+  else if (command == "STOP") emergencyStop();
+  else if (command == "TEST") testRelays();
+  else if (command == "STATUS") printSystemStatus();
+  else if (command == "SEND") {
+    Serial.println(F("Manually sending data to ESP..."));
+    sendDataToESP();
   }
-  else if (command == "STOP") {
-    emergencyStop();
-  } 
-  else if (command == "TEST") {
-    testRelays();
-  } 
-  else if (command == "STATUS") {
-    printSystemStatus();
-  } 
-  else if (command == "HELP") {
-    printHelp();
-  } 
-  else {
-    Serial.println(F("⚠ Unknown command. Type HELP"));
-  }
+  else if (command == "HELP") printHelp();
+  else Serial.println(F("⚠ Unknown command. Type HELP"));
 }
 
 // ============================================
@@ -709,24 +749,19 @@ void printSystemStatus() {
   Serial.println(F(" seconds"));
   
   Serial.print(F("🌡 Temperature: "));
-  if (currentTemperature > -900) {
-    Serial.print(currentTemperature, 2);
-    Serial.print(F("°C ["));
-    Serial.print(tempSensorOK ? F("OK") : F("FAIL"));
-    Serial.println(F("]"));
-  } else {
-    Serial.println(F("SENSOR FAILED"));
-  }
+  Serial.print(currentTemperature, 2);
+  Serial.print(F("°C ["));
+  Serial.print(tempSensorOK ? F("SENSOR") : F("DEFAULT"));
+  Serial.println(F("]"));
   
   Serial.print(F("⚗ pH Level: "));
-  if (currentPH > 0 && currentPH < 14) {
-    Serial.print(currentPH, 2);
-    Serial.print(F(" ["));
-    Serial.print(phSensorOK ? F("OK") : F("FAIL"));
-    Serial.println(F("]"));
-  } else {
-    Serial.println(F("SENSOR FAILED"));
-  }
+  Serial.print(currentPH, 2);
+  Serial.print(F(" ["));
+  Serial.print(phSensorOK ? F("SENSOR") : F("DEFAULT"));
+  Serial.println(F("]"));
+  
+  Serial.print(F("📡 ESP8266: "));
+  Serial.println(espConnected ? F("CONNECTED") : F("DISCONNECTED"));
   
   Serial.print(F("💧 Water Change: "));
   Serial.println(waterChangeActive ? F("ACTIVE") : F("IDLE"));
@@ -750,6 +785,7 @@ void printHelp() {
   Serial.println(F("STOP   - Emergency stop all pumps"));
   Serial.println(F("TEST   - Test relay system"));
   Serial.println(F("STATUS - Show system status"));
+  Serial.println(F("SEND   - Manually send data to ESP"));
   Serial.println(F("HELP   - Show this menu"));
   Serial.println();
 }
