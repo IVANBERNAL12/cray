@@ -1,4 +1,4 @@
-// dashboard.js - COMPLETE FIXED VERSION - ALL FEATURES INTACT
+// dashboard.js - COMPLETE CORRECTED VERSION - ALL FIXES APPLIED
 console.log('dashboard.js loaded');
 
 // ========================================
@@ -228,17 +228,17 @@ async function checkDeviceStatus() {
             return;
         }
 
-        // FIXED: Check for data in last 5 MINUTES (more realistic than 30 seconds)
-        const fiveMinutesAgo = new Date();
-        fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+        // CRITICAL FIX: Check for data in last 60 SECONDS ONLY (ESP sends every 30s)
+        const sixtySecondsAgo = new Date();
+        sixtySecondsAgo.setSeconds(sixtySecondsAgo.getSeconds() - 60);
 
-        console.log('[Device] Checking for data after:', fiveMinutesAgo.toISOString());
+        console.log('[Device] Checking for data after:', sixtySecondsAgo.toISOString());
 
         const { data, error } = await window.supabase
             .from('sensor_readings')
             .select('*')
             .eq('user_id', user.id)
-            .gte('created_at', fiveMinutesAgo.toISOString())
+            .gte('created_at', sixtySecondsAgo.toISOString())
             .order('created_at', { ascending: false })
             .limit(1);
 
@@ -249,7 +249,7 @@ async function checkDeviceStatus() {
 
         console.log('[Device] Recent data found:', data?.length || 0);
 
-        // Device is online if we have recent data
+        // Device is online ONLY if we have data from last 60 seconds
         const hasRecentData = data && data.length > 0;
         
         if (hasRecentData) {
@@ -302,12 +302,10 @@ async function checkDeviceStatus() {
             statusText.style.color = '#ff4444';
         }
         if (lastUpdate) {
-            lastUpdate.textContent = 'Using mock data for demonstration';
+            lastUpdate.textContent = 'No device connected';
         }
         
-        if (!mockDataInterval) {
-            startMockData();
-        }
+        // Don't start mock data immediately - will be handled by initDashboard
     }
 }
 
@@ -444,11 +442,7 @@ function setupRealtimeSubscription() {
 }
 
 // ========================================
-// MOCK DATA SYSTEM (FIXED)
-// ========================================
-
-// ========================================
-// MOCK DATA SYSTEM (FIXED - VISUAL ONLY!)
+// MOCK DATA SYSTEM (VISUAL ONLY!)
 // ========================================
 
 function startMockData() {
@@ -585,7 +579,6 @@ function stopMockData() {
     }
 }
 
-
 // ========================================
 // DATA CLEANUP FUNCTION
 // ========================================
@@ -674,7 +667,7 @@ function waitForChartsReady() {
 }
 
 // ========================================
-// INITIALIZATION (FIXED)
+// INITIALIZATION (FIXED!)
 // ========================================
 
 async function initDashboard() {
@@ -708,32 +701,52 @@ async function initDashboard() {
         await loadDashboardData();
         setupEventListeners();
         
+        // CRITICAL FIX: Check device FIRST before starting mock data
         await checkDeviceStatus();
         deviceCheckInterval = setInterval(checkDeviceStatus, 30000);
         
-        if (!isConnected) {
-            console.log('[Dashboard] Starting with mock data (device offline)');
-            setTimeout(() => startMockData(), 1000);
-        }
+        // CRITICAL FIX: Only start mock data if device is definitely offline
+        // Wait 5 seconds to give device time to respond
+        setTimeout(() => {
+            if (!isConnected) {
+                console.log('[Dashboard] No device detected - starting mock data for demo');
+                startMockData();
+            } else {
+                console.log('[Dashboard] Device connected - using real data');
+            }
+        }, 5000);
 
         console.log('[Dashboard] ✓ Dashboard initialized successfully');
         showNotification('Dashboard Ready', 'AquaVision Pro loaded successfully', 'success');
     } catch (error) {
         console.error('[Dashboard] Failed to initialize:', error);
         showNotification('Error', 'Failed to initialize dashboard', 'error');
-        setTimeout(() => {
-            startMockData();
-        }, 1000);
     }
 }
 
 async function loadFarmSettings() {
-    const savedSettings = await loadFromSupabase('farm_settings') || 
-                          JSON.parse(localStorage.getItem('farmSettings') || '{}');
+    const savedSettings = await loadFromSupabase('farm_settings');
     
-    if (Object.keys(savedSettings).length > 0) {
+    if (savedSettings && Object.keys(savedSettings).length > 0) {
         farmSettings = { ...farmSettings, ...savedSettings };
         updateFarmNameDisplay();
+        
+        // CRITICAL FIX: Populate form fields when loading settings
+        const farmNameInput = document.getElementById('farm-name');
+        const emailInput = document.getElementById('notification-email');
+        const phoneInput = document.getElementById('notification-phone');
+        const unitInput = document.getElementById('measurement-unit');
+        const alertFreqInput = document.getElementById('alert-frequency');
+        const waterTestFreqInput = document.getElementById('water-testing-frequency');
+        
+        if (farmNameInput) farmNameInput.value = farmSettings.name || 'My Crayfish Farm';
+        if (emailInput) emailInput.value = farmSettings.email || '';
+        if (phoneInput) phoneInput.value = farmSettings.phone || '';
+        if (unitInput) unitInput.value = farmSettings.unit || 'metric';
+        if (alertFreqInput) alertFreqInput.value = farmSettings.alertFrequency || 'immediate';
+        if (waterTestFreqInput) waterTestFreqInput.value = farmSettings.waterTestingFrequency || 'twice-weekly';
+        
+        console.log('[Dashboard] Farm settings loaded:', farmSettings);
     }
 }
 
@@ -1325,22 +1338,34 @@ async function saveSettings() {
     const alertFrequency = document.getElementById('alert-frequency')?.value;
     const waterTestingFrequency = document.getElementById('water-testing-frequency')?.value;
     
-    if (farmName) {
-        farmSettings = {
-            name: farmName,
-            email: notificationEmail,
-            phone: notificationPhone,
-            unit: measurementUnit,
-            alertFrequency: alertFrequency,
-            waterTestingFrequency: waterTestingFrequency
-        };
-        
-        await saveToSupabase('farm_settings', farmSettings);
-        updateFarmNameDisplay();
-        
-        showNotification('Settings Saved', 'Farm settings have been updated successfully', 'success');
-    } else {
+    if (!farmName || farmName.trim() === '') {
         showNotification('Error', 'Farm name is required', 'warning');
+        return;
+    }
+    
+    farmSettings = {
+        name: farmName.trim(),
+        email: notificationEmail?.trim() || '',
+        phone: notificationPhone?.trim() || '',
+        unit: measurementUnit || 'metric',
+        alertFrequency: alertFrequency || 'immediate',
+        waterTestingFrequency: waterTestingFrequency || 'twice-weekly'
+    };
+    
+    console.log('[Settings] Saving farm settings:', farmSettings);
+    
+    // CRITICAL FIX: Use window.saveFarmSettings from database.js
+    const result = await window.saveFarmSettings(farmSettings);
+    
+    if (result && result.success) {
+        updateFarmNameDisplay();
+        showNotification('Settings Saved', 'Farm settings have been updated successfully', 'success');
+        console.log('[Settings] ✓ Settings saved to Supabase');
+    } else {
+        // Even if Supabase fails, we saved to localStorage as fallback
+        updateFarmNameDisplay();
+        showNotification('Settings Saved Locally', 'Settings saved to browser (Supabase sync failed)', 'warning');
+        console.warn('[Settings] Saved to localStorage only:', result?.message);
     }
 }
 
@@ -1999,22 +2024,6 @@ console.log('[Supabase] Data helper functions loaded');
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded. Initializing dashboard...');
     
-    loadFarmSettings();
-    
-    const farmNameInput = document.getElementById('farm-name');
-    const emailInput = document.getElementById('notification-email');
-    const phoneInput = document.getElementById('notification-phone');
-    const unitInput = document.getElementById('measurement-unit');
-    const alertFreqInput = document.getElementById('alert-frequency');
-    const waterTestFreqInput = document.getElementById('water-testing-frequency');
-    
-    if (farmNameInput) farmNameInput.value = farmSettings.name;
-    if (emailInput) emailInput.value = farmSettings.email;
-    if (phoneInput) phoneInput.value = farmSettings.phone;
-    if (unitInput) unitInput.value = farmSettings.unit;
-    if (alertFreqInput) alertFreqInput.value = farmSettings.alertFrequency;
-    if (waterTestFreqInput) waterTestFreqInput.value = farmSettings.waterTestingFrequency;
-    
     const oceanElements = document.querySelector('.ocean-elements');
     if (oceanElements) {
         const elementCount = 15;
@@ -2085,5 +2094,6 @@ document.addEventListener('chartReady', function() {
         console.log('[Dashboard] Charts ready - mock data already running');
     }
 });
+
 console.log('[Mock] ✓ Mock data system loaded (VISUAL ONLY - NO DATABASE SAVES)');
 console.log('[Dashboard] ✓ Dashboard script loaded successfully');
