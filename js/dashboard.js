@@ -211,6 +211,18 @@ async function saveSensorReading(reading) {
 // DEVICE STATUS & COMMANDS (FIXED!)
 // ========================================
 
+// ========================================
+// DEVICE STATUS & COMMANDS (COMPLETE FIXED VERSION!)
+// ========================================
+// INSTRUCTIONS: In your dashboard.js file, find the section that starts with
+// "// DEVICE STATUS & COMMANDS" and replace EVERYTHING from there until
+// the next major section marker with this code.
+// 
+// Look for these function names and replace them:
+// - checkDeviceStatus()
+// - sendCommand()
+// - setupRealtimeSubscription()
+
 async function checkDeviceStatus() {
     const statusIndicator = document.getElementById('device-status-indicator');
     const statusText = document.getElementById('device-status-text');
@@ -228,28 +240,30 @@ async function checkDeviceStatus() {
             return;
         }
 
-        // CRITICAL FIX: Check for data in last 60 SECONDS ONLY (ESP sends every 30s)
-        const sixtySecondsAgo = new Date();
-        sixtySecondsAgo.setSeconds(sixtySecondsAgo.getSeconds() - 60);
+        // CRITICAL FIX: Check for data in last 90 SECONDS (ESP sends every 30s)
+        // This gives 3x buffer for network delays
+        const ninetySecondsAgo = new Date();
+        ninetySecondsAgo.setSeconds(ninetySecondsAgo.getSeconds() - 90);
 
-        console.log('[Device] Checking for data after:', sixtySecondsAgo.toISOString());
+        console.log('[Device] Checking for data after:', ninetySecondsAgo.toISOString());
 
         const { data, error } = await window.supabase
             .from('sensor_readings')
             .select('*')
             .eq('user_id', user.id)
-            .gte('created_at', sixtySecondsAgo.toISOString())
+            .gte('created_at', ninetySecondsAgo.toISOString())
             .order('created_at', { ascending: false })
             .limit(1);
 
         if (error) {
+            console.error('[Device] Database error:', error);
             updateOfflineStatus('Database error');
             return;
         }
 
         console.log('[Device] Recent data found:', data?.length || 0);
 
-        // Device is online ONLY if we have data from last 60 seconds
+        // Device is online if we have data from last 90 seconds
         const hasRecentData = data && data.length > 0;
         
         if (hasRecentData) {
@@ -278,14 +292,24 @@ async function checkDeviceStatus() {
                 }
             }
             
+            // Update dashboard with latest data
             hardwareData.temperature = latestReading.temperature;
             hardwareData.ph = latestReading.ph;
+            hardwareData.population = latestReading.population || 15;
+            hardwareData.healthStatus = latestReading.health_status || 100;
+            hardwareData.avgWeight = latestReading.avg_weight || 5;
+            hardwareData.daysToHarvest = latestReading.days_to_harvest || 120;
+            hardwareData.lastUpdated = new Date(latestReading.created_at);
+            
             updateDashboardWithNewData(hardwareData);
             stopMockData();
+            
+            console.log('[Device] ✓ Dashboard updated from real data');
         } else {
             updateOfflineStatus('No recent data from device');
         }
     } catch (error) {
+        console.error('[Device] Error:', error);
         updateOfflineStatus(`Error: ${error.message}`);
     }
 
@@ -304,8 +328,6 @@ async function checkDeviceStatus() {
         if (lastUpdate) {
             lastUpdate.textContent = 'No device connected';
         }
-        
-        // Don't start mock data immediately - will be handled by initDashboard
     }
 }
 
@@ -325,11 +347,8 @@ async function sendCommand(command) {
             return { success: false, reason: 'not_authenticated' };
         }
 
-        if (!isConnected) {
-            showNotification('Device Offline', 'Device is not connected. Command will be queued.', 'warning');
-        } else {
-            showNotification('Sending Command', `Sending ${command} command to device...`, 'info');
-        }
+        // Show sending notification
+        showNotification('Sending Command', `Sending ${command} to device...`, 'info');
 
         const { data, error } = await window.supabase
             .from('device_commands')
@@ -343,28 +362,33 @@ async function sendCommand(command) {
 
         if (error) throw error;
 
-        console.log('[Device] Command sent successfully:', data);
+        console.log('[Device] ✓ Command inserted:', data);
         
-        if (isConnected) {
-            showNotification('Success', `${command} command sent successfully`, 'success');
+        showNotification('Command Sent', `${command} command queued successfully`, 'success');
+        
+        // Monitor command processing (check for 15 seconds)
+        const commandId = data[0].id;
+        let checkCount = 0;
+        const maxChecks = 15;
+        
+        const checkInterval = setInterval(async () => {
+            checkCount++;
             
-            // Wait and check if command was processed
-            const commandId = data[0].id;
-            setTimeout(async () => {
-                const { data: cmdData } = await window.supabase
-                    .from('device_commands')
-                    .select('status, processed_at')
-                    .eq('id', commandId)
-                    .single();
-                
-                if (cmdData && cmdData.status === 'processed') {
-                    console.log('[Device] ✓ Command confirmed processed');
-                    showNotification('Command Completed', `${command} completed successfully`, 'success');
-                }
-            }, 5000);
-        } else {
-            showNotification('Command Queued', `${command} command queued for when device reconnects`, 'info');
-        }
+            const { data: cmdData, error: cmdError } = await window.supabase
+                .from('device_commands')
+                .select('status, processed_at')
+                .eq('id', commandId)
+                .single();
+            
+            if (!cmdError && cmdData && cmdData.status === 'processed') {
+                clearInterval(checkInterval);
+                console.log('[Device] ✓ Command confirmed processed');
+                showNotification('Success', `${command} completed successfully!`, 'success');
+            } else if (checkCount >= maxChecks) {
+                clearInterval(checkInterval);
+                console.log('[Device] ⏱ Command check timeout (may still process)');
+            }
+        }, 1000);
         
         return { success: true, data: data };
     } catch (error) {
@@ -374,24 +398,28 @@ async function sendCommand(command) {
     }
 }
 
+// FIXED: Real-time subscription with better error handling
 function setupRealtimeSubscription() {
     if (!window.supabase || !window.subscribeToSensorData) {
-        console.log('[Device] Supabase or database helpers not available, skipping realtime');
+        console.log('[Device] Supabase or database helpers not available');
         return;
     }
 
     getCurrentUser().then(user => {
         if (!user) {
-            console.log('[Device] User not authenticated, skipping realtime');
+            console.log('[Device] User not authenticated');
             return;
         }
 
         console.log('[Device] Setting up real-time subscription for user:', user.id);
 
         const subscription = window.subscribeToSensorData(user.id, (newData) => {
-            console.log('[Device] 🔴 Real-time callback triggered:', newData);
+            console.log('[Device] 🔴 Real-time update received!');
             
+            // Mark as connected
             isConnected = true;
+            
+            // Update status UI
             const statusIndicator = document.getElementById('device-status-indicator');
             const statusText = document.getElementById('device-status-text');
             const lastUpdate = document.getElementById('last-device-update');
@@ -408,15 +436,19 @@ function setupRealtimeSubscription() {
                 lastUpdate.textContent = 'Last update: Just now';
             }
             
+            // Update hardware data
             hardwareData.temperature = newData.temperature;
             hardwareData.ph = newData.ph;
             hardwareData.population = newData.population || 15;
             hardwareData.healthStatus = newData.health_status || 100;
+            hardwareData.avgWeight = newData.avg_weight || 5;
+            hardwareData.daysToHarvest = newData.days_to_harvest || 120;
             hardwareData.lastUpdated = new Date(newData.created_at);
             
             updateDashboardWithNewData(hardwareData);
             stopMockData();
             
+            // Update charts if available
             if (window.chartManager) {
                 window.chartManager.streamData('tempChart', {
                     x: hardwareData.lastUpdated.getTime(),
@@ -435,7 +467,7 @@ function setupRealtimeSubscription() {
         });
 
         window.sensorSubscription = subscription;
-        console.log('[Device] ✓ Real-time subscription created');
+        console.log('[Device] ✓ Real-time subscription active');
     }).catch(error => {
         console.error('[Device] Error setting up subscription:', error);
     });
