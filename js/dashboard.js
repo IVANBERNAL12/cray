@@ -733,12 +733,12 @@ async function initDashboard() {
         await loadDashboardData();
         setupEventListeners();
         
-        // CRITICAL FIX: Check device FIRST before starting mock data
+        // ✅ ADD THIS LINE HERE:
+        setupChartEnhancements();
+        
         await checkDeviceStatus();
         deviceCheckInterval = setInterval(checkDeviceStatus, 30000);
         
-        // CRITICAL FIX: Only start mock data if device is definitely offline
-        // Wait 5 seconds to give device time to respond
         setTimeout(() => {
             if (!isConnected) {
                 console.log('[Dashboard] No device detected - starting mock data for demo');
@@ -754,6 +754,7 @@ async function initDashboard() {
         console.error('[Dashboard] Failed to initialize:', error);
         showNotification('Error', 'Failed to initialize dashboard', 'error');
     }
+
 }
 
 async function loadFarmSettings() {
@@ -1849,62 +1850,6 @@ function setupEventListeners() {
     
     console.log('Event listeners attached.');
 }
-// Chart Fullscreen & Download Functions
-function setupChartEnhancements() {
-    console.log('[Charts] Setting up chart enhancements...');
-    
-    // Temperature Chart - Expand Button
-    const expandTempBtn = document.getElementById('expand-temp-chart');
-    if (expandTempBtn) {
-        expandTempBtn.addEventListener('click', () => {
-            toggleFullscreenChart('tempChart', 'Temperature Trends');
-        });
-    }
-    
-    // Temperature Chart - Download Button
-    const downloadTempBtn = document.getElementById('download-temp-chart');
-    if (downloadTempBtn) {
-        downloadTempBtn.addEventListener('click', () => {
-            downloadChartData('tempChart', 'Temperature-Data');
-        });
-    }
-    
-    // pH Chart - Expand Button
-    const expandPhBtn = document.getElementById('expand-ph-chart');
-    if (expandPhBtn) {
-        expandPhBtn.addEventListener('click', () => {
-            toggleFullscreenChart('phChart', 'pH Level Trends');
-        });
-    }
-    
-    // pH Chart - Download Button
-    const downloadPhBtn = document.getElementById('download-ph-chart');
-    if (downloadPhBtn) {
-        downloadPhBtn.addEventListener('click', () => {
-            downloadChartData('phChart', 'pH-Data');
-        });
-    }
-    
-    // Historical Chart - Expand Button
-    const expandHistoricalBtn = document.getElementById('expand-historical-chart');
-    if (expandHistoricalBtn) {
-        expandHistoricalBtn.addEventListener('click', () => {
-            toggleFullscreenChart('historicalChart', 'Historical Data (Temperature & pH)');
-        });
-    }
-    
-    // Historical Chart - Download Button
-    const downloadHistoricalBtn = document.getElementById('download-historical-chart');
-    if (downloadHistoricalBtn) {
-        downloadHistoricalBtn.addEventListener('click', () => {
-            downloadChartData('historicalChart', 'Historical-Data');
-        });
-    }
-    
-    console.log('[Charts] ✓ Chart enhancements setup complete');
-}
-
-// Toggle Fullscreen for Charts
 function toggleFullscreenChart(chartId, chartTitle) {
     console.log('[Charts] Opening fullscreen for:', chartId);
     
@@ -1984,6 +1929,60 @@ function toggleFullscreenChart(chartId, chartTitle) {
     document.addEventListener('keydown', escHandler);
     
     console.log('[Charts] ✓ Fullscreen chart opened');
+}
+// Chart Fullscreen & Download Functions
+function setupChartEnhancements() {
+    console.log('[Charts] Setting up chart enhancements...');
+    
+    // Temperature Chart - Expand Button
+    const expandTempBtn = document.getElementById('expand-temp-chart');
+    if (expandTempBtn) {
+        expandTempBtn.addEventListener('click', () => {
+            toggleFullscreenChart('tempChart', 'Temperature Trends');
+        });
+    }
+    
+    // Temperature Chart - Download Button
+    const downloadTempBtn = document.getElementById('download-temp-chart');
+    if (downloadTempBtn) {
+        downloadTempBtn.addEventListener('click', () => {
+            downloadChartData('tempChart', 'Temperature-Data');
+        });
+    }
+    
+    // pH Chart - Expand Button
+    const expandPhBtn = document.getElementById('expand-ph-chart');
+    if (expandPhBtn) {
+        expandPhBtn.addEventListener('click', () => {
+            toggleFullscreenChart('phChart', 'pH Level Trends');
+        });
+    }
+    
+    // pH Chart - Download Button
+    const downloadPhBtn = document.getElementById('download-ph-chart');
+    if (downloadPhBtn) {
+        downloadPhBtn.addEventListener('click', () => {
+            downloadChartData('phChart', 'pH-Data');
+        });
+    }
+    
+    // Historical Chart - Expand Button
+    const expandHistoricalBtn = document.getElementById('expand-historical-chart');
+    if (expandHistoricalBtn) {
+        expandHistoricalBtn.addEventListener('click', () => {
+            toggleFullscreenChart('historicalChart', 'Historical Data (Temperature & pH)');
+        });
+    }
+    
+    // Historical Chart - Download Button
+    const downloadHistoricalBtn = document.getElementById('download-historical-chart');
+    if (downloadHistoricalBtn) {
+        downloadHistoricalBtn.addEventListener('click', () => {
+            downloadChartData('historicalChart', 'Historical-Data');
+        });
+    }
+    
+    console.log('[Charts] ✓ Chart enhancements setup complete');
 }
 
 // Download Chart Data as CSV/Excel
@@ -2349,14 +2348,15 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
+window.toggleFullscreenChart = toggleFullscreenChart;
+window.downloadChartData = downloadChartData;
+window.setupChartEnhancements = setupChartEnhancements;
 window.checkDeviceStatus = checkDeviceStatus;
 window.sendCommand = sendCommand;
 window.setupRealtimeSubscription = setupRealtimeSubscription;
 window.startMockData = startMockData;
 window.stopMockData = stopMockData;
-window.toggleFullscreenChart = toggleFullscreenChart;
-window.downloadChartData = downloadChartData;
-window.setupChartEnhancements = setupChartEnhancements;
+
 
 
 document.addEventListener('chartReady', function() {
