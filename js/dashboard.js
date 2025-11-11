@@ -1849,7 +1849,242 @@ function setupEventListeners() {
     
     console.log('Event listeners attached.');
 }
+// Chart Fullscreen & Download Functions
+function setupChartEnhancements() {
+    console.log('[Charts] Setting up chart enhancements...');
+    
+    // Temperature Chart - Expand Button
+    const expandTempBtn = document.getElementById('expand-temp-chart');
+    if (expandTempBtn) {
+        expandTempBtn.addEventListener('click', () => {
+            toggleFullscreenChart('tempChart', 'Temperature Trends');
+        });
+    }
+    
+    // Temperature Chart - Download Button
+    const downloadTempBtn = document.getElementById('download-temp-chart');
+    if (downloadTempBtn) {
+        downloadTempBtn.addEventListener('click', () => {
+            downloadChartData('tempChart', 'Temperature-Data');
+        });
+    }
+    
+    // pH Chart - Expand Button
+    const expandPhBtn = document.getElementById('expand-ph-chart');
+    if (expandPhBtn) {
+        expandPhBtn.addEventListener('click', () => {
+            toggleFullscreenChart('phChart', 'pH Level Trends');
+        });
+    }
+    
+    // pH Chart - Download Button
+    const downloadPhBtn = document.getElementById('download-ph-chart');
+    if (downloadPhBtn) {
+        downloadPhBtn.addEventListener('click', () => {
+            downloadChartData('phChart', 'pH-Data');
+        });
+    }
+    
+    // Historical Chart - Expand Button
+    const expandHistoricalBtn = document.getElementById('expand-historical-chart');
+    if (expandHistoricalBtn) {
+        expandHistoricalBtn.addEventListener('click', () => {
+            toggleFullscreenChart('historicalChart', 'Historical Data (Temperature & pH)');
+        });
+    }
+    
+    // Historical Chart - Download Button
+    const downloadHistoricalBtn = document.getElementById('download-historical-chart');
+    if (downloadHistoricalBtn) {
+        downloadHistoricalBtn.addEventListener('click', () => {
+            downloadChartData('historicalChart', 'Historical-Data');
+        });
+    }
+    
+    console.log('[Charts] ✓ Chart enhancements setup complete');
+}
 
+// Toggle Fullscreen for Charts
+function toggleFullscreenChart(chartId, chartTitle) {
+    console.log('[Charts] Opening fullscreen for:', chartId);
+    
+    // Get the chart instance
+    const chart = window.chartManager?.charts[chartId] || window[chartId];
+    
+    if (!chart) {
+        console.error('[Charts] Chart not found:', chartId);
+        showNotification('Error', 'Chart not found', 'error');
+        return;
+    }
+    
+    // Create fullscreen modal
+    const modal = document.createElement('div');
+    modal.className = 'chart-fullscreen-modal';
+    modal.innerHTML = `
+        <div class="chart-fullscreen-content">
+            <div class="chart-fullscreen-header">
+                <h3>${chartTitle}</h3>
+                <button class="chart-fullscreen-close" aria-label="Close fullscreen">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="chart-fullscreen-body">
+                <canvas id="${chartId}-fullscreen"></canvas>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Trigger animation
+    setTimeout(() => {
+        modal.classList.add('active');
+    }, 10);
+    
+    // Create fullscreen chart
+    const canvas = document.getElementById(`${chartId}-fullscreen`);
+    const ctx = canvas.getContext('2d');
+    
+    // Clone the chart configuration
+    const config = JSON.parse(JSON.stringify(chart.config));
+    config.options.responsive = true;
+    config.options.maintainAspectRatio = false;
+    
+    // Copy data from original chart
+    config.data = JSON.parse(JSON.stringify(chart.data));
+    
+    const fullscreenChart = new Chart(ctx, config);
+    
+    // Close button functionality
+    const closeBtn = modal.querySelector('.chart-fullscreen-close');
+    const closeFullscreen = () => {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            fullscreenChart.destroy();
+            modal.remove();
+        }, 300);
+    };
+    
+    closeBtn.addEventListener('click', closeFullscreen);
+    
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeFullscreen();
+        }
+    });
+    
+    // Close on ESC key
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeFullscreen();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+    
+    console.log('[Charts] ✓ Fullscreen chart opened');
+}
+
+// Download Chart Data as CSV/Excel
+function downloadChartData(chartId, filename) {
+    console.log('[Charts] Downloading data for:', chartId);
+    
+    // Get the chart instance
+    const chart = window.chartManager?.charts[chartId] || window[chartId];
+    
+    if (!chart || !chart.data || !chart.data.datasets) {
+        console.error('[Charts] Chart data not found:', chartId);
+        showNotification('Error', 'No data available to download', 'error');
+        return;
+    }
+    
+    try {
+        // Prepare CSV data
+        let csvContent = '';
+        const datasets = chart.data.datasets;
+        
+        // Determine if it's a time-based chart
+        const isTimeChart = datasets[0]?.data[0]?.x !== undefined;
+        
+        if (isTimeChart) {
+            // Header row
+            const headers = ['Timestamp', 'Date', 'Time'];
+            datasets.forEach(dataset => {
+                headers.push(dataset.label || 'Value');
+            });
+            csvContent += headers.join(',') + '\n';
+            
+            // Get all unique timestamps
+            const allTimestamps = new Set();
+            datasets.forEach(dataset => {
+                dataset.data.forEach(point => {
+                    if (point.x) {
+                        allTimestamps.add(point.x);
+                    }
+                });
+            });
+            
+            // Sort timestamps
+            const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
+            
+            // Data rows
+            sortedTimestamps.forEach(timestamp => {
+                const date = new Date(timestamp);
+                const dateStr = date.toLocaleDateString();
+                const timeStr = date.toLocaleTimeString();
+                
+                const row = [timestamp, dateStr, timeStr];
+                
+                datasets.forEach(dataset => {
+                    const point = dataset.data.find(p => p.x === timestamp);
+                    row.push(point ? point.y.toFixed(2) : '');
+                });
+                
+                csvContent += row.join(',') + '\n';
+            });
+        } else {
+            // Simple chart (non-time based)
+            const headers = ['Index'];
+            datasets.forEach(dataset => {
+                headers.push(dataset.label || 'Value');
+            });
+            csvContent += headers.join(',') + '\n';
+            
+            // Assume all datasets have the same length
+            const dataLength = Math.max(...datasets.map(d => d.data.length));
+            
+            for (let i = 0; i < dataLength; i++) {
+                const row = [i + 1];
+                datasets.forEach(dataset => {
+                    row.push(dataset.data[i] !== undefined ? dataset.data[i] : '');
+                });
+                csvContent += row.join(',') + '\n';
+            }
+        }
+        
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${filename}_${timestamp}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('[Charts] ✓ Chart data downloaded');
+        showNotification('Success', `Chart data downloaded as ${filename}_${timestamp}.csv`, 'success');
+        
+    } catch (error) {
+        console.error('[Charts] Error downloading chart data:', error);
+        showNotification('Error', 'Failed to download chart data', 'error');
+    }
+}
 // ========================================
 // SUPABASE DATA HELPER FUNCTIONS
 // ========================================
@@ -2119,6 +2354,10 @@ window.sendCommand = sendCommand;
 window.setupRealtimeSubscription = setupRealtimeSubscription;
 window.startMockData = startMockData;
 window.stopMockData = stopMockData;
+window.toggleFullscreenChart = toggleFullscreenChart;
+window.downloadChartData = downloadChartData;
+window.setupChartEnhancements = setupChartEnhancements;
+
 
 document.addEventListener('chartReady', function() {
     console.log('[Dashboard] Received chartReady event');
