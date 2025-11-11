@@ -910,8 +910,8 @@ Philippines
 
 - **John Paul Santonia** - Project Leader
 - **Ivan James L. Bernal** - Lead Developer
-- **Dereck Larino** - Hardware Specialist
-- **Angelo Manuel** - UI/UX Designer
+- **Dereck Larino** - Surveyor
+- **Angelo Manuel** - 3D Designer
 
 ### Feedback
 
