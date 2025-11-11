@@ -1890,13 +1890,18 @@ function toggleFullscreenChart(chartId, chartTitle) {
     const canvas = document.getElementById(`${chartId}-fullscreen`);
     const ctx = canvas.getContext('2d');
     
-    // Clone the chart configuration
-    const config = JSON.parse(JSON.stringify(chart.config));
+    // FIXED: Properly clone chart configuration
+    const originalConfig = chart.config;
+    const config = {
+        type: originalConfig.type,
+        data: JSON.parse(JSON.stringify(chart.data)),
+        options: JSON.parse(JSON.stringify(originalConfig.options || {}))
+    };
+    
+    // Ensure proper options
+    if (!config.options) config.options = {};
     config.options.responsive = true;
     config.options.maintainAspectRatio = false;
-    
-    // Copy data from original chart
-    config.data = JSON.parse(JSON.stringify(chart.data));
     
     const fullscreenChart = new Chart(ctx, config);
     
