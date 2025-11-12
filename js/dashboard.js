@@ -436,7 +436,18 @@ function setupRealtimeSubscription() {
                 lastUpdate.textContent = 'Last update: Just now';
             }
             
-    
+            // Update hardware data
+            hardwareData.temperature = newData.temperature;
+            hardwareData.ph = newData.ph;
+            hardwareData.population = newData.population || 15;
+            hardwareData.healthStatus = newData.health_status || 100;
+            hardwareData.avgWeight = newData.avg_weight || 5;
+            hardwareData.daysToHarvest = newData.days_to_harvest || 120;
+            hardwareData.lastUpdated = new Date(newData.created_at);
+            
+            updateDashboardWithNewData(hardwareData);
+            stopMockData();
+            
             // Update charts if available
             if (window.chartManager) {
                 window.chartManager.streamData('tempChart', {
