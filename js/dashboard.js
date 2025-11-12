@@ -1862,6 +1862,10 @@ function toggleFullscreenChart(chartId, chartTitle) {
         return;
     }
     
+    console.log('[Charts] Chart object:', chart);
+    console.log('[Charts] Chart config:', chart.config);
+    console.log('[Charts] Chart data:', chart.data);
+    
     // Create fullscreen modal
     const modal = document.createElement('div');
     modal.className = 'chart-fullscreen-modal';
@@ -1890,18 +1894,46 @@ function toggleFullscreenChart(chartId, chartTitle) {
     const canvas = document.getElementById(`${chartId}-fullscreen`);
     const ctx = canvas.getContext('2d');
     
-    // FIXED: Properly clone chart configuration
-    const originalConfig = chart.config;
+    // ULTRA-SAFE: Build configuration from scratch
+    let chartType = 'line'; // default
+    let chartData = { datasets: [], labels: [] };
+    let chartOptions = {};
+    
+    try {
+        // Get chart type
+        if (chart.config && chart.config.type) {
+            chartType = chart.config.type;
+        } else if (chart.type) {
+            chartType = chart.type;
+        }
+        
+        // Clone data safely
+        if (chart.data) {
+            chartData = JSON.parse(JSON.stringify(chart.data));
+        }
+        
+        // Clone options safely
+        if (chart.config && chart.config.options) {
+            chartOptions = JSON.parse(JSON.stringify(chart.config.options));
+        } else if (chart.options) {
+            chartOptions = JSON.parse(JSON.stringify(chart.options));
+        }
+    } catch (error) {
+        console.error('[Charts] Error cloning chart data:', error);
+    }
+    
+    // Build final config
     const config = {
-        type: originalConfig.type,
-        data: JSON.parse(JSON.stringify(chart.data)),
-        options: JSON.parse(JSON.stringify(originalConfig.options || {}))
+        type: chartType,
+        data: chartData,
+        options: chartOptions || {}
     };
     
-    // Ensure proper options
-    if (!config.options) config.options = {};
+    // Force responsive settings
     config.options.responsive = true;
     config.options.maintainAspectRatio = false;
+    
+    console.log('[Charts] Creating fullscreen chart with config:', config);
     
     const fullscreenChart = new Chart(ctx, config);
     
