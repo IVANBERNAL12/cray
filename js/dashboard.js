@@ -101,7 +101,267 @@ function formatTime(frequency, time) {
         return `at ${time}`;
     }
 }
+// ========================================
+// FEED HISTORY FUNCTIONS
+// ========================================
 
+async function loadFeedHistory() {
+    try {
+        const history = await window.getFeedHistory(30);
+        displayFeedHistory(history);
+    } catch (error) {
+        console.error('Error loading feed history:', error);
+        showNotification('Error', 'Failed to load feed history', 'error');
+    }
+}
+
+function displayFeedHistory(history) {
+    const tbody = document.getElementById('feed-history-tbody');
+    if (!tbody) return;
+
+    if (!history || history.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="history-empty">
+                    <i class="fas fa-inbox"></i>
+                    <p>No feed history yet</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = history.map(record => {
+        const date = new Date(record.created_at);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        const foodTypeMap = {
+            'juvenile-pellets': 'Juvenile Pellets',
+            'growth-pellets': 'Growth Pellets',
+            'breeder-pellets': 'Breeder Pellets'
+        };
+        
+        const methodBadge = record.method === 'scheduled' 
+            ? '<span class="source-badge scheduled">Scheduled</span>'
+            : '<span class="source-badge manual">Manual</span>';
+
+        return `
+            <tr>
+                <td>${dateStr} ${timeStr}</td>
+                <td>${record.amount.toFixed(1)}g</td>
+                <td>${foodTypeMap[record.food_type] || record.food_type}</td>
+                <td>${methodBadge}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ========================================
+// WATER CHANGE HISTORY FUNCTIONS
+// ========================================
+
+async function loadWaterChangeHistory() {
+    try {
+        const history = await window.getWaterChangeHistory(30);
+        displayWaterChangeHistory(history);
+    } catch (error) {
+        console.error('Error loading water change history:', error);
+        showNotification('Error', 'Failed to load water change history', 'error');
+    }
+}
+
+function displayWaterChangeHistory(history) {
+    const tbody = document.getElementById('water-history-tbody');
+    if (!tbody) return;
+
+    if (!history || history.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="history-empty">
+                    <i class="fas fa-inbox"></i>
+                    <p>No water change history yet</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = history.map(record => {
+        const date = new Date(record.created_at);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        const sourceBadge = record.change_type === 'scheduled'
+            ? '<span class="source-badge scheduled">Scheduled</span>'
+            : record.change_type === 'device'
+            ? '<span class="source-badge device">Device</span>'
+            : '<span class="source-badge manual">Manual</span>';
+
+        return `
+            <tr>
+                <td>${dateStr} ${timeStr}</td>
+                <td>${record.percentage}%</td>
+                <td>${sourceBadge}</td>
+                <td>${record.temp_before ? record.temp_before.toFixed(1) + '°C' : '-'}</td>
+                <td>${record.ph_before ? record.ph_before.toFixed(1) : '-'}</td>
+                <td>${record.temp_after ? record.temp_after.toFixed(1) + '°C' : '-'}</td>
+                <td>${record.ph_after ? record.ph_after.toFixed(1) : '-'}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ========================================
+// EMAIL NOTIFICATION FUNCTIONS
+// ========================================
+
+async function checkAndSendLowFeedAlert(currentPercentage) {
+    try {
+        const settings = await window.getFarmSettings();
+        
+        if (!settings || !settings.email_alerts_enabled || !settings.email) {
+            return;
+        }
+        
+        const threshold = settings.low_feed_threshold || 20;
+        
+        if (currentPercentage <= threshold) {
+            console.log('[Email] Sending low feed alert...');
+            
+            const result = await window.sendLowFeedAlert(
+                settings.email,
+                currentPercentage,
+                threshold
+            );
+            
+            if (result.success) {
+                console.log('[Email] ✓ Low feed alert sent');
+            }
+        }
+    } catch (error) {
+        console.error('[Email] Error checking/sending low feed alert:', error);
+    }
+}
+
+async function sendWaterChangeEmail(changeType, percentage) {
+    try {
+        const settings = await window.getFarmSettings();
+        
+        if (!settings || !settings.email_alerts_enabled || !settings.email) {
+            return;
+        }
+        
+        console.log('[Email] Sending water change notification...');
+        
+        const result = await window.sendWaterChangeNotification(
+            settings.email,
+            changeType,
+            percentage
+        );
+        
+        if (result.success) {
+            console.log('[Email] ✓ Water change notification sent');
+        }
+    } catch (error) {
+        console.error('[Email] Error sending water change email:', error);
+    }
+}
+
+async function checkParameterViolations(temperature, ph) {
+    try {
+        const settings = await window.getFarmSettings();
+        
+        if (!settings || !settings.email_alerts_enabled || !settings.email) {
+            return;
+        }
+        
+        // Check temperature
+        const tempMin = settings.temp_min_threshold || 20.0;
+        const tempMax = settings.temp_max_threshold || 25.0;
+        
+        if (temperature < tempMin || temperature > tempMax) {
+            console.log('[Email] Temperature violation detected');
+            await window.sendParameterViolationAlert(
+                settings.email,
+                'temperature',
+                temperature,
+                { min: tempMin, max: tempMax }
+            );
+        }
+        
+        // Check pH
+        const phMin = settings.ph_min_threshold || 6.5;
+        const phMax = settings.ph_max_threshold || 8.0;
+        
+        if (ph < phMin || ph > phMax) {
+            console.log('[Email] pH violation detected');
+            await window.sendParameterViolationAlert(
+                settings.email,
+                'ph',
+                ph,
+                { min: phMin, max: phMax }
+            );
+        }
+    } catch (error) {
+        console.error('[Email] Error checking parameter violations:', error);
+    }
+}
+
+// ========================================
+// USER ID DISPLAY FUNCTION
+// ========================================
+
+async function displayUserID() {
+    try {
+        const user = await getCurrentUser();
+        
+        if (!user) {
+            console.warn('[User ID] User not authenticated');
+            return;
+        }
+        
+        const userIdText = document.getElementById('user-id-text');
+        if (userIdText) {
+            userIdText.textContent = user.id;
+        }
+        
+        console.log('[User ID] Displayed user ID:', user.id);
+    } catch (error) {
+        console.error('[User ID] Error displaying user ID:', error);
+        const userIdText = document.getElementById('user-id-text');
+        if (userIdText) {
+            userIdText.textContent = 'Error loading user ID';
+        }
+    }
+}
+
+async function copyUserID() {
+    try {
+        const userIdText = document.getElementById('user-id-text');
+        if (!userIdText) return;
+        
+        const userId = userIdText.textContent;
+        
+        await navigator.clipboard.writeText(userId);
+        
+        showNotification('Copied!', 'User ID copied to clipboard', 'success');
+        
+        const copyBtn = document.getElementById('copy-user-id');
+        if (copyBtn) {
+            const icon = copyBtn.querySelector('i');
+            if (icon) {
+                icon.className = 'fas fa-check';
+                setTimeout(() => {
+                    icon.className = 'fas fa-copy';
+                }, 2000);
+            }
+        }
+    } catch (error) {
+        console.error('[User ID] Error copying user ID:', error);
+        showNotification('Error', 'Failed to copy user ID', 'error');
+    }
+}
 // ========================================
 // SUPABASE INTEGRATION
 // ========================================
@@ -846,6 +1106,9 @@ function updateDashboardWithNewData(data) {
     updateWaterQualityStatus(hardwareData.temperature, hardwareData.ph);
     updateHarvestProjections(hardwareData);
     updateLastUpdated();
+    
+    // NEW: Check for parameter violations and send emails if needed
+    checkParameterViolations(hardwareData.temperature, hardwareData.ph);
 }
 
 function updateWaterQualityStatus(temperature, ph) {
@@ -939,6 +1202,9 @@ function updateFeedLevelUI(data) {
     updateElement('feed-capacity', `${feedData.capacity}g`);
     updateElement('feed-current', `${feedData.current}g`);
     updateElement('feed-days-left', `${Math.floor(feedData.current / 15)} days`);
+    
+    // NEW: Check for low feed alert
+    checkAndSendLowFeedAlert(percentage);
 }
 
 function updateFeedingScheduleList(schedule) {
@@ -986,11 +1252,34 @@ async function feedNow() {
     
     await sendCommand('feed');
     
-    setTimeout(() => {
-        feedData.current = Math.max(0, feedData.current - 7.5);
-        updateFeedLevelUI(feedData);
-        saveToSupabase('feed_data', feedData);
+    setTimeout(async () => {
+        // Get current food type and amount from schedule
+        const schedule = await window.getFeedingSchedule();
+        const amount = schedule?.amount || 7.5;
+        const foodType = schedule?.type || 'juvenile-pellets';
         
+        // Update feed level
+        feedData.current = Math.max(0, feedData.current - amount);
+        updateFeedLevelUI(feedData);
+        await window.saveFeedData(feedData);
+        
+        // Calculate percentage
+        const percentage = Math.round((feedData.current / feedData.capacity) * 100);
+        
+        // Save to feed history
+        await window.saveFeedHistory({
+            amount: amount,
+            food_type: foodType,
+            method: 'manual'
+        });
+        
+        // Reload feed history display
+        await loadFeedHistory();
+        
+        // Check for low feed alert
+        await checkAndSendLowFeedAlert(percentage);
+        
+        // Update last feeding time
         const now = new Date();
         const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         const lastFeeding = document.getElementById('last-feeding');
@@ -1008,6 +1297,7 @@ async function feedNow() {
     }, 1000);
 }
 
+
 async function changeWaterNow() {
     const btn = document.getElementById('change-water-now');
     if (btn) {
@@ -1017,7 +1307,33 @@ async function changeWaterNow() {
     
     await sendCommand('change_water');
     
-    setTimeout(() => {
+    setTimeout(async () => {
+        // Get current water parameters
+        const tempBefore = hardwareData.temperature;
+        const phBefore = hardwareData.ph;
+        
+        // Get schedule percentage (or default to 50%)
+        const schedule = await window.getWaterSchedule();
+        const percentage = schedule?.percentage || 50;
+        
+        // Save to water change history
+        await window.saveWaterChangeHistory({
+            change_type: 'manual',
+            percentage: percentage,
+            temp_before: tempBefore,
+            ph_before: phBefore,
+            temp_after: null, // Will be updated by next sensor reading
+            ph_after: null,
+            status: 'completed'
+        });
+        
+        // Reload water change history display
+        await loadWaterChangeHistory();
+        
+        // Send email notification
+        await sendWaterChangeEmail('manual', percentage);
+        
+        // Update UI
         const now = new Date();
         const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         const lastWaterChangeEl = document.getElementById('last-water-change');
@@ -2120,6 +2436,114 @@ function downloadChartData(chartId, filename) {
         console.error('[Charts] Error downloading chart data:', error);
         showNotification('Error', 'Failed to download chart data', 'error');
     }
+    const viewFeedHistoryBtn = document.getElementById('view-feed-history-btn');
+    if (viewFeedHistoryBtn) {
+        viewFeedHistoryBtn.addEventListener('click', async () => {
+            await loadFeedHistory();
+            showNotification('Feed History', 'Feed history loaded', 'info');
+        });
+    }
+    
+    // Refresh Feed History Button
+    const refreshFeedHistoryBtn = document.getElementById('refresh-feed-history');
+    if (refreshFeedHistoryBtn) {
+        refreshFeedHistoryBtn.addEventListener('click', async () => {
+            const icon = refreshFeedHistoryBtn.querySelector('i');
+            if (icon) icon.classList.add('fa-spin');
+            
+            await loadFeedHistory();
+            
+            if (icon) icon.classList.remove('fa-spin');
+            showNotification('Refreshed', 'Feed history refreshed', 'success');
+        });
+    }
+    
+    // Refresh Water History Button
+    const refreshWaterHistoryBtn = document.getElementById('refresh-water-history');
+    if (refreshWaterHistoryBtn) {
+        refreshWaterHistoryBtn.addEventListener('click', async () => {
+            const icon = refreshWaterHistoryBtn.querySelector('i');
+            if (icon) icon.classList.add('fa-spin');
+            
+            await loadWaterChangeHistory();
+            
+            if (icon) icon.classList.remove('fa-spin');
+            showNotification('Refreshed', 'Water change history refreshed', 'success');
+        });
+    }
+    
+    // Copy User ID Button
+    const copyUserIdBtn = document.getElementById('copy-user-id');
+    if (copyUserIdBtn) {
+        copyUserIdBtn.addEventListener('click', copyUserID);
+    }
+    
+    console.log('✓ New event listeners attached');
+}
+
+// ========================================
+// UPDATE YOUR initDashboard() FUNCTION
+// Add these function calls
+// ========================================
+
+async function initDashboard() {
+    try {
+        console.log('[Dashboard] Initializing dashboard...');
+        
+        await loadFarmSettings();
+        
+        console.log('[Dashboard] Waiting for charts...');
+        await waitForChartsReady();
+        console.log('[Dashboard] Charts confirmed ready');
+        
+        setupRealtimeSubscription();
+        
+        const user = await getCurrentUser();
+        if (user && window.getHistoricalReadings) {
+            try {
+                const historicalData = await window.getHistoricalReadings(user.id, 24);
+                if (historicalData && historicalData.length > 0) {
+                    console.log('[Dashboard] ✓ Loaded', historicalData.length, 'historical readings');
+                    
+                    if (window.chartManager) {
+                        window.chartManager.updateAllChartsFromHistory(historicalData);
+                    }
+                }
+            } catch (error) {
+                console.warn('[Dashboard] Could not load historical data:', error);
+            }
+        }
+        
+        await loadDashboardData();
+        setupEventListeners();
+        setupChartEnhancements();
+        
+        // NEW: Display User ID
+        await displayUserID();
+        
+        // NEW: Load feed and water history
+        await loadFeedHistory();
+        await loadWaterChangeHistory();
+        
+        await checkDeviceStatus();
+        deviceCheckInterval = setInterval(checkDeviceStatus, 30000);
+        
+        setTimeout(() => {
+            if (!isConnected) {
+                console.log('[Dashboard] No device detected - starting mock data for demo');
+                startMockData();
+            } else {
+                console.log('[Dashboard] Device connected - using real data');
+            }
+        }, 5000);
+
+        console.log('[Dashboard] ✓ Dashboard initialized successfully');
+        showNotification('Dashboard Ready', 'AquaVision Pro loaded successfully', 'success');
+    } catch (error) {
+        console.error('[Dashboard] Failed to initialize:', error);
+        showNotification('Error', 'Failed to initialize dashboard', 'error');
+    }
+
 }
 // ========================================
 // SUPABASE DATA HELPER FUNCTIONS
