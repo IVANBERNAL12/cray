@@ -107,24 +107,37 @@ function formatTime(frequency, time) {
 
 async function loadFeedHistory() {
     try {
+        console.log('[Feed History] Loading feed history...');
+        
+        if (!window.getFeedHistory) {
+            console.error('[Feed History] getFeedHistory function not available');
+            showNotification('Error', 'Feed history function not available', 'error');
+            return;
+        }
+        
         const history = await window.getFeedHistory(30);
+        console.log('[Feed History] Loaded', history?.length || 0, 'records');
+        
         displayFeedHistory(history);
     } catch (error) {
-        console.error('Error loading feed history:', error);
+        console.error('[Feed History] Error loading feed history:', error);
         showNotification('Error', 'Failed to load feed history', 'error');
     }
 }
 
 function displayFeedHistory(history) {
     const tbody = document.getElementById('feed-history-tbody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.warn('[Feed History] Table body not found');
+        return;
+    }
 
     if (!history || history.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="history-empty">
-                    <i class="fas fa-inbox"></i>
-                    <p>No feed history yet</p>
+                <td colspan="4" style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-inbox" style="font-size: 2rem; color: #00d4ff; opacity: 0.5;"></i>
+                    <p style="margin-top: 1rem; color: #e0f7fa; opacity: 0.7;">No feed history yet</p>
                 </td>
             </tr>
         `;
@@ -155,32 +168,47 @@ function displayFeedHistory(history) {
             </tr>
         `;
     }).join('');
+    
+    console.log('[Feed History] ✓ Displayed', history.length, 'records');
 }
-
 // ========================================
 // WATER CHANGE HISTORY FUNCTIONS
 // ========================================
 
 async function loadWaterChangeHistory() {
     try {
+        console.log('[Water History] Loading water change history...');
+        
+        if (!window.getWaterChangeHistory) {
+            console.error('[Water History] getWaterChangeHistory function not available');
+            showNotification('Error', 'Water history function not available', 'error');
+            return;
+        }
+        
         const history = await window.getWaterChangeHistory(30);
+        console.log('[Water History] Loaded', history?.length || 0, 'records');
+        
         displayWaterChangeHistory(history);
     } catch (error) {
-        console.error('Error loading water change history:', error);
+        console.error('[Water History] Error loading water change history:', error);
         showNotification('Error', 'Failed to load water change history', 'error');
     }
 }
 
+
 function displayWaterChangeHistory(history) {
     const tbody = document.getElementById('water-history-tbody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.warn('[Water History] Table body not found');
+        return;
+    }
 
     if (!history || history.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="history-empty">
-                    <i class="fas fa-inbox"></i>
-                    <p>No water change history yet</p>
+                <td colspan="7" style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-inbox" style="font-size: 2rem; color: #00d4ff; opacity: 0.5;"></i>
+                    <p style="margin-top: 1rem; color: #e0f7fa; opacity: 0.7;">No water change history yet</p>
                 </td>
             </tr>
         `;
@@ -210,6 +238,8 @@ function displayWaterChangeHistory(history) {
             </tr>
         `;
     }).join('');
+    
+    console.log('[Water History] ✓ Displayed', history.length, 'records');
 }
 
 // ========================================
@@ -314,34 +344,54 @@ async function checkParameterViolations(temperature, ph) {
 
 async function displayUserID() {
     try {
+        console.log('[User ID] Getting current user...');
+        
+        // Use the global getCurrentUser function
         const user = await getCurrentUser();
         
         if (!user) {
             console.warn('[User ID] User not authenticated');
+            const userIdText = document.getElementById('user-id-text');
+            if (userIdText) {
+                userIdText.textContent = 'Not logged in';
+            }
             return;
         }
+        
+        console.log('[User ID] User found:', user.id);
         
         const userIdText = document.getElementById('user-id-text');
         if (userIdText) {
             userIdText.textContent = user.id;
+            console.log('[User ID] ✓ Displayed user ID');
+        } else {
+            console.warn('[User ID] user-id-text element not found');
         }
-        
-        console.log('[User ID] Displayed user ID:', user.id);
-    } catch (error) {
+
+    }
+     catch (error) {
         console.error('[User ID] Error displaying user ID:', error);
         const userIdText = document.getElementById('user-id-text');
         if (userIdText) {
             userIdText.textContent = 'Error loading user ID';
         }
     }
-}
 
+}
 async function copyUserID() {
     try {
         const userIdText = document.getElementById('user-id-text');
-        if (!userIdText) return;
+        if (!userIdText) {
+            console.warn('[User ID] user-id-text element not found');
+            return;
+        }
         
         const userId = userIdText.textContent;
+        
+        if (!userId || userId === 'Loading...' || userId === 'Not logged in' || userId === 'Error loading user ID') {
+            showNotification('Error', 'No user ID available to copy', 'warning');
+            return;
+        }
         
         await navigator.clipboard.writeText(userId);
         
@@ -357,6 +407,8 @@ async function copyUserID() {
                 }, 2000);
             }
         }
+        
+        console.log('[User ID] ✓ Copied to clipboard');
     } catch (error) {
         console.error('[User ID] Error copying user ID:', error);
         showNotification('Error', 'Failed to copy user ID', 'error');
@@ -991,10 +1043,21 @@ async function initDashboard() {
         }
         
         await loadDashboardData();
+
         setupEventListeners();
-        
-        // ✅ ADD THIS LINE HERE:
+
         setupChartEnhancements();
+        
+        // CRITICAL: Display User ID
+        console.log('[Dashboard] Displaying user ID...');
+        await displayUserID();
+        
+        // CRITICAL: Load feed and water history
+        console.log('[Dashboard] Loading feed history...');
+        await loadFeedHistory();
+        
+        console.log('[Dashboard] Loading water change history...');
+        await loadWaterChangeHistory();
         
         await checkDeviceStatus();
         deviceCheckInterval = setInterval(checkDeviceStatus, 30000);
@@ -1253,42 +1316,58 @@ async function feedNow() {
     await sendCommand('feed');
     
     setTimeout(async () => {
-        // Get current food type and amount from schedule
-        const schedule = await window.getFeedingSchedule();
-        const amount = schedule?.amount || 7.5;
-        const foodType = schedule?.type || 'juvenile-pellets';
-        
-        // Update feed level
-        feedData.current = Math.max(0, feedData.current - amount);
-        updateFeedLevelUI(feedData);
-        await window.saveFeedData(feedData);
-        
-        // Calculate percentage
-        const percentage = Math.round((feedData.current / feedData.capacity) * 100);
-        
-        // Save to feed history
-        await window.saveFeedHistory({
-            amount: amount,
-            food_type: foodType,
-            method: 'manual'
-        });
-        
-        // Reload feed history display
-        await loadFeedHistory();
-        
-        // Check for low feed alert
-        await checkAndSendLowFeedAlert(percentage);
-        
-        // Update last feeding time
-        const now = new Date();
-        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        const lastFeeding = document.getElementById('last-feeding');
-        if (lastFeeding) lastFeeding.textContent = `Last fed: Today at ${timeString}`;
-        
-        const feedingStatusIndicator = document.getElementById('feeding-status-indicator');
-        if (feedingStatusIndicator) feedingStatusIndicator.className = 'status-indicator good';
-        
-        showNotification('Feeding', 'Feeding command sent successfully.', 'success');
+        try {
+            // Get current food type and amount from schedule
+            const schedule = await window.getFeedingSchedule();
+            const amount = schedule?.amount || 7.5;
+            const foodType = schedule?.type || 'juvenile-pellets';
+            
+            // FIXED: Properly update feed level
+            const currentFeedData = await window.getFeedData();
+            feedData.capacity = currentFeedData.capacity || 500;
+            feedData.current = Math.max(0, (currentFeedData.current || 375) - amount);
+            feedData.lastUpdated = new Date();
+            
+            // Save to Supabase using the correct function
+            const saveResult = await window.saveFeedData(feedData);
+            
+            if (saveResult.success) {
+                console.log('[Feed] ✓ Feed data saved successfully');
+                updateFeedLevelUI(feedData);
+            } else {
+                console.error('[Feed] Failed to save feed data:', saveResult.message);
+            }
+            
+            // Calculate percentage
+            const percentage = Math.round((feedData.current / feedData.capacity) * 100);
+            
+            // Save to feed history
+            await window.saveFeedHistory({
+                amount: amount,
+                food_type: foodType,
+                method: 'manual'
+            });
+            
+            // Reload feed history display
+            await loadFeedHistory();
+            
+            // Check for low feed alert
+            await checkAndSendLowFeedAlert(percentage);
+            
+            // Update last feeding time
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const lastFeeding = document.getElementById('last-feeding');
+            if (lastFeeding) lastFeeding.textContent = `Last fed: Today at ${timeString}`;
+            
+            const feedingStatusIndicator = document.getElementById('feeding-status-indicator');
+            if (feedingStatusIndicator) feedingStatusIndicator.className = 'status-indicator good';
+            
+            showNotification('Feeding', 'Feeding completed successfully.', 'success');
+        } catch (error) {
+            console.error('[Feed] Error in feedNow:', error);
+            showNotification('Error', 'Failed to complete feeding', 'error');
+        }
         
         if (btn) {
             btn.disabled = false;
@@ -1296,6 +1375,7 @@ async function feedNow() {
         }
     }, 1000);
 }
+
 
 
 async function changeWaterNow() {
@@ -2818,7 +2898,13 @@ window.setupRealtimeSubscription = setupRealtimeSubscription;
 window.startMockData = startMockData;
 window.stopMockData = stopMockData;
 
-
+window.feedNow = feedNow;
+window.loadFeedHistory = loadFeedHistory;
+window.displayFeedHistory = displayFeedHistory;
+window.loadWaterChangeHistory = loadWaterChangeHistory;
+window.displayWaterChangeHistory = displayWaterChangeHistory;
+window.displayUserID = displayUserID;
+window.copyUserID = copyUserID;
 
 document.addEventListener('chartReady', function() {
     console.log('[Dashboard] Received chartReady event');
