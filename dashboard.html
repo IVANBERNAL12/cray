@@ -23,14 +23,10 @@
     </div>
 
     <!-- Floating Ocean Elements -->
-    <div class="ocean-elements">
-        <!-- Generate elements dynamically with JavaScript -->
-    </div>
+    <div class="ocean-elements"></div>
 
     <!-- Bioluminescent Particles -->
-    <div class="bioluminescence">
-        <!-- Generate particles dynamically with JavaScript -->
-    </div>
+    <div class="bioluminescence"></div>
 
     <!-- Navigation -->
     <nav>
@@ -63,6 +59,7 @@
 
     <!-- Dashboard Container -->
     <div class="dashboard-container">
+        
         <!-- Dashboard Section -->
         <section id="dashboard" class="dashboard-section active">
             <div class="dashboard-header">
@@ -77,49 +74,49 @@
             </div>
 
             <!-- Stats Grid -->
-           <div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-thermometer-half"></i>
-        </div>
-        <h3 class="stat-title">Water Temperature</h3>
-        <div class="stat-value" id="temp-value">24.5°C</div>
-        <div class="stat-change positive" id="temp-change">
-            <i class="fas fa-arrow-up"></i> 2.1%
-        </div>
-    </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-thermometer-half"></i>
+                    </div>
+                    <h3 class="stat-title">Water Temperature</h3>
+                    <div class="stat-value" id="temp-value">24.5°C</div>
+                    <div class="stat-change positive" id="temp-change">
+                        <i class="fas fa-arrow-up"></i> 2.1%
+                    </div>
+                </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-tint"></i>
-        </div>
-        <h3 class="stat-title">pH Level</h3>
-        <div class="stat-value" id="ph-value">7.2</div>
-        <div class="stat-change positive" id="ph-change">
-            <i class="fas fa-arrow-up"></i> 0.5%
-        </div>
-    </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-tint"></i>
+                    </div>
+                    <h3 class="stat-title">pH Level</h3>
+                    <div class="stat-value" id="ph-value">7.2</div>
+                    <div class="stat-change positive" id="ph-change">
+                        <i class="fas fa-arrow-up"></i> 0.5%
+                    </div>
+                </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-heartbeat"></i>
-        </div>
-        <h3 class="stat-title">Health Status</h3>
-        <div class="stat-value" id="health-value">100%</div>
-        <div class="stat-change positive" id="health-change">
-            <i class="fas fa-arrow-up"></i> 0%
-        </div>
-    </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <h3 class="stat-title">Health Status</h3>
+                    <div class="stat-value" id="health-value">100%</div>
+                    <div class="stat-change positive" id="health-change">
+                        <i class="fas fa-arrow-up"></i> 0%
+                    </div>
+                </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-box-open"></i>
-        </div>
-        <h3 class="stat-title">Feed Level</h3>
-        <div class="stat-value" id="feed-level-value">75%</div>
-        <div class="feed-status" id="feed-status">Adequate</div>
-    </div>
-</div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                    <h3 class="stat-title">Feed Level</h3>
+                    <div class="stat-value" id="feed-level-value">75%</div>
+                    <div class="feed-status" id="feed-status">Adequate</div>
+                </div>
+            </div>
 
             <!-- Device Status Section -->
             <div class="device-status-section">
@@ -155,7 +152,7 @@
                 </div>
             </div>
 
-            <!-- Charts Section - FIXED WITH PROPER HEIGHTS -->
+            <!-- Charts Section -->
             <div class="charts-section">
                 <h2 class="section-title">Farm Analytics</h2>
                 <div class="charts-grid">
@@ -292,524 +289,248 @@
 
         <!-- Water Management Section -->
         <section id="water-management" class="dashboard-section">
-    <div class="water-management">
-        <div class="section-header">
-            <h2 class="section-title">Water Management</h2>
-        </div>
-
-        <div class="water-status">
-            <div class="status-indicator good" id="water-status-indicator"></div>
-            <div class="water-info">
-                <h3>Water Quality: Good</h3>
-            
-            </div>
-        </div>
-
-        <div class="water-controls">
-            <button class="btn btn-primary" id="change-water-now">
-                <i class="fas fa-sync-alt"></i> Change Water Now
-            </button>
-            <button class="btn btn-secondary" id="set-water-schedule">
-                <i class="fas fa-clock"></i> Set Schedule
-            </button>
-        </div>
-
-        <!-- NEW: Water Change History Section -->
-        <div class="water-history-section">
-            <h3 class="section-title">
-                Water Change History
-                <button class="btn btn-icon" id="refresh-water-history" title="Refresh history">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </h3>
-            <div class="history-table-container">
-                <table class="history-table" id="water-history-table">
-                    <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>Percentage</th>
-                            <th>Source</th>
-                            <th>Temp Before</th>
-                            <th>pH Before</th>
-                            <th>Temp After</th>
-                            <th>pH After</th>
-                        </tr>
-                    </thead>
-                    <tbody id="water-history-tbody">
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 2rem;">
-                                <i class="fas fa-spinner fa-spin"></i> Loading history...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="schedule-form" id="water-schedule-form">
-            <h3 class="form-title">Water Change Schedule</h3>
-            <div class="form-group">
-                <label for="water-change-time" class="form-label">Water Change Time</label>
-                <input type="time" id="water-change-time" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="water-frequency" class="form-label">Frequency</label>
-                <select id="water-frequency" class="form-control">
-                    <option value="daily">Daily</option>
-                    <option value="weekly" selected>Weekly</option>
-                    <option value="biweekly">Bi-weekly</option>
-                    <option value="monthly">Monthly</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="water-change-percentage" class="form-label">Water Change Percentage</label>
-                <select id="water-change-percentage" class="form-control">
-                    <option value="25">25%</option>
-                    <option value="50" selected>50%</option>
-                    <option value="75">75%</option>
-                    <option value="100">100%</option>
-                </select>
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-primary" id="save-water-schedule">
-                    <i class="fas fa-save"></i> Save Schedule
-                </button>
-                <button class="btn btn-secondary" id="cancel-water-schedule">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </div>
-        </div>
-
-        <div class="upcoming-schedules">
-            <h3 class="section-title">Scheduled Water Changes</h3>
-            <div class="schedule-list" id="water-schedule-list">
-                <div class="schedule-item">
-                    <div class="schedule-info">
-                        <div class="schedule-time">Weekly</div>
-                        <div class="schedule-details">Every Monday at 9:00 AM - 50% water change</div>
-                    </div>
-                    <div class="schedule-status active">Active</div>
+            <div class="water-management">
+                <div class="section-header">
+                    <h2 class="section-title">Water Management</h2>
                 </div>
-            </div>
-        </div>
-    </div>
-</section>
 
-        <!-- Feeding Section -->
-    <!-- Feeding Section - UPDATED -->
-<!-- ========================================
-     FEEDING SECTION - UPDATED VERSION
-     ======================================== -->
-<section id="feeding" class="dashboard-section">
-    <div class="feeding-section">
-        <div class="section-header">
-            <h2 class="section-title">Feeding Management</h2>
-        </div>
-
-        <div class="feeding-status">
-            <div class="status-indicator good" id="feeding-status-indicator"></div>
-            <div class="feeding-info">
-                <h3>Feeding Status: Active</h3>
-                
-            </div>
-        </div>
-
-        <div class="feeding-controls">
-            <button class="btn btn-primary" id="feed-now">
-                <i class="fas fa-utensils"></i> Feed Now
-            </button>
-            <button class="btn btn-secondary" id="set-feeding-schedule-btn">
-                <i class="fas fa-clock"></i> Set Schedule
-            </button>
-            <button class="btn btn-success" id="view-feed-history-btn">
-                <i class="fas fa-history"></i> View History
-            </button>
-        </div>
-
-        <!-- Feed Monitoring Section -->
-        <div class="feed-monitoring">
-            <h3 class="section-title">Feed Monitoring</h3>
-            <div class="feed-level-card">
-                <div class="feed-level-info">
-                    <div class="feed-level-percentage" id="feeding-feed-level-value">75%</div>
-                    <div class="feed-level-bar">
-                        <div class="feed-level-progress" id="feeding-feed-level-progress" style="width: 75%;"></div>
+                <div class="water-status">
+                    <div class="status-indicator good" id="water-status-indicator"></div>
+                    <div class="water-info">
+                        <h3>Water Quality: Good</h3>
                     </div>
-                    <div class="feed-level-status" id="feed-level-status">Adequate</div>
                 </div>
-                <div class="feed-actions">
-                    <!-- REMOVED: Refill Feed button -->
-                    <button class="btn btn-secondary" id="set-feed-alert">
-                        <i class="fas fa-bell"></i> Configure Alert
+
+                <div class="water-controls">
+                    <button class="btn btn-primary" id="change-water-now">
+                        <i class="fas fa-sync-alt"></i> Change Water Now
+                    </button>
+                    <button class="btn btn-secondary" id="set-water-schedule">
+                        <i class="fas fa-clock"></i> Set Schedule
                     </button>
                 </div>
-            </div>
-            <div class="feed-stats">
-                <div class="feed-stat">
-                    <div class="feed-stat-label">Total Capacity</div>
-                    <div class="feed-stat-value" id="feed-capacity">500g</div>
-                </div>
-                <div class="feed-stat">
-                    <div class="feed-stat-label">Current Amount</div>
-                    <div class="feed-stat-value" id="feed-current">375g</div>
-                </div>
-                <div class="feed-stat">
-                    <div class="feed-stat-label">Estimated Days Left</div>
-                    <div class="feed-stat-value" id="feed-days-left">25 days</div>
-                </div>
-            </div>
-        </div>
 
-        <!-- NEW: Feed History Section -->
-        <div class="feed-history-section">
-            <h3 class="section-title">
-                Feed History
-                <button class="btn btn-icon" id="refresh-feed-history" title="Refresh history">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </h3>
-            <div class="history-table-container">
-                <table class="history-table" id="feed-history-table">
-                    <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>Amount (g)</th>
-                            <th>Food Type</th>
-                            <th>Method</th>
-                        </tr>
-                    </thead>
-                    <tbody id="feed-history-tbody">
-                        <tr>
-                            <td colspan="4" style="text-align: center; padding: 2rem;">
-                                <i class="fas fa-spinner fa-spin"></i> Loading history...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Feeding Schedule Form (existing) -->
-        <div class="schedule-form" id="feeding-schedule-form">
-            <h3 class="form-title">Feeding Schedule</h3>
-            <div class="form-group">
-                <label for="feeding-time" class="form-label">Feeding Time</label>
-                <input type="time" id="feeding-time" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="feeding-frequency" class="form-label">Frequency</label>
-                <select id="feeding-frequency" class="form-control">
-                    <option value="twice-daily" selected>Twice Daily</option>
-                    <option value="daily">Daily</option>
-                    <option value="every-other-day">Every Other Day</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="food-amount" class="form-label">Food Amount (grams)</label>
-                <input type="number" id="food-amount" class="form-control" min="1" max="500" value="7.5">
-            </div>
-            <div class="form-group">
-                <label for="food-type" class="form-label">Food Type</label>
-                <select id="food-type" class="form-control">
-                    <option value="juvenile-pellets" selected>Juvenile Pellets (40%)</option>
-                    <option value="growth-pellets">Growth Pellets (35%)</option>
-                    <option value="breeder-pellets">Breeder Pellets (30%)</option>
-                </select>
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-primary" id="save-feeding-schedule">
-                    <i class="fas fa-save"></i> Save Schedule
-                </button>
-                <button class="btn btn-secondary" id="cancel-feeding-schedule">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </div>
-        </div>
-
-        <div class="upcoming-schedules">
-            <h3 class="section-title">Scheduled Feedings</h3>
-            <div class="schedule-list" id="feeding-schedule-list">
-                <div class="schedule-item">
-                    <div class="schedule-info">
-                        <div class="schedule-time">Twice Daily</div>
-                        <div class="schedule-details">8:00 AM and 6:00 PM - 7.5g of Juvenile Pellets</div>
+                <!-- Water Change History Section -->
+                <div class="water-history-section">
+                    <h3 class="section-title">
+                        Water Change History
+                        <button class="btn btn-icon" id="refresh-water-history" title="Refresh history">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </h3>
+                    <div class="history-table-container">
+                        <table class="history-table" id="water-history-table">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Percentage</th>
+                                    <th>Source</th>
+                                    <th>Temp Before</th>
+                                    <th>pH Before</th>
+                                    <th>Temp After</th>
+                                    <th>pH After</th>
+                                </tr>
+                            </thead>
+                            <tbody id="water-history-tbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 2rem;">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading history...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="schedule-status active">Active</div>
                 </div>
-            </div>
-        </div>
-    </div>
-</section>
 
-<!-- ========================================
-     WATER MANAGEMENT SECTION - UPDATED
-     ======================================== -->
-<section id="water-management" class="dashboard-section">
-    <div class="water-management">
-        <div class="section-header">
-            <h2 class="section-title">Water Management</h2>
-        </div>
-
-        <div class="water-status">
-            <div class="status-indicator good" id="water-status-indicator"></div>
-            <div class="water-info">
-                <h3>Water Quality: Good</h3>
-                
-            </div>
-        </div>
-
-        <div class="water-controls">
-            <button class="btn btn-primary" id="change-water-now">
-                <i class="fas fa-sync-alt"></i> Change Water Now
-            </button>
-            <button class="btn btn-secondary" id="set-water-schedule">
-                <i class="fas fa-clock"></i> Set Schedule
-            </button>
-        </div>
-
-        <!-- NEW: Water Change History Section -->
-        <div class="water-history-section">
-            <h3 class="section-title">
-                Water Change History
-                <button class="btn btn-icon" id="refresh-water-history" title="Refresh history">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </h3>
-            <div class="history-table-container">
-                <table class="history-table" id="water-history-table">
-                    <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>Percentage</th>
-                            <th>Source</th>
-                            <th>Temp Before</th>
-                            <th>pH Before</th>
-                            <th>Temp After</th>
-                            <th>pH After</th>
-                        </tr>
-                    </thead>
-                    <tbody id="water-history-tbody">
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 2rem;">
-                                <i class="fas fa-spinner fa-spin"></i> Loading history...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Water Schedule Form (existing) -->
-        <div class="schedule-form" id="water-schedule-form">
-            <h3 class="form-title">Water Change Schedule</h3>
-            <div class="form-group">
-                <label for="water-change-time" class="form-label">Water Change Time</label>
-                <input type="time" id="water-change-time" class="form-control">
-            </div>
-            <div class="form-group">
-                <label for="water-frequency" class="form-label">Frequency</label>
-                <select id="water-frequency" class="form-control">
-                    <option value="daily">Daily</option>
-                    <option value="weekly" selected>Weekly</option>
-                    <option value="biweekly">Bi-weekly</option>
-                    <option value="monthly">Monthly</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="water-change-percentage" class="form-label">Water Change Percentage</label>
-                <select id="water-change-percentage" class="form-control">
-                    <option value="25">25%</option>
-                    <option value="50" selected>50%</option>
-                    <option value="75">75%</option>
-                    <option value="100">100%</option>
-                </select>
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-primary" id="save-water-schedule">
-                    <i class="fas fa-save"></i> Save Schedule
-                </button>
-                <button class="btn btn-secondary" id="cancel-water-schedule">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </div>
-        </div>
-
-        <div class="upcoming-schedules">
-            <h3 class="section-title">Scheduled Water Changes</h3>
-            <div class="schedule-list" id="water-schedule-list">
-                <div class="schedule-item">
-                    <div class="schedule-info">
-                        <div class="schedule-time">Weekly</div>
-                        <div class="schedule-details">Every Monday at 9:00 AM - 50% water change</div>
+                <!-- Water Schedule Form -->
+                <div class="schedule-form" id="water-schedule-form">
+                    <h3 class="form-title">Water Change Schedule</h3>
+                    <div class="form-group">
+                        <label for="water-change-time" class="form-label">Water Change Time</label>
+                        <input type="time" id="water-change-time" class="form-control">
                     </div>
-                    <div class="schedule-status active">Active</div>
+                    <div class="form-group">
+                        <label for="water-frequency" class="form-label">Frequency</label>
+                        <select id="water-frequency" class="form-control">
+                            <option value="daily">Daily</option>
+                            <option value="weekly" selected>Weekly</option>
+                            <option value="biweekly">Bi-weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="water-change-percentage" class="form-label">Water Change Percentage</label>
+                        <select id="water-change-percentage" class="form-control">
+                            <option value="25">25%</option>
+                            <option value="50" selected>50%</option>
+                            <option value="75">75%</option>
+                            <option value="100">100%</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" id="save-water-schedule">
+                            <i class="fas fa-save"></i> Save Schedule
+                        </button>
+                        <button class="btn btn-secondary" id="cancel-water-schedule">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="upcoming-schedules">
+                    <h3 class="section-title">Scheduled Water Changes</h3>
+                    <div class="schedule-list" id="water-schedule-list">
+                        <div class="schedule-item">
+                            <div class="schedule-info">
+                                <div class="schedule-time">Weekly</div>
+                                <div class="schedule-details">Every Monday at 9:00 AM - 50% water change</div>
+                            </div>
+                            <div class="schedule-status active">Active</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
+        </section>
 
-<!-- ========================================
-     SETTINGS SECTION - ADD USER ID DISPLAY
-     ======================================== -->
-<div class="settings-form">
-    <div class="form-group">
-        <label for="farm-name" class="form-label">Farm Name</label>
-        <input type="text" id="farm-name" class="form-control" value="My Crayfish Farm">
-    </div>
-    
-    <div class="form-group">
-        <label for="notification-email" class="form-label">Notification Email</label>
-        <input type="email" id="notification-email" class="form-control" value="farmer@example.com">
-        <small class="form-help">Email alerts will be sent to this address</small>
-    </div>
-    
-    <div class="form-group">
-        <label for="notification-phone" class="form-label">Notification Phone</label>
-        <input type="tel" id="notification-phone" class="form-control" value="+63 912 345 6789">
-    </div>
-    
-    <!-- Email Alerts Section -->
-    <div class="form-group">
-        <label class="form-label">
-            <input type="checkbox" id="email-alerts-enabled" checked> 
-            Enable Email Alerts
-        </label>
-        <small class="form-help">Receive email notifications for feeding, water changes, and parameter violations</small>
-    </div>
-    
-    <div class="form-group">
-        <label for="low-feed-threshold" class="form-label">Low Feed Alert Threshold (%)</label>
-        <input type="number" id="low-feed-threshold" class="form-control" value="20" min="5" max="50">
-        <small class="form-help">Alert when feed drops below this percentage</small>
-    </div>
-    
-    <!-- Info about automatic parameter monitoring -->
-    <div style="background: #d1ecf1; border-left: 4px solid #00d4ff; padding: 15px; margin: 20px 0; border-radius: 5px;">
-        <p style="margin: 0; font-size: 14px; color: #0c5460;">
-            <strong><i class="fas fa-info-circle"></i> Automatic Parameter Monitoring</strong><br>
-            Temperature and pH levels are monitored automatically based on optimal crayfish farming guidelines:
-        </p>
-        <ul style="margin: 10px 0 0 20px; color: #0c5460;">
-            <li><strong>Temperature:</strong> Optimal 20-25°C, Critical below 15°C or above 30°C</li>
-            <li><strong>pH Level:</strong> Optimal 6.5-8.0, Critical below 6.0 or above 8.5</li>
-        </ul>
-    </div>
-    
-    <div class="form-group">
-        <label for="measurement-unit" class="form-label">Measurement Unit</label>
-        <select id="measurement-unit" class="form-control">
-            <option value="metric" selected>Metric (°C, cm, g)</option>
-            <option value="imperial">Imperial (°F, in, oz)</option>
-        </select>
-    </div>
-    
-    <div class="form-group">
-        <label for="alert-frequency" class="form-label">Alert Frequency</label>
-        <select id="alert-frequency" class="form-control">
-            <option value="immediate" selected>Immediate</option>
-            <option value="daily">Daily Summary</option>
-            <option value="weekly">Weekly Summary</option>
-        </select>
-    </div>
-    
-    <div class="form-group">
-        <label for="water-testing-frequency" class="form-label">Water Testing Frequency</label>
-        <select id="water-testing-frequency" class="form-control">
-            <option value="daily">Daily</option>
-            <option value="twice-weekly" selected>Twice Weekly</option>
-            <option value="weekly">Weekly</option>
-        </select>
-    </div>
-    
-         <button class="btn btn-primary" id="save-settings">
-        <i class="fas fa-save"></i> Save Settings
-            </button>
-        </div>
-    </div>
-</section>
-
-<!-- Feed History Modal - NEW -->
-<div class="modal" id="feed-history-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Feed History</h3>
-            <button class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="history-controls">
-                <div class="form-group">
-                    <label for="feed-history-period" class="form-label">Time Period</label>
-                    <select id="feed-history-period" class="form-control">
-                        <option value="7">Last 7 days</option>
-                        <option value="30" selected>Last 30 days</option>
-                        <option value="90">Last 90 days</option>
-                    </select>
+        <!-- Feeding Section -->
+        <section id="feeding" class="dashboard-section">
+            <div class="feeding-section">
+                <div class="section-header">
+                    <h2 class="section-title">Feeding Management</h2>
                 </div>
-                <button class="btn btn-primary" id="apply-feed-history-filter">Apply</button>
-            </div>
-            <div class="history-table-container">
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>Amount (g)</th>
-                            <th>Food Type</th>
-                            <th>Method</th>
-                        </tr>
-                    </thead>
-                    <tbody id="feed-history-tbody">
-                        <!-- Data populated by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary modal-cancel">Close</button>
-        </div>
-    </div>
-</div>
 
-<!-- Water History Modal - UPDATED -->
-<div class="modal" id="water-history-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Water Management History</h3>
-            <button class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="history-controls">
-                <div class="form-group">
-                    <label for="water-history-period" class="form-label">Time Period</label>
-                    <select id="water-history-period" class="form-control">
-                        <option value="7">Last 7 days</option>
-                        <option value="30" selected>Last 30 days</option>
-                        <option value="90">Last 90 days</option>
-                    </select>
+                <div class="feeding-status">
+                    <div class="status-indicator good" id="feeding-status-indicator"></div>
+                    <div class="feeding-info">
+                        <h3>Feeding Status: Active</h3>
+                    </div>
                 </div>
-                <button class="btn btn-primary" id="apply-water-history-filter">Apply</button>
+
+                <div class="feeding-controls">
+                    <button class="btn btn-primary" id="feed-now">
+                        <i class="fas fa-utensils"></i> Feed Now
+                    </button>
+                    <button class="btn btn-secondary" id="set-feeding-schedule-btn">
+                        <i class="fas fa-clock"></i> Set Schedule
+                    </button>
+                    <button class="btn btn-success" id="view-feed-history-btn">
+                        <i class="fas fa-history"></i> View History
+                    </button>
+                </div>
+
+                <!-- Feed Monitoring Section -->
+                <div class="feed-monitoring">
+                    <h3 class="section-title">Feed Monitoring</h3>
+                    <div class="feed-level-card">
+                        <div class="feed-level-info">
+                            <div class="feed-level-percentage" id="feeding-feed-level-value">75%</div>
+                            <div class="feed-level-bar">
+                                <div class="feed-level-progress" id="feeding-feed-level-progress" style="width: 75%;"></div>
+                            </div>
+                            <div class="feed-level-status" id="feed-level-status">Adequate</div>
+                        </div>
+                        <div class="feed-actions">
+                            <button class="btn btn-secondary" id="set-feed-alert">
+                                <i class="fas fa-bell"></i> Configure Alert
+                            </button>
+                        </div>
+                    </div>
+                    <div class="feed-stats">
+                        <div class="feed-stat">
+                            <div class="feed-stat-label">Total Capacity</div>
+                            <div class="feed-stat-value" id="feed-capacity">500g</div>
+                        </div>
+                        <div class="feed-stat">
+                            <div class="feed-stat-label">Current Amount</div>
+                            <div class="feed-stat-value" id="feed-current">375g</div>
+                        </div>
+                        <div class="feed-stat">
+                            <div class="feed-stat-label">Estimated Days Left</div>
+                            <div class="feed-stat-value" id="feed-days-left">25 days</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feed History Section -->
+                <div class="feed-history-section">
+                    <h3 class="section-title">
+                        Feed History
+                        <button class="btn btn-icon" id="refresh-feed-history" title="Refresh history">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </h3>
+                    <div class="history-table-container">
+                        <table class="history-table" id="feed-history-table">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Amount (g)</th>
+                                    <th>Food Type</th>
+                                    <th>Method</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feed-history-tbody">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; padding: 2rem;">
+                                        <i class="fas fa-spinner fa-spin"></i> Loading history...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Feeding Schedule Form -->
+                <div class="schedule-form" id="feeding-schedule-form">
+                    <h3 class="form-title">Feeding Schedule</h3>
+                    <div class="form-group">
+                        <label for="feeding-time" class="form-label">Feeding Time</label>
+                        <input type="time" id="feeding-time" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="feeding-frequency" class="form-label">Frequency</label>
+                        <select id="feeding-frequency" class="form-control">
+                            <option value="twice-daily" selected>Twice Daily</option>
+                            <option value="daily">Daily</option>
+                            <option value="every-other-day">Every Other Day</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="food-amount" class="form-label">Food Amount (grams)</label>
+                        <input type="number" id="food-amount" class="form-control" min="1" max="500" value="7.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="food-type" class="form-label">Food Type</label>
+                        <select id="food-type" class="form-control">
+                            <option value="juvenile-pellets" selected>Juvenile Pellets (40%)</option>
+                            <option value="growth-pellets">Growth Pellets (35%)</option>
+                            <option value="breeder-pellets">Breeder Pellets (30%)</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" id="save-feeding-schedule">
+                            <i class="fas fa-save"></i> Save Schedule
+                        </button>
+                        <button class="btn btn-secondary" id="cancel-feeding-schedule">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="upcoming-schedules">
+                    <h3 class="section-title">Scheduled Feedings</h3>
+                    <div class="schedule-list" id="feeding-schedule-list">
+                        <div class="schedule-item">
+                            <div class="schedule-info">
+                                <div class="schedule-time">Twice Daily</div>
+                                <div class="schedule-details">8:00 AM and 6:00 PM - 7.5g of Juvenile Pellets</div>
+                            </div>
+                            <div class="schedule-status active">Active</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="history-table-container">
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>Change Type</th>
-                            <th>Percentage</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="water-history-tbody">
-                        <!-- Data populated by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary modal-cancel">Close</button>
-        </div>
-    </div>
-</div>
+        </section>
 
         <!-- Harvest Management Section -->
         <section id="harvest" class="dashboard-section">
@@ -956,113 +677,109 @@
         </section>
 
         <!-- Settings Section -->
-<!-- Settings Section - UPDATED VERSION WITH USER ID -->
-<section id="settings" class="dashboard-section">
-    <div class="settings-container">
-        <div class="section-header">
-            <h2 class="section-title">Farm Settings</h2>
-        </div>
-
-        <!-- NEW: User ID Display for ESP8266 -->
-        <div class="user-id-display">
-            <h3 class="section-title">ESP8266 Device Configuration</h3>
-            <div class="user-id-card">
-                <div class="user-id-label">
-                    <i class="fas fa-microchip"></i> Your User ID (for ESP8266):
+        <section id="settings" class="dashboard-section">
+            <div class="settings-container">
+                <div class="section-header">
+                    <h2 class="section-title">Farm Settings</h2>
                 </div>
-                <div class="user-id-value" id="user-id-display">
-                    <code id="user-id-text">Loading...</code>
-                    <button class="btn btn-icon" id="copy-user-id" title="Copy User ID">
-                        <i class="fas fa-copy"></i>
+
+                <!-- User ID Display for ESP8266 -->
+                <div class="user-id-display">
+                    <h3 class="section-title">ESP8266 Device Configuration</h3>
+                    <div class="user-id-card">
+                        <div class="user-id-label">
+                            <i class="fas fa-microchip"></i> Your User ID (for ESP8266):
+                        </div>
+                        <div class="user-id-value" id="user-id-display">
+                            <code id="user-id-text">Loading...</code>
+                            <button class="btn btn-icon" id="copy-user-id" title="Copy User ID">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="user-id-help">
+                            <i class="fas fa-info-circle"></i> 
+                            Copy this ID and paste it into your ESP8266 code's <code>USER_ID</code> variable
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label for="farm-name" class="form-label">Farm Name</label>
+                        <input type="text" id="farm-name" class="form-control" value="My Crayfish Farm">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notification-email" class="form-label">Notification Email</label>
+                        <input type="email" id="notification-email" class="form-control" value="farmer@example.com">
+                        <small class="form-help">Email alerts will be sent to this address</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notification-phone" class="form-label">Notification Phone</label>
+                        <input type="tel" id="notification-phone" class="form-control" value="+63 912 345 6789">
+                    </div>
+                    
+                    <!-- Email Alerts Section -->
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="email-alerts-enabled" checked> 
+                            Enable Email Alerts
+                        </label>
+                        <small class="form-help">Receive email notifications for feeding, water changes, and parameter violations</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="low-feed-threshold" class="form-label">Low Feed Alert Threshold (%)</label>
+                        <input type="number" id="low-feed-threshold" class="form-control" value="20" min="5" max="50">
+                        <small class="form-help">Alert when feed drops below this percentage</small>
+                    </div>
+                    
+                    <!-- Info about automatic parameter monitoring -->
+                    <div style="background: #d1ecf1; border-left: 4px solid #00d4ff; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                        <p style="margin: 0; font-size: 14px; color: #0c5460;">
+                            <strong><i class="fas fa-info-circle"></i> Automatic Parameter Monitoring</strong><br>
+                            Temperature and pH levels are monitored automatically based on optimal crayfish farming guidelines:
+                        </p>
+                        <ul style="margin: 10px 0 0 20px; color: #0c5460;">
+                            <li><strong>Temperature:</strong> Optimal 20-25°C, Critical below 15°C or above 30°C</li>
+                            <li><strong>pH Level:</strong> Optimal 6.5-8.0, Critical below 6.0 or above 8.5</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="measurement-unit" class="form-label">Measurement Unit</label>
+                        <select id="measurement-unit" class="form-control">
+                            <option value="metric" selected>Metric (°C, cm, g)</option>
+                            <option value="imperial">Imperial (°F, in, oz)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="alert-frequency" class="form-label">Alert Frequency</label>
+                        <select id="alert-frequency" class="form-control">
+                            <option value="immediate" selected>Immediate</option>
+                            <option value="daily">Daily Summary</option>
+                            <option value="weekly">Weekly Summary</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="water-testing-frequency" class="form-label">Water Testing Frequency</label>
+                        <select id="water-testing-frequency" class="form-control">
+                            <option value="daily">Daily</option>
+                            <option value="twice-weekly" selected>Twice Weekly</option>
+                            <option value="weekly">Weekly</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="save-settings">
+                        <i class="fas fa-save"></i> Save Settings
                     </button>
                 </div>
-                <div class="user-id-help">
-                    <i class="fas fa-info-circle"></i> 
-                    Copy this ID and paste it into your ESP8266 code's <code>USER_ID</code> variable
-                </div>
             </div>
-        </div>
+        </section>
 
-        <div class="settings-form">
-            <div class="form-group">
-                <label for="farm-name" class="form-label">Farm Name</label>
-                <input type="text" id="farm-name" class="form-control" value="My Crayfish Farm">
-            </div>
-            
-            <div class="form-group">
-                <label for="notification-email" class="form-label">Notification Email</label>
-                <input type="email" id="notification-email" class="form-control" value="farmer@example.com">
-                <small class="form-help">Email alerts will be sent to this address</small>
-            </div>
-            <div class="form-group">
-                <label for="notification-phone" class="form-label">Notification Phone</label>
-                <input type="tel" id="notification-phone" class="form-control" value="+63 912 345 6789">
-            </div>
-            
-            <!-- NEW: Email Alerts Section -->
-            <div class="form-group">
-                <label class="form-label">
-                    <input type="checkbox" id="email-alerts-enabled" checked> 
-                    Enable Email Alerts
-                </label>
-                <small class="form-help">Receive email notifications for important events</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="low-feed-threshold" class="form-label">Low Feed Alert Threshold (%)</label>
-                <input type="number" id="low-feed-threshold" class="form-control" value="20" min="5" max="50">
-                <small class="form-help">Alert when feed drops below this percentage</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="temp-min-threshold" class="form-label">Temperature Min (°C)</label>
-                <input type="number" id="temp-min-threshold" class="form-control" value="20.0" step="0.1" min="15" max="25">
-            </div>
-            
-            <div class="form-group">
-                <label for="temp-max-threshold" class="form-label">Temperature Max (°C)</label>
-                <input type="number" id="temp-max-threshold" class="form-control" value="25.0" step="0.1" min="20" max="30">
-            </div>
-            
-            <div class="form-group">
-                <label for="ph-min-threshold" class="form-label">pH Min</label>
-                <input type="number" id="ph-min-threshold" class="form-control" value="6.5" step="0.1" min="6.0" max="7.5">
-            </div>
-            
-            <div class="form-group">
-                <label for="ph-max-threshold" class="form-label">pH Max</label>
-                <input type="number" id="ph-max-threshold" class="form-control" value="8.0" step="0.1" min="7.0" max="9.0">
-            </div>
-            
-            <div class="form-group">
-                <label for="measurement-unit" class="form-label">Measurement Unit</label>
-                <select id="measurement-unit" class="form-control">
-                    <option value="metric" selected>Metric (°C, cm, g)</option>
-                    <option value="imperial">Imperial (°F, in, oz)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="alert-frequency" class="form-label">Alert Frequency</label>
-                <select id="alert-frequency" class="form-control">
-                    <option value="immediate" selected>Immediate</option>
-                    <option value="daily">Daily Summary</option>
-                    <option value="weekly">Weekly Summary</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="water-testing-frequency" class="form-label">Water Testing Frequency</label>
-                <select id="water-testing-frequency" class="form-control">
-                    <option value="daily">Daily</option>
-                    <option value="twice-weekly" selected>Twice Weekly</option>
-                    <option value="weekly">Weekly</option>
-                </select>
-            </div>
-            <button class="btn btn-primary" id="save-settings">
-                <i class="fas fa-save"></i> Save Settings
-            </button>
-        </div>
-    </div>
-</section>
     </div>
 
     <!-- Enhanced Chatbot -->
@@ -1108,8 +825,6 @@
         </div>
     </div>
 
-    <!-- Hardware Connection Status -->
-   
     <!-- Water Testing Schedule Modal -->
     <div class="modal" id="water-testing-schedule-modal">
         <div class="modal-content">
@@ -1178,6 +893,40 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary modal-cancel">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feed Alert Modal -->
+    <div class="modal" id="feed-alert-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Set Feed Alert</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="alert-threshold" class="form-label">Alert Threshold</label>
+                    <select id="alert-threshold" class="form-control">
+                        <option value="25">25% remaining</option>
+                        <option value="20" selected>20% remaining</option>
+                        <option value="15">15% remaining</option>
+                        <option value="10">10% remaining</option>
+                        <option value="5">5% remaining</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="alert-type" class="form-label">Notification Type</label>
+                    <select id="alert-type" class="form-control">
+                        <option value="dashboard" selected>Dashboard notification</option>
+                        <option value="email">Email notification</option>
+                        <option value="both">Both</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="save-feed-alert">Save Alert</button>
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1302,40 +1051,6 @@
         </div>
     </div>
 
-    <!-- Feed Alert Modal -->
-    <div class="modal" id="feed-alert-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Set Feed Alert</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="alert-threshold" class="form-label">Alert Threshold</label>
-                    <select id="alert-threshold" class="form-control">
-                        <option value="25">25% remaining</option>
-                        <option value="20" selected>20% remaining</option>
-                        <option value="15">15% remaining</option>
-                        <option value="10">10% remaining</option>
-                        <option value="5">5% remaining</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="alert-type" class="form-label">Notification Type</label>
-                    <select id="alert-type" class="form-control">
-                        <option value="dashboard" selected>Dashboard notification</option>
-                        <option value="email">Email notification</option>
-                        <option value="both">Both</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" id="save-feed-alert">Save Alert</button>
-                <button class="btn btn-secondary modal-cancel">Cancel</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Footer -->
     <footer>
         <div class="footer-grid">
@@ -1376,34 +1091,17 @@
         </div>
     </footer>
 
-    <!-- CRITICAL: External Libraries - CORRECT ORDER -->
-    <!-- 1. Chart.js and Date Adapter (MUST BE FIRST) -->
-     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- External Libraries - Load in Correct Order -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    
-    <!-- 2. Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- ============================================ -->
-    <!-- APPLICATION SCRIPTS - LOAD IN ORDER -->
-    <!-- ============================================ -->
-    
-    <!-- 3. Supabase Initialization (MUST BE FIRST) -->
+    <!-- Application Scripts - Load in Order -->
     <script src="supabase-init.js"></script>
-    
-    <!-- 4. Authentication -->
     <script src="auth.js"></script>
-    
-    <!-- 5. Database Functions (CRITICAL - BEFORE dashboard.js) -->
     <script src="database.js"></script>
-    
-    <!-- 6. API Helper -->
     <script src="js/api.js"></script>
-    
-    <!-- 7. Charts -->
     <script src="js/charts.js"></script>
-    
-    <!-- 8. Dashboard (MUST BE LAST) -->
     <script src="js/dashboard.js"></script>
 
 </body>
