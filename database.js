@@ -255,12 +255,16 @@ async function saveFeedData(feedData) {
     try {
         const user = await ensureAuthenticated();
         
+        // FIX: Round current to integer since database expects INTEGER type
+        const currentAmount = Math.round(feedData.current || 375);
+        const capacityAmount = Math.round(feedData.capacity || 500);
+        
         const { data, error } = await window.supabase
             .from('feed_data')
             .upsert([{
                 user_id: user.id,
-                capacity: feedData.capacity || 500,
-                current: feedData.current || 375,
+                capacity: capacityAmount,
+                current: currentAmount,
                 last_updated: new Date().toISOString()
             }], {
                 onConflict: 'user_id'
