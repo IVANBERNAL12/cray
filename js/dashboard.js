@@ -1996,22 +1996,753 @@ function refillFeed() {
 // CHAT FUNCTIONALITY
 // ========================================
 
-function sendMessage() {
-    const input = document.getElementById('chat-input');
-    if (!input) return;
+// ========================================
+// ENHANCED CHAT FUNCTIONALITY WITH VISUAL NAVIGATION
+// REPLACE YOUR EXISTING CHAT FUNCTIONS WITH THIS
+// ========================================
+
+// Chatbot Knowledge Base
+const chatbotKnowledge = {
+    navigation: {
+        keywords: ['where', 'find', 'locate', 'show me', 'go to', 'navigate', 'page', 'section', 'take me'],
+        responses: {
+            dashboard: {
+                section: 'dashboard',
+                name: 'Dashboard',
+                description: 'Your main overview showing temperature, pH, health status, and feed levels',
+                element: '#dashboard'
+            },
+            'water quality': {
+                section: 'water-quality',
+                name: 'Water Quality',
+                description: 'Monitor and test water temperature and pH levels',
+                element: '#water-quality'
+            },
+            'water management': {
+                section: 'water-management',
+                name: 'Water Management',
+                description: 'Schedule water changes and view water change history',
+                element: '#water-management'
+            },
+            feeding: {
+                section: 'feeding',
+                name: 'Feeding',
+                description: 'Manage feeding schedules, monitor feed levels, and view feeding history',
+                element: '#feeding'
+            },
+            harvest: {
+                section: 'harvest',
+                name: 'Harvest Management',
+                description: 'Track growth, plan harvests, and record harvest data',
+                element: '#harvest'
+            },
+            knowledge: {
+                section: 'knowledge',
+                name: 'Knowledge Base',
+                description: 'Learn about crayfish farming best practices',
+                element: '#knowledge'
+            },
+            settings: {
+                section: 'settings',
+                name: 'Settings',
+                description: 'Configure your farm settings, email alerts, and device connection',
+                element: '#settings'
+            }
+        }
+    },
     
-    const message = input.value.trim();
+    features: {
+        keywords: ['what', 'how', 'explain', 'tell me about', 'what is', 'what does'],
+        features: {
+            temperature: {
+                name: 'Water Temperature',
+                explanation: 'Shows the current water temperature. Optimal range is 20-25°C. This is critical for crayfish health.',
+                location: 'Dashboard > Temperature card',
+                action: () => {
+                    navigateToSection('dashboard');
+                    setTimeout(() => highlightElement('.stat-card:has(#temp-value)'), 500);
+                }
+            },
+            ph: {
+                name: 'pH Level',
+                explanation: 'Measures water acidity/alkalinity. Optimal range is 6.5-8.0. Important for shell health.',
+                location: 'Dashboard > pH Level card',
+                action: () => {
+                    navigateToSection('dashboard');
+                    setTimeout(() => highlightElement('.stat-card:has(#ph-value)'), 500);
+                }
+            },
+            'feed level': {
+                name: 'Feed Level',
+                explanation: 'Shows how much feed remains in your container. You should refill when it gets below 20%.',
+                location: 'Dashboard > Feed Level card or Feeding section',
+                action: () => {
+                    navigateToSection('feeding');
+                    setTimeout(() => highlightElement('.feed-level-card'), 500);
+                }
+            },
+            'device status': {
+                name: 'Device Connection',
+                explanation: 'Shows if your ESP8266 device is online and sending data. Green = Connected, Red = Offline.',
+                location: 'Dashboard > Device Connection section',
+                action: () => {
+                    navigateToSection('dashboard');
+                    setTimeout(() => highlightElement('.device-status-card'), 500);
+                }
+            },
+            'feed button': {
+                name: 'Feed Now Button',
+                explanation: 'Click this to instantly feed your crayfish. The device will dispense the scheduled amount.',
+                location: 'Feeding section > Feed Now button',
+                action: () => {
+                    navigateToSection('feeding');
+                    setTimeout(() => highlightElement('#feed-now'), 500);
+                }
+            },
+            'water change': {
+                name: 'Water Change',
+                explanation: 'Triggers a water change. The device will replace water based on your schedule settings.',
+                location: 'Water Management > Change Water Now button',
+                action: () => {
+                    navigateToSection('water-management');
+                    setTimeout(() => highlightElement('#change-water-now'), 500);
+                }
+            },
+            schedule: {
+                name: 'Schedules',
+                explanation: 'Automate feeding and water changes. You can set specific times and frequencies.',
+                location: 'Feeding or Water Management sections',
+                action: () => navigateToSection('feeding')
+            },
+            history: {
+                name: 'History',
+                explanation: 'View all past feedings, water changes, and sensor readings in detailed tables.',
+                location: 'Feeding > Feed History or Water Management > Water Change History',
+                action: () => {
+                    navigateToSection('feeding');
+                    setTimeout(() => highlightElement('.feed-history-section'), 500);
+                }
+            },
+            alerts: {
+                name: 'Email Alerts',
+                explanation: 'Get notified by email when feed is low, temperature is bad, or pH is out of range.',
+                location: 'Settings > Enable Email Alerts checkbox',
+                action: () => {
+                    navigateToSection('settings');
+                    setTimeout(() => highlightElement('#email-alerts-enabled'), 500);
+                }
+            },
+            'user id': {
+                name: 'User ID',
+                explanation: 'Your unique ID needed to connect your ESP8266 device. Copy this and paste it in your Arduino code.',
+                location: 'Settings > ESP8266 Device Configuration',
+                action: () => {
+                    navigateToSection('settings');
+                    setTimeout(() => highlightElement('.user-id-card'), 500);
+                }
+            }
+        }
+    },
     
-    if (message === '') return;
+    tasks: {
+        keywords: ['i want to', 'i need to', 'how do i', 'help me', 'can you'],
+        tasks: {
+            'feed': {
+                task: 'Feed your crayfish',
+                steps: [
+                    'Go to the Feeding section',
+                    'Click the blue "Feed Now" button',
+                    'Wait for the success notification'
+                ],
+                action: () => {
+                    navigateToSection('feeding');
+                    setTimeout(() => {
+                        highlightElement('#feed-now');
+                        showTaskGuide('Feed your crayfish', [
+                            '✅ You are now in the Feeding section',
+                            '👆 Click the blue "Feed Now" button',
+                            '⏱️ Wait for the success message'
+                        ]);
+                    }, 500);
+                }
+            },
+            'change water': {
+                task: 'Change the water',
+                steps: [
+                    'Go to Water Management section',
+                    'Click "Change Water Now" button',
+                    'The device will perform the water change automatically'
+                ],
+                action: () => {
+                    navigateToSection('water-management');
+                    setTimeout(() => {
+                        highlightElement('#change-water-now');
+                        showTaskGuide('Change water', [
+                            '✅ You are now in Water Management',
+                            '👆 Click "Change Water Now" button',
+                            '⏱️ Wait for completion'
+                        ]);
+                    }, 500);
+                }
+            },
+            'set schedule': {
+                task: 'Set up automatic feeding',
+                steps: [
+                    'Go to Feeding section',
+                    'Click "Set Schedule" button',
+                    'Choose time, frequency, and amount',
+                    'Click "Save Schedule"'
+                ],
+                action: () => {
+                    navigateToSection('feeding');
+                    setTimeout(() => {
+                        highlightElement('#set-feeding-schedule-btn');
+                        showTaskGuide('Set feeding schedule', [
+                            '✅ You are in Feeding section',
+                            '👆 Click "Set Schedule" button',
+                            '📝 Fill in time and amount',
+                            '💾 Click "Save Schedule"'
+                        ]);
+                    }, 500);
+                }
+            },
+            'check temperature': {
+                task: 'Check water temperature',
+                steps: [
+                    'Look at the Dashboard (main page)',
+                    'Find the "Water Temperature" card',
+                    'The number shows current temperature'
+                ],
+                action: () => {
+                    navigateToSection('dashboard');
+                    setTimeout(() => {
+                        highlightElement('.stat-card:has(#temp-value)');
+                        showTaskGuide('Check temperature', [
+                            '✅ Look at the "Water Temperature" card',
+                            '🌡️ The big number is current temperature',
+                            '🟢 Green = Good | 🟡 Yellow = Warning | 🔴 Red = Danger'
+                        ]);
+                    }, 500);
+                }
+            },
+            'connect device': {
+                task: 'Connect your ESP8266 device',
+                steps: [
+                    'Go to Settings',
+                    'Find "Your User ID" section',
+                    'Click the copy button',
+                    'Paste it in your ESP8266 Arduino code',
+                    'Upload code to your device'
+                ],
+                action: () => {
+                    navigateToSection('settings');
+                    setTimeout(() => {
+                        highlightElement('.user-id-card');
+                        showTaskGuide('Connect device', [
+                            '✅ You are in Settings',
+                            '📋 Copy your User ID below',
+                            '💻 Open your ESP8266 Arduino code',
+                            '📝 Replace USER_ID with copied value',
+                            '⬆️ Upload to device'
+                        ]);
+                    }, 500);
+                }
+            },
+            'enable alerts': {
+                task: 'Turn on email notifications',
+                steps: [
+                    'Go to Settings',
+                    'Check the "Enable Email Alerts" box',
+                    'Enter your email address',
+                    'Click "Save Settings"'
+                ],
+                action: () => {
+                    navigateToSection('settings');
+                    setTimeout(() => {
+                        highlightElement('#email-alerts-enabled');
+                        showTaskGuide('Enable email alerts', [
+                            '✅ You are in Settings',
+                            '☑️ Check "Enable Email Alerts"',
+                            '📧 Verify your email is correct',
+                            '💾 Click "Save Settings" at bottom'
+                        ]);
+                    }, 1000);
+                }
+            },
+            'view history': {
+                task: 'View feeding or water history',
+                steps: [
+                    'Go to Feeding or Water Management section',
+                    'Scroll down to find history tables',
+                    'Review past actions and data'
+                ],
+                action: () => {
+                    navigateToSection('feeding');
+                    setTimeout(() => {
+                        highlightElement('.feed-history-section');
+                        showTaskGuide('View history', [
+                            '✅ You are in Feeding section',
+                            '📊 Scroll down to see Feed History table',
+                            '📅 View dates, amounts, and methods'
+                        ]);
+                    }, 500);
+                }
+            }
+        }
+    },
     
-    addMessage(message, 'user');
-    input.value = '';
+    troubleshooting: {
+        keywords: ['not working', 'problem', 'error', 'issue', 'help', 'broken', 'offline', 'cant', "can't", 'wont', "won't"],
+        issues: {
+            'device offline': {
+                problem: 'Device shows offline or disconnected',
+                solutions: [
+                    '1️⃣ Check if your ESP8266 has power (LED should be on)',
+                    '2️⃣ Make sure WiFi router is working',
+                    '3️⃣ Go to Settings and verify User ID matches your code',
+                    '4️⃣ Click "Test Connection" button on Dashboard',
+                    '5️⃣ Try unplugging and replugging your device'
+                ]
+            },
+            'no data': {
+                problem: 'Not receiving sensor data or readings',
+                solutions: [
+                    '1️⃣ Check Device Connection status on Dashboard (should be green)',
+                    '2️⃣ Make sure temperature and pH sensors are plugged in',
+                    '3️⃣ Look for yellow "Demo Mode" banner (means no real device)',
+                    '4️⃣ Restart your ESP8266 device',
+                    '5️⃣ Check Arduino Serial Monitor for errors'
+                ]
+            },
+            'feed not working': {
+                problem: 'Feed Now button not working',
+                solutions: [
+                    '1️⃣ Check if device is online (green indicator on Dashboard)',
+                    '2️⃣ Wait 10-15 seconds and try again',
+                    '3️⃣ Make sure feed level is not at 0%',
+                    '4️⃣ Check if servo motor is connected properly',
+                    '5️⃣ Restart device and try again'
+                ]
+            },
+            'no email': {
+                problem: 'Not receiving email alerts',
+                solutions: [
+                    '1️⃣ Go to Settings section',
+                    '2️⃣ Make sure "Enable Email Alerts" is checked ☑️',
+                    '3️⃣ Verify your email address is typed correctly',
+                    '4️⃣ Check your spam/junk folder',
+                    '5️⃣ Click "Save Settings" button after making changes'
+                ]
+            },
+            'water change': {
+                problem: 'Water change not working',
+                solutions: [
+                    '1️⃣ Check device is online (green status)',
+                    '2️⃣ Verify water pump is connected',
+                    '3️⃣ Make sure water source is available',
+                    '4️⃣ Check relay is functioning',
+                    '5️⃣ Try manual test from Dashboard'
+                ]
+            }
+        }
+    }
+};
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+function navigateToSection(sectionId) {
+    console.log('[Chatbot] Navigating to:', sectionId);
     
-    setTimeout(() => {
-        const response = generateResponse(message);
-        addMessage(response, 'system');
-    }, 500);
+    // Hide all sections
+    document.querySelectorAll('.dashboard-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Remove active from all nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Show target section
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+        
+        // Update nav
+        const targetLink = document.querySelector(`a[href="#${sectionId}"]`);
+        if (targetLink) {
+            targetLink.classList.add('active');
+        }
+        
+        // Scroll to top smoothly
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        console.log('[Chatbot] ✓ Navigated to:', sectionId);
+        return true;
+    }
+    
+    console.warn('[Chatbot] Section not found:', sectionId);
+    return false;
 }
+
+function highlightElement(selector, duration = 5000) {
+    console.log('[Chatbot] Highlighting:', selector);
+    
+    const element = document.querySelector(selector);
+    if (!element) {
+        console.warn('[Chatbot] Element not found:', selector);
+        return;
+    }
+    
+    // Remove existing highlights
+    document.querySelectorAll('.chatbot-highlight').forEach(el => {
+        el.classList.remove('chatbot-highlight');
+    });
+    
+    // Add highlight
+    element.classList.add('chatbot-highlight');
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    console.log('[Chatbot] ✓ Element highlighted');
+    
+    // Remove after duration
+    setTimeout(() => {
+        element.classList.remove('chatbot-highlight');
+    }, duration);
+}
+
+function showTaskGuide(taskName, steps) {
+    const guideHTML = `
+        <div class="task-guide">
+            <strong>📋 ${taskName}</strong>
+            ${steps.map(step => `<div class="guide-step">${step}</div>`).join('')}
+        </div>
+    `;
+    
+    const messagesContainer = document.getElementById('chat-messages');
+    if (!messagesContainer) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', 'system');
+    
+    const iconDiv = document.createElement('div');
+    iconDiv.classList.add('message-icon');
+    iconDiv.innerHTML = '<i class="fas fa-fish"></i>';
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content');
+    contentDiv.innerHTML = guideHTML;
+    
+    messageDiv.appendChild(iconDiv);
+    messageDiv.appendChild(contentDiv);
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // Animate
+    messageDiv.style.opacity = '0';
+    messageDiv.style.transform = 'translateY(10px)';
+    setTimeout(() => {
+        messageDiv.style.transition = 'all 0.3s ease';
+        messageDiv.style.opacity = '1';
+        messageDiv.style.transform = 'translateY(0)';
+    }, 10);
+}
+
+// ========================================
+// ENHANCED RESPONSE GENERATOR
+// ========================================
+
+function generateResponse(message) {
+    const lowerMessage = message.toLowerCase().trim();
+    
+    console.log('[Chatbot] Processing:', lowerMessage);
+    
+    // 1. GREETINGS & HELP
+    if (['hi', 'hello', 'hey', 'help', 'start'].some(word => lowerMessage === word)) {
+        return {
+            type: 'greeting',
+            message: `👋 Hello! I'm your AquaVision Pro assistant!
+
+I can help you:
+• 🗺️ **Navigate** - "Where is the feed button?"
+• 📖 **Learn** - "What is pH level?"
+• ✅ **Do tasks** - "How do I feed my crayfish?"
+• 🔧 **Fix problems** - "Device is offline"
+
+Just ask me in plain English!`,
+            buttons: [
+                { text: '🎯 Tour the dashboard', action: 'show me around' },
+                { text: '🍽️ Feed crayfish', action: 'i want to feed' },
+                { text: '💧 Change water', action: 'change water' },
+                { text: '⚙️ Settings', action: 'show me settings' }
+            ]
+        };
+    }
+    
+    // 2. TOUR REQUEST
+    if (lowerMessage.includes('show me around') || lowerMessage.includes('tour') || lowerMessage.includes('guide')) {
+        return {
+            type: 'tour',
+            message: `🎯 **Quick Tour of Your Dashboard**
+
+**Main Sections:**
+1️⃣ **Dashboard** - Overview (temp, pH, feed)
+2️⃣ **Water Quality** - Test water
+3️⃣ **Water Management** - Change water
+4️⃣ **Feeding** - Feed & schedules
+5️⃣ **Harvest** - Track growth
+6️⃣ **Knowledge Base** - Learn farming
+7️⃣ **Settings** - Configure alerts
+
+Click below to visit any section:`,
+            buttons: [
+                { text: '📊 Dashboard', action: 'show me dashboard' },
+                { text: '🍽️ Feeding', action: 'show me feeding' },
+                { text: '⚙️ Settings', action: 'show me settings' },
+                { text: '💧 Water', action: 'show me water management' }
+            ]
+        };
+    }
+    
+    // 3. NAVIGATION (WHERE IS...)
+    if (chatbotKnowledge.navigation.keywords.some(kw => lowerMessage.includes(kw))) {
+        for (const [key, data] of Object.entries(chatbotKnowledge.navigation.responses)) {
+            if (lowerMessage.includes(key) || lowerMessage.includes(key.replace(' ', ''))) {
+                setTimeout(() => {
+                    navigateToSection(data.section);
+                    setTimeout(() => highlightElement(data.element), 500);
+                }, 500);
+                
+                return {
+                    type: 'navigation',
+                    message: `✅ **Taking you to ${data.name}!**
+
+${data.description}
+
+*Watch for the glowing highlight...*`,
+                    buttons: [
+                        { text: '❓ What can I do here?', action: `what is ${key}` },
+                        { text: '🏠 Back to Dashboard', action: 'show me dashboard' }
+                    ]
+                };
+            }
+        }
+        
+        return {
+            type: 'navigation_help',
+            message: `I can take you to:\n\n${Object.entries(chatbotKnowledge.navigation.responses).map(([key, data]) => `• **${data.name}**`).join('\n')}\n\nWhich one?`,
+            buttons: Object.keys(chatbotKnowledge.navigation.responses).slice(0, 4).map(key => ({
+                text: chatbotKnowledge.navigation.responses[key].name,
+                action: `show me ${key}`
+            }))
+        };
+    }
+    
+    // 4. FEATURE EXPLANATIONS (WHAT IS...)
+    if (chatbotKnowledge.features.keywords.some(kw => lowerMessage.includes(kw))) {
+        for (const [key, data] of Object.entries(chatbotKnowledge.features.features)) {
+            if (lowerMessage.includes(key)) {
+                setTimeout(() => {
+                    if (data.action) data.action();
+                }, 500);
+                
+                return {
+                    type: 'feature',
+                    message: `📖 **${data.name}**
+
+${data.explanation}
+
+📍 **Find it here:** ${data.location}`,
+                    buttons: [
+                        { text: '👁️ Show me now', action: () => data.action() },
+                        { text: '❓ Ask something else', action: 'help' }
+                    ]
+                };
+            }
+        }
+    }
+    
+    // 5. TASK ASSISTANCE (HOW DO I...)
+    if (chatbotKnowledge.tasks.keywords.some(kw => lowerMessage.includes(kw))) {
+        for (const [key, data] of Object.entries(chatbotKnowledge.tasks.tasks)) {
+            if (lowerMessage.includes(key)) {
+                setTimeout(() => {
+                    data.action();
+                }, 500);
+                
+                return {
+                    type: 'task',
+                    message: `✅ **How to: ${data.task}**
+
+${data.steps.map((step, i) => `**${i + 1}.** ${step}`).join('\n')}
+
+*Taking you there now...*`,
+                    buttons: [
+                        { text: '✔️ Got it, thanks!', action: 'thank you' },
+                        { text: '❓ Need more help', action: 'help' }
+                    ]
+                };
+            }
+        }
+    }
+    
+    // 6. TROUBLESHOOTING
+    if (chatbotKnowledge.troubleshooting.keywords.some(kw => lowerMessage.includes(kw))) {
+        for (const [key, data] of Object.entries(chatbotKnowledge.troubleshooting.issues)) {
+            if (lowerMessage.includes(key.replace(' ', ''))) {
+                return {
+                    type: 'troubleshooting',
+                    message: `🔧 **Problem: ${data.problem}**
+
+**Try these solutions:**
+
+${data.solutions.join('\n')}
+
+Did this help?`,
+                    buttons: [
+                        { text: '✅ Fixed it!', action: 'thank you' },
+                        { text: '❌ Still broken', action: 'still having problems' }
+                    ]
+                };
+            }
+        }
+        
+        return {
+            type: 'troubleshooting_generic',
+            message: `🔧 **Common Problems I Can Help With:**
+
+${Object.values(chatbotKnowledge.troubleshooting.issues).map(issue => `• ${issue.problem}`).join('\n')}
+
+Which matches your issue?`,
+            buttons: Object.keys(chatbotKnowledge.troubleshooting.issues).slice(0, 3).map(key => ({
+                text: chatbotKnowledge.troubleshooting.issues[key].problem.substring(0, 25) + '...',
+                action: key
+            }))
+        };
+    }
+    
+    // 7. SPECIFIC LEGACY RESPONSES (BACKWARDS COMPATIBILITY)
+    if (lowerMessage.includes('farm') && lowerMessage.includes('name')) {
+        return {
+            type: 'info',
+            message: `Your farm is named **"${farmSettings.name}"**. 
+
+You can change this in the Settings section.`,
+            buttons: [
+                { text: '⚙️ Go to Settings', action: 'show me settings' }
+            ]
+        };
+    }
+    
+    if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
+        const status = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? '🟢 optimal' : '🟡 warning';
+        return {
+            type: 'info',
+            message: `🌡️ **Current Temperature:** ${hardwareData.temperature.toFixed(1)}°C
+
+**Status:** ${status}
+**Optimal Range:** 20-25°C
+
+${status.includes('warning') ? '⚠️ Consider adjusting your water temperature!' : '✅ Temperature looks good!'}`,
+            buttons: [
+                { text: '📊 View Dashboard', action: 'show me dashboard' },
+                { text: '📖 Learn about temperature', action: 'what is temperature' }
+            ]
+        };
+    }
+    
+    if (lowerMessage.includes('ph')) {
+        const status = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? '🟢 optimal' : '🟡 warning';
+        return {
+            type: 'info',
+            message: `💧 **Current pH Level:** ${hardwareData.ph.toFixed(1)}
+
+**Status:** ${status}
+**Optimal Range:** 6.5-8.0
+
+${status.includes('warning') ? '⚠️ pH needs adjustment!' : '✅ pH level looks good!'}`,
+            buttons: [
+                { text: '📊 View Dashboard', action: 'show me dashboard' },
+                { text: '📖 Learn about pH', action: 'what is ph' }
+            ]
+        };
+    }
+    
+    if (lowerMessage.includes('harvest')) {
+        return {
+            type: 'info',
+            message: `🦞 **Harvest Projection:**
+
+• **Days until harvest:** ${hardwareData.daysToHarvest} days
+• **Average weight:** ${hardwareData.avgWeight.toFixed(1)}g
+• **Health status:** ${hardwareData.healthStatus}%
+
+Keep monitoring for best results!`,
+            buttons: [
+                { text: '📊 View Harvest Section', action: 'show me harvest' }
+            ]
+        };
+    }
+    
+    // 8. THANK YOU
+    if (lowerMessage.includes('thank')) {
+        return {
+            type: 'thanks',
+            message: `You're welcome! 😊 Happy to help!
+
+Need anything else?`,
+            buttons: [
+                { text: '🏠 Back to start', action: 'help' },
+                { text: '❌ I\'m good', action: () => addMessage('Great! I\'m here if you need me! 👋', 'system') }
+            ]
+        };
+    }
+    
+    // 9. ESCALATION
+    if (lowerMessage.includes('still') && (lowerMessage.includes('problem') || lowerMessage.includes('not working'))) {
+        return {
+            type: 'escalate',
+            message: `I understand you're still having trouble. 😔
+
+**Additional Help:**
+📧 **Email:** info@aquavisionpro.com
+📱 **Phone:** +63 912 345 6789
+📚 **Knowledge Base:** Detailed guides
+
+Would you like me to show you the Knowledge Base or Settings?`,
+            buttons: [
+                { text: '📚 Knowledge Base', action: 'show me knowledge' },
+                { text: '⚙️ Check Settings', action: 'show me settings' },
+                { text: '🔧 Try troubleshooting again', action: 'help with problems' }
+            ]
+        };
+    }
+    
+    // 10. DEFAULT FALLBACK
+    return {
+        type: 'fallback',
+        message: `I'm not quite sure about that. 🤔
+
+**Try asking me:**
+• "**Where is** [section]?" - I'll take you there
+• "**What is** [feature]?" - I'll explain it
+• "**How do I** [task]?" - Step-by-step guide
+• "**Help with** [problem]" - Troubleshooting
+
+What would you like to know?`,
+        buttons: [
+            { text: '🎯 Show me around', action: 'show me around' },
+            { text: '🍽️ Feed now', action: 'i want to feed' },
+            { text: '🔧 Fix problems', action: 'help with problems' }
+        ]
+    };
+}
+
+// ========================================
+// MESSAGE FUNCTIONS
+// ========================================
 
 function addMessage(text, sender) {
     const messagesContainer = document.getElementById('chat-messages');
@@ -2026,13 +2757,55 @@ function addMessage(text, sender) {
     
     const contentDiv = document.createElement('div');
     contentDiv.classList.add('message-content');
-    contentDiv.textContent = text;
     
-    messageDiv.appendChild(iconDiv);
-    messageDiv.appendChild(contentDiv);
+    // Handle both string and object responses
+    if (typeof text === 'object' && text.message) {
+        // Convert markdown-style formatting
+        let formattedText = text.message
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+        
+        contentDiv.innerHTML = formattedText;
+        
+        // Add buttons if present
+        if (text.buttons && text.buttons.length > 0) {
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.classList.add('chat-buttons');
+            
+            text.buttons.forEach(btn => {
+                const button = document.createElement('button');
+                button.classList.add('chat-btn');
+                button.textContent = btn.text;
+                button.onclick = () => {
+                    if (typeof btn.action === 'function') {
+                        btn.action();
+                    } else {
+                        // Simulate user clicking/typing
+                        document.getElementById('chat-input').value = btn.action;
+                        sendMessage();
+                    }
+                };
+                buttonsDiv.appendChild(button);
+            });
+            
+            messageDiv.appendChild(iconDiv);
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(buttonsDiv);
+        } else {
+            messageDiv.appendChild(iconDiv);
+            messageDiv.appendChild(contentDiv);
+        }
+    } else {
+        // Simple text message
+        contentDiv.textContent = text;
+        messageDiv.appendChild(iconDiv);
+        messageDiv.appendChild(contentDiv);
+    }
+    
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     
+    // Animate
     messageDiv.style.opacity = '0';
     messageDiv.style.transform = 'translateY(10px)';
     
@@ -2043,53 +2816,56 @@ function addMessage(text, sender) {
     }, 10);
 }
 
-function generateResponse(message) {
-    const lowerMessage = message.toLowerCase();
+function sendMessage() {
+    const input = document.getElementById('chat-input');
+    if (!input) return;
     
-    if (lowerMessage.includes('farm') || lowerMessage.includes('name')) {
-        return `Your farm is named "${farmSettings.name}". You can change this in the Settings section.`;
+    const message = input.value.trim();
+    
+    if (message === '') return;
+    
+    // Add user message
+    addMessage(message, 'user');
+    input.value = '';
+    
+    // Show typing indicator
+    showTypingIndicator();
+    
+    // Generate and show response
+    setTimeout(() => {
+        hideTypingIndicator();
+        const response = generateResponse(message);
+        addMessage(response, 'system');
+    }, 800);
+}
+
+function showTypingIndicator() {
+    const messagesContainer = document.getElementById('chat-messages');
+    if (!messagesContainer) return;
+    
+    const typingDiv = document.createElement('div');
+    typingDiv.classList.add('message', 'system');
+    typingDiv.id = 'typing-indicator';
+    
+    const iconDiv = document.createElement('div');
+    iconDiv.classList.add('message-icon');
+    iconDiv.innerHTML = '<i class="fas fa-fish"></i>';
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content');
+    contentDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    
+    typingDiv.appendChild(iconDiv);
+    typingDiv.appendChild(contentDiv);
+    messagesContainer.appendChild(typingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function hideTypingIndicator() {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) {
+        typingIndicator.remove();
     }
-    
-    if (lowerMessage.includes('settings') || lowerMessage.includes('configuration')) {
-        return `Your current settings:\n• Farm: ${farmSettings.name}\n• Email: ${farmSettings.email}\n• Phone: ${farmSettings.phone}`;
-    }
-    
-    if (lowerMessage.includes('feed') || lowerMessage.includes('food')) {
-        if (lowerMessage.includes('schedule') || lowerMessage.includes('when')) {
-            return "Your feeding schedule is twice daily at 8:00 AM and 6:00 PM with 7.5g of juvenile pellets.";
-        } else if (lowerMessage.includes('level') || lowerMessage.includes('amount')) {
-            const percentage = Math.round((feedData.current / feedData.capacity) * 100);
-            return `Your current feed level is ${percentage}%. This is considered ${percentage > 50 ? 'adequate' : percentage > 20 ? 'low' : 'critical'}.`;
-        }
-        return "I can help you with feeding! You can check feed levels, set up a feeding schedule, or feed manually.";
-    }
-    
-    if (lowerMessage.includes('water') || lowerMessage.includes('change')) {
-        if (lowerMessage.includes('quality') || lowerMessage.includes('test')) {
-            return `Current water quality: Temperature is ${hardwareData.temperature.toFixed(1)}°C and pH is ${hardwareData.ph.toFixed(1)}.`;
-        }
-        return "Water changes are important! I can help you schedule automatic water changes or do it manually.";
-    }
-    
-    if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
-        const status = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? 'optimal' : 'warning';
-        return `The current water temperature is ${hardwareData.temperature.toFixed(1)}°C, which is ${status}. The optimal range is 20-25°C.`;
-    }
-    
-    if (lowerMessage.includes('ph')) {
-        const status = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'optimal' : 'warning';
-        return `The current pH level is ${hardwareData.ph.toFixed(1)}, which is ${status}. The optimal range is 6.5-8.0.`;
-    }
-    
-    if (lowerMessage.includes('harvest')) {
-        return `Your crayfish are projected to be ready for harvest in ${hardwareData.daysToHarvest} days at an average weight of ${hardwareData.avgWeight.toFixed(1)}g.`;
-    }
-    
-    if (lowerMessage.includes('help') || lowerMessage.includes('guide')) {
-        return "I can help you with:\n• Feeding schedules and nutrition\n• Water quality management\n• Harvest planning\n• System settings\nWhat would you like to know more about?";
-    }
-    
-    return "I'm your Crayfish Assistant! I can help with feeding schedules, water changes, sensor data, harvest planning, and system settings. What would you like to know?";
 }
 
 function toggleChat() {
@@ -2110,6 +2886,7 @@ function toggleChat() {
         chatMessages.style.display = 'flex';
     }
 }
+
 
 // ========================================
 // KNOWLEDGE BASE FUNCTIONS
