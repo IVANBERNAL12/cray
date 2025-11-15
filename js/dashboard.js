@@ -1992,14 +1992,8 @@ function refillFeed() {
 }
 
 // ========================================
-// ENHANCED CHAT FUNCTIONALITY FOR NON-TECHNICAL USERS
+// CHAT FUNCTIONALITY
 // ========================================
-
-let chatContext = {
-    lastTopic: null,
-    userName: null,
-    hasSeenTour: false
-};
 
 function sendMessage() {
     const input = document.getElementById('chat-input');
@@ -2014,15 +2008,11 @@ function sendMessage() {
     
     setTimeout(() => {
         const response = generateResponse(message);
-        if (typeof response === 'string') {
-            addMessage(response, 'system');
-        } else {
-            addMessage(response.text, 'system', response.buttons);
-        }
+        addMessage(response, 'system');
     }, 500);
 }
 
-function addMessage(text, sender, buttons = null) {
+function addMessage(text, sender) {
     const messagesContainer = document.getElementById('chat-messages');
     if (!messagesContainer) return;
     
@@ -2035,61 +2025,10 @@ function addMessage(text, sender, buttons = null) {
     
     const contentDiv = document.createElement('div');
     contentDiv.classList.add('message-content');
-    
-    // Support HTML content for better formatting
-    if (text.includes('<')) {
-        contentDiv.innerHTML = text;
-    } else {
-        contentDiv.textContent = text;
-    }
+    contentDiv.textContent = text;
     
     messageDiv.appendChild(iconDiv);
     messageDiv.appendChild(contentDiv);
-    
-    // Add interactive buttons if provided
-    if (buttons && buttons.length > 0) {
-        const buttonsDiv = document.createElement('div');
-        buttonsDiv.classList.add('chat-buttons');
-        buttonsDiv.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;';
-        
-        buttons.forEach(btn => {
-            const button = document.createElement('button');
-            button.textContent = btn.text;
-            button.style.cssText = `
-                background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 20px;
-                cursor: pointer;
-                font-size: 0.85rem;
-                transition: all 0.3s ease;
-            `;
-            button.onclick = () => {
-                if (btn.action === 'navigate') {
-                    navigateToSection(btn.target);
-                    addMessage(`Taking you to ${btn.target}...`, 'system');
-                } else if (btn.action === 'action') {
-                    btn.callback();
-                } else if (btn.action === 'message') {
-                    input.value = btn.message;
-                    sendMessage();
-                }
-            };
-            button.onmouseover = () => {
-                button.style.transform = 'scale(1.05)';
-                button.style.boxShadow = '0 4px 12px rgba(0, 212, 255, 0.4)';
-            };
-            button.onmouseout = () => {
-                button.style.transform = 'scale(1)';
-                button.style.boxShadow = 'none';
-            };
-            buttonsDiv.appendChild(button);
-        });
-        
-        contentDiv.appendChild(buttonsDiv);
-    }
-    
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
     
@@ -2103,279 +2042,74 @@ function addMessage(text, sender, buttons = null) {
     }, 10);
 }
 
-function navigateToSection(sectionId) {
-    // Close chat when navigating
-    const chatContainer = document.getElementById('chat-container');
-    if (chatContainer && !chatContainer.classList.contains('minimized')) {
-        toggleChat();
-    }
-    
-    // Navigate to section
-    const navLinks = document.querySelectorAll('.nav-link');
-    const sections = document.querySelectorAll('.dashboard-section');
-    
-    navLinks.forEach(link => {
-        if (link.getAttribute('href') === `#${sectionId}`) {
-            link.click();
-        }
-    });
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Highlight the section briefly
-    setTimeout(() => {
-        const section = document.getElementById(sectionId);
-        if (section) {
-            section.style.animation = 'highlight 2s ease';
-        }
-    }, 300);
-}
-
 function generateResponse(message) {
     const lowerMessage = message.toLowerCase();
     
-    // Greetings
-    if (lowerMessage.match(/\b(hi|hello|hey|good morning|good afternoon|good evening)\b/)) {
-        chatContext.lastTopic = 'greeting';
-        return {
-            text: "Hello! 👋 I'm your Crayfish Farm Assistant. I'm here to help you take care of your crayfish farm. Don't worry if you're not familiar with technology - I'll guide you step by step!",
-            buttons: [
-                { text: "📱 Show me around", action: "message", message: "show me around" },
-                { text: "🐟 Feed my crayfish", action: "message", message: "how do I feed" },
-                { text: "💧 Check water", action: "message", message: "check water" },
-                { text: "❓ What can you do?", action: "message", message: "help" }
-            ]
-        };
+    if (lowerMessage.includes('farm') || lowerMessage.includes('name')) {
+        return `Your farm is named "${farmSettings.name}". You can change this in the Settings section.`;
     }
     
-    // Help/What can you do
-    if (lowerMessage.includes('help') || lowerMessage.includes('what can you') || lowerMessage.includes('show me around')) {
-        chatContext.lastTopic = 'help';
-        return {
-            text: "I can help you with these things:\n\n🐟 <b>Feeding:</b> Feed your crayfish or set up automatic feeding\n💧 <b>Water:</b> Check water quality and schedule water changes\n📊 <b>Monitor:</b> See how your crayfish are doing\n🌾 <b>Harvest:</b> Plan when to harvest your crayfish\n⚙️ <b>Settings:</b> Change your farm name, email, etc.\n\nJust click any button below or tell me what you need!",
-            buttons: [
-                { text: "🐟 Feeding", action: "message", message: "help with feeding" },
-                { text: "💧 Water", action: "message", message: "help with water" },
-                { text: "📊 Dashboard", action: "message", message: "explain dashboard" },
-                { text: "⚙️ Settings", action: "message", message: "help with settings" }
-            ]
-        };
+    if (lowerMessage.includes('settings') || lowerMessage.includes('configuration')) {
+        return `Your current settings:\n• Farm: ${farmSettings.name}\n• Email: ${farmSettings.email}\n• Phone: ${farmSettings.phone}`;
     }
     
-    // Where is/How do I find
-    if (lowerMessage.match(/where (is|can i find|do i)/)) {
-        if (lowerMessage.includes('feed')) {
-            return {
-                text: "The <b>Feeding</b> section is in the top menu. Let me take you there! 🐟",
-                buttons: [
-                    { text: "Take me to Feeding", action: "navigate", target: "feeding" },
-                    { text: "What can I do there?", action: "message", message: "what is feeding section" }
-                ]
-            };
-        }
-        if (lowerMessage.includes('water')) {
-            return {
-                text: "There are two water sections:\n• <b>Water Quality</b> - to check if water is good\n• <b>Water Management</b> - to change water\n\nWhich one do you need?",
-                buttons: [
-                    { text: "Check Water Quality", action: "navigate", target: "water-quality" },
-                    { text: "Change Water", action: "navigate", target: "water-management" }
-                ]
-            };
-        }
-        if (lowerMessage.includes('setting')) {
-            return {
-                text: "The <b>Settings</b> section is in the top menu (usually on the right side). You can change your farm name, email, and other preferences there. ⚙️",
-                buttons: [
-                    { text: "Take me to Settings", action: "navigate", target: "settings" }
-                ]
-            };
-        }
-        return {
-            text: "I can help you find what you're looking for! What are you trying to find?",
-            buttons: [
-                { text: "Feeding section", action: "message", message: "where is feeding" },
-                { text: "Water section", action: "message", message: "where is water" },
-                { text: "Settings", action: "message", message: "where is settings" }
-            ]
-        };
-    }
-    
-    // Feeding - comprehensive help
     if (lowerMessage.includes('feed') || lowerMessage.includes('food')) {
-        chatContext.lastTopic = 'feeding';
-        
-        if (lowerMessage.includes('how') || lowerMessage.includes('help')) {
+        if (lowerMessage.includes('schedule') || lowerMessage.includes('when')) {
+            return "Your feeding schedule is twice daily at 8:00 AM and 6:00 PM with 7.5g of juvenile pellets.";
+        } else if (lowerMessage.includes('level') || lowerMessage.includes('amount')) {
             const percentage = Math.round((feedData.current / feedData.capacity) * 100);
-            return {
-                text: `🐟 <b>Feeding Your Crayfish</b>\n\nYour feed level is currently at <b>${percentage}%</b>.\n\nYou have two options:\n\n1️⃣ <b>Feed Now</b> - Feed your crayfish right away (click the green "Feed Now" button)\n\n2️⃣ <b>Set Schedule</b> - Set up automatic feeding times (so you don't forget!)\n\nWhat would you like to do?`,
-                buttons: [
-                    { text: "Feed Now", action: "action", callback: feedNow },
-                    { text: "Go to Feeding Section", action: "navigate", target: "feeding" },
-                    { text: "How often should I feed?", action: "message", message: "feeding schedule advice" }
-                ]
-            };
+            return `Your current feed level is ${percentage}%. This is considered ${percentage > 50 ? 'adequate' : percentage > 20 ? 'low' : 'critical'}.`;
         }
-        
-        if (lowerMessage.includes('schedule') || lowerMessage.includes('when') || lowerMessage.includes('often')) {
-            return {
-                text: "🕐 <b>Feeding Schedule Tips</b>\n\nFor healthy crayfish, feed them:\n• <b>Twice a day</b> - morning (8 AM) and evening (6 PM)\n• <b>Small amounts</b> - about 7-8 grams each time\n\nI can help you set this up automatically so you don't have to remember!",
-                buttons: [
-                    { text: "Set Up Schedule", action: "navigate", target: "feeding" },
-                    { text: "Feed Manually Today", action: "action", callback: feedNow }
-                ]
-            };
+        return "I can help you with feeding! You can check feed levels, set up a feeding schedule, or feed manually.";
+    }
+    
+    if (lowerMessage.includes('water') || lowerMessage.includes('change')) {
+        if (lowerMessage.includes('quality') || lowerMessage.includes('test')) {
+            return `Current water quality: Temperature is ${hardwareData.temperature.toFixed(1)}°C and pH is ${hardwareData.ph.toFixed(1)}.`;
         }
-        
-        if (lowerMessage.includes('level') || lowerMessage.includes('amount') || lowerMessage.includes('left')) {
-            const percentage = Math.round((feedData.current / feedData.capacity) * 100);
-            const statusEmoji = percentage > 50 ? '✅' : percentage > 20 ? '⚠️' : '🚨';
-            const statusText = percentage > 50 ? 'Good' : percentage > 20 ? 'Getting Low' : 'Very Low - Refill Soon!';
-            return {
-                text: `${statusEmoji} <b>Feed Level: ${percentage}%</b>\n\nStatus: <b>${statusText}</b>\n\nYou have about ${feedData.current}g out of ${feedData.capacity}g total capacity.`,
-                buttons: [
-                    { text: "Feed Crayfish", action: "action", callback: feedNow },
-                    { text: "View Feeding Section", action: "navigate", target: "feeding" }
-                ]
-            };
-        }
-        
-        return {
-            text: "I can help you with feeding! What do you need?",
-            buttons: [
-                { text: "Feed Now", action: "action", callback: feedNow },
-                { text: "Check Feed Level", action: "message", message: "feed level" },
-                { text: "Set Schedule", action: "navigate", target: "feeding" }
-            ]
-        };
+        return "Water changes are important! I can help you schedule automatic water changes or do it manually.";
     }
     
-    // Water - comprehensive help
-    if (lowerMessage.includes('water')) {
-        chatContext.lastTopic = 'water';
-        
-        if (lowerMessage.includes('check') || lowerMessage.includes('quality') || lowerMessage.includes('good') || lowerMessage.includes('ok')) {
-            const tempStatus = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? '✅ Good' : '⚠️ Needs Attention';
-            const phStatus = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? '✅ Good' : '⚠️ Needs Attention';
-            
-            return {
-                text: `💧 <b>Water Quality Check</b>\n\n🌡️ Temperature: <b>${hardwareData.temperature.toFixed(1)}°C</b> ${tempStatus}\n(Best: 20-25°C)\n\n⚗️ pH Level: <b>${hardwareData.ph.toFixed(1)}</b> ${phStatus}\n(Best: 6.5-8.0)\n\n${tempStatus.includes('Good') && phStatus.includes('Good') ? 'Your water looks great! 👍' : 'Consider changing the water or adjusting temperature.'}`,
-                buttons: [
-                    { text: "Change Water", action: "action", callback: changeWaterNow },
-                    { text: "View Details", action: "navigate", target: "water-quality" }
-                ]
-            };
-        }
-        
-        if (lowerMessage.includes('change') || lowerMessage.includes('replace')) {
-            return {
-                text: "💧 <b>Changing Water</b>\n\nChanging water keeps your crayfish healthy!\n\nYou can:\n1️⃣ <b>Change Now</b> - Do it right away\n2️⃣ <b>Set Schedule</b> - Set up automatic reminders (weekly is good)\n\nWhat would you like to do?",
-                buttons: [
-                    { text: "Change Water Now", action: "action", callback: changeWaterNow },
-                    { text: "Set Schedule", action: "navigate", target: "water-management" },
-                    { text: "How often?", action: "message", message: "water change schedule" }
-                ]
-            };
-        }
-        
-        if (lowerMessage.includes('often') || lowerMessage.includes('schedule')) {
-            return {
-                text: "🗓️ <b>Water Change Schedule</b>\n\nFor healthy crayfish:\n• Change <b>50% of water</b>\n• Do it <b>once a week</b>\n• Best time: <b>Monday mornings</b>\n\nRegular water changes prevent diseases and keep crayfish happy!",
-                buttons: [
-                    { text: "Set Up Weekly Change", action: "navigate", target: "water-management" },
-                    { text: "Change Water Now", action: "action", callback: changeWaterNow }
-                ]
-            };
-        }
-        
-        return {
-            text: "I can help you with water! What do you need?",
-            buttons: [
-                { text: "Check Water Quality", action: "message", message: "check water" },
-                { text: "Change Water", action: "action", callback: changeWaterNow },
-                { text: "Set Schedule", action: "navigate", target: "water-management" }
-            ]
-        };
+    if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
+        const status = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? 'optimal' : 'warning';
+        return `The current water temperature is ${hardwareData.temperature.toFixed(1)}°C, which is ${status}. The optimal range is 20-25°C.`;
     }
     
-    // Dashboard/Overview explanation
-    if (lowerMessage.includes('dashboard') || lowerMessage.includes('overview') || lowerMessage.includes('what am i looking at')) {
-        return {
-            text: "📊 <b>Your Dashboard Explained</b>\n\nThe dashboard shows:\n\n🌡️ <b>Temperature</b> - Water temperature (should be 20-25°C)\n\n⚗️ <b>pH Level</b> - Water acidity (should be 6.5-8.0)\n\n❤️ <b>Health</b> - How healthy your crayfish are\n\n🍽️ <b>Feed Level</b> - How much food is left\n\nThink of it like a health report card for your farm!",
-            buttons: [
-                { text: "Show me the numbers", action: "navigate", target: "dashboard" },
-                { text: "What should I do first?", action: "message", message: "getting started" }
-            ]
-        };
+    if (lowerMessage.includes('ph')) {
+        const status = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? 'optimal' : 'warning';
+        return `The current pH level is ${hardwareData.ph.toFixed(1)}, which is ${status}. The optimal range is 6.5-8.0.`;
     }
     
-    // Getting started
-    if (lowerMessage.includes('start') || lowerMessage.includes('begin') || lowerMessage.includes('first time')) {
-        return {
-            text: "🌟 <b>Welcome! Let's Get Started</b>\n\nHere's what to do:\n\n1️⃣ <b>Check Dashboard</b> - See how everything is doing\n\n2️⃣ <b>Feed Crayfish</b> - Make sure they have food\n\n3️⃣ <b>Check Water</b> - Make sure water quality is good\n\n4️⃣ <b>Set Schedules</b> - Automate feeding and water changes\n\nShall we start with step 1?",
-            buttons: [
-                { text: "Yes, show me dashboard", action: "navigate", target: "dashboard" },
-                { text: "I want to feed first", action: "message", message: "how do I feed" }
-            ]
-        };
+    if (lowerMessage.includes('harvest')) {
+        return `Your crayfish are projected to be ready for harvest in ${hardwareData.daysToHarvest} days at an average weight of ${hardwareData.avgWeight.toFixed(1)}g.`;
     }
     
-    // Harvest
-    if (lowerMessage.includes('harvest') || lowerMessage.includes('sell') || lowerMessage.includes('ready')) {
-        return {
-            text: `🌾 <b>Harvest Information</b>\n\nYour crayfish will be ready in approximately <b>${hardwareData.daysToHarvest} days</b>.\n\nCurrent average weight: <b>${hardwareData.avgWeight}g</b>\nMarket size needed: <b>30-50g</b>\n\nI'll let you know when they're ready to harvest!`,
-            buttons: [
-                { text: "View Harvest Details", action: "navigate", target: "harvest" },
-                { text: "When will they be ready?", action: "message", message: "harvest time" }
-            ]
-        };
+    if (lowerMessage.includes('help') || lowerMessage.includes('guide')) {
+        return "I can help you with:\n• Feeding schedules and nutrition\n• Water quality management\n• Harvest planning\n• System settings\nWhat would you like to know more about?";
     }
     
-    // Settings
-    if (lowerMessage.includes('settings') || lowerMessage.includes('change name') || lowerMessage.includes('email')) {
-        return {
-            text: "⚙️ <b>Settings</b>\n\nIn Settings you can:\n• Change your farm name\n• Update your email address\n• Change phone number\n• Turn alerts on/off\n\nWhat would you like to change?",
-            buttons: [
-                { text: "Go to Settings", action: "navigate", target: "settings" },
-                { text: "Nothing right now", action: "message", message: "thanks" }
-            ]
-        };
-    }
-    
-    // Thank you
-    if (lowerMessage.includes('thank') || lowerMessage.includes('thanks')) {
-        return {
-            text: "You're welcome! 😊 I'm always here to help. Just ask me anything about your crayfish farm!",
-            buttons: [
-                { text: "Back to Main Menu", action: "message", message: "help" }
-            ]
-        };
-    }
-    
-    // I don't understand
-    if (lowerMessage.includes('understand') || lowerMessage.includes('confused') || lowerMessage.includes('lost')) {
-        return {
-            text: "No worries! I'm here to help make things simple. 😊\n\nLet's start with the basics - what would you like to do?",
-            buttons: [
-                { text: "Feed my crayfish", action: "message", message: "how do I feed" },
-                { text: "Check water", action: "message", message: "check water" },
-                { text: "Show me around", action: "message", message: "explain dashboard" },
-                { text: "See everything you can do", action: "message", message: "help" }
-            ]
-        };
-    }
-    
-    // Default response - smart fallback
-    return {
-        text: "I'm not quite sure what you're asking, but I'm here to help! 🤔\n\nHere are the most common things people ask about:",
-        buttons: [
-            { text: "🐟 Feeding", action: "message", message: "help with feeding" },
-            { text: "💧 Water", action: "message", message: "help with water" },
-            { text: "📊 Dashboard", action: "message", message: "explain dashboard" },
-            { text: "❓ Show All Options", action: "message", message: "help" }
-        ]
-    };
+    return "I'm your Crayfish Assistant! I can help with feeding schedules, water changes, sensor data, harvest planning, and system settings. What would you like to know?";
 }
+
+function toggleChat() {
+    const chatContainer = document.getElementById('chat-container');
+    const chatMessages = document.getElementById('chat-messages');
+    if (!chatContainer || !chatMessages) return;
+    
+    const isMinimized = chatContainer.classList.toggle('minimized');
+    
+    const toggleIcon = document.querySelector('#chat-toggle i');
+    if (toggleIcon) {
+        toggleIcon.className = isMinimized ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+    }
+
+    if (isMinimized) {
+        chatMessages.style.display = 'none';
+    } else {
+        chatMessages.style.display = 'flex';
+    }
+}
+
 // ========================================
 // KNOWLEDGE BASE FUNCTIONS
 // ========================================
