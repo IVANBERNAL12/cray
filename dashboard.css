@@ -1,3 +1,69 @@
+    /* ========================================
+   CRITICAL FIX: Z-INDEX AND POINTER EVENTS
+   ======================================== */
+
+/* Fix ocean background - should NOT block interaction */
+.ocean-bg,
+.ocean-waves,
+.ocean-light,
+.seabed,
+.ocean-elements,
+.ocean-element,
+.bioluminescence,
+.bio-particle,
+.crawling-crayfish {
+    pointer-events: none !important;
+    z-index: -1 !important;
+}
+
+/* Ensure all interactive elements are above background */
+nav,
+.nav-container,
+.nav-links,
+.nav-actions,
+.mobile-menu-btn,
+.dashboard-container,
+.dashboard-section,
+button,
+a,
+input,
+select,
+textarea,
+.modal,
+.chat-container,
+.notification {
+    pointer-events: auto !important;
+    position: relative;
+}
+
+/* Fix navigation z-index */
+nav {
+    z-index: 1000 !important;
+}
+
+/* Fix dashboard container z-index */
+.dashboard-container {
+    z-index: 10 !important;
+    position: relative;
+}
+
+/* Fix all interactive elements */
+.stat-card,
+.chart-card,
+.guideline-card,
+.parameter-card,
+.btn,
+.form-control,
+.knowledge-category {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 1;
+}
+
+/* ========================================
+   END CRITICAL FIX
+   ======================================== */
+    
     /* Add this to the top of your dashboard.css file to ensure proper viewport handling */
     html {
         box-sizing: border-box;
