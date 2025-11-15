@@ -288,7 +288,7 @@ async function saveFeedData(feedData) {
         console.error('[Database] saveFeedData error:', error);
         return { success: false, message: error.message, error: error };
     }
-
+}
 async function getFeedData() {
     try {
         const user = await ensureAuthenticated();
@@ -1166,4 +1166,3 @@ window.sendFeedingNotification = sendFeedingNotification;
 window.sendParameterViolationAlert = sendParameterViolationAlert;
 
 console.log('[Database] ✓ All database functions loaded and exported (COMPLETE VERSION WITH EMAIL)');
-}
