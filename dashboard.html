@@ -652,112 +652,78 @@
 <!-- ========================================
      SETTINGS SECTION - ADD USER ID DISPLAY
      ======================================== -->
-<section id="settings" class="dashboard-section">
-    <div class="settings-container">
-        <div class="section-header">
-            <h2 class="section-title">Farm Settings</h2>
-        </div>
-
-        <!-- NEW: User ID Display for ESP8266 -->
-        <div class="user-id-display">
-            <h3 class="section-title">ESP8266 Device Configuration</h3>
-            <div class="user-id-card">
-                <div class="user-id-label">
-                    <i class="fas fa-microchip"></i> Your User ID (for ESP8266):
-                </div>
-                <div class="user-id-value" id="user-id-display">
-                    <code id="user-id-text">Loading...</code>
-                    <button class="btn btn-icon" id="copy-user-id" title="Copy User ID">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-                <div class="user-id-help">
-                    <i class="fas fa-info-circle"></i> 
-                    Copy this ID and paste it into your ESP8266 code's <code>USER_ID</code> variable
-                </div>
-            </div>
-        </div>
-
-        <div class="settings-form">
-            <div class="form-group">
-                <label for="farm-name" class="form-label">Farm Name</label>
-                <input type="text" id="farm-name" class="form-control" value="My Crayfish Farm">
-            </div>
-            
-            <div class="form-group">
-                <label for="notification-email" class="form-label">Notification Email</label>
-                <input type="email" id="notification-email" class="form-control" value="farmer@example.com">
-                <small class="form-help">Email alerts will be sent to this address</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="notification-phone" class="form-label">Notification Phone</label>
-                <input type="tel" id="notification-phone" class="form-control" value="+63 912 345 6789">
-            </div>
-            
-            <!-- NEW: Email Alerts Section -->
-            <div class="form-group">
-                <label class="form-label">
-                    <input type="checkbox" id="email-alerts-enabled" checked> 
-                    Enable Email Alerts
-                </label>
-                <small class="form-help">Receive email notifications for important events</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="low-feed-threshold" class="form-label">Low Feed Alert Threshold (%)</label>
-                <input type="number" id="low-feed-threshold" class="form-control" value="20" min="5" max="50">
-                <small class="form-help">Alert when feed drops below this percentage</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="temp-min-threshold" class="form-label">Temperature Min (°C)</label>
-                <input type="number" id="temp-min-threshold" class="form-control" value="20.0" step="0.1" min="15" max="25">
-            </div>
-            
-            <div class="form-group">
-                <label for="temp-max-threshold" class="form-label">Temperature Max (°C)</label>
-                <input type="number" id="temp-max-threshold" class="form-control" value="25.0" step="0.1" min="20" max="30">
-            </div>
-            
-            <div class="form-group">
-                <label for="ph-min-threshold" class="form-label">pH Min</label>
-                <input type="number" id="ph-min-threshold" class="form-control" value="6.5" step="0.1" min="6.0" max="7.5">
-            </div>
-            
-            <div class="form-group">
-                <label for="ph-max-threshold" class="form-label">pH Max</label>
-                <input type="number" id="ph-max-threshold" class="form-control" value="8.0" step="0.1" min="7.0" max="9.0">
-            </div>
-            
-            <div class="form-group">
-                <label for="measurement-unit" class="form-label">Measurement Unit</label>
-                <select id="measurement-unit" class="form-control">
-                    <option value="metric" selected>Metric (°C, cm, g)</option>
-                    <option value="imperial">Imperial (°F, in, oz)</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="alert-frequency" class="form-label">Alert Frequency</label>
-                <select id="alert-frequency" class="form-control">
-                    <option value="immediate" selected>Immediate</option>
-                    <option value="daily">Daily Summary</option>
-                    <option value="weekly">Weekly Summary</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="water-testing-frequency" class="form-label">Water Testing Frequency</label>
-                <select id="water-testing-frequency" class="form-control">
-                    <option value="daily">Daily</option>
-                    <option value="twice-weekly" selected>Twice Weekly</option>
-                    <option value="weekly">Weekly</option>
-                </select>
-            </div>
-            
-            <button class="btn btn-primary" id="save-settings">
-                <i class="fas fa-save"></i> Save Settings
+<div class="settings-form">
+    <div class="form-group">
+        <label for="farm-name" class="form-label">Farm Name</label>
+        <input type="text" id="farm-name" class="form-control" value="My Crayfish Farm">
+    </div>
+    
+    <div class="form-group">
+        <label for="notification-email" class="form-label">Notification Email</label>
+        <input type="email" id="notification-email" class="form-control" value="farmer@example.com">
+        <small class="form-help">Email alerts will be sent to this address</small>
+    </div>
+    
+    <div class="form-group">
+        <label for="notification-phone" class="form-label">Notification Phone</label>
+        <input type="tel" id="notification-phone" class="form-control" value="+63 912 345 6789">
+    </div>
+    
+    <!-- Email Alerts Section -->
+    <div class="form-group">
+        <label class="form-label">
+            <input type="checkbox" id="email-alerts-enabled" checked> 
+            Enable Email Alerts
+        </label>
+        <small class="form-help">Receive email notifications for feeding, water changes, and parameter violations</small>
+    </div>
+    
+    <div class="form-group">
+        <label for="low-feed-threshold" class="form-label">Low Feed Alert Threshold (%)</label>
+        <input type="number" id="low-feed-threshold" class="form-control" value="20" min="5" max="50">
+        <small class="form-help">Alert when feed drops below this percentage</small>
+    </div>
+    
+    <!-- Info about automatic parameter monitoring -->
+    <div style="background: #d1ecf1; border-left: 4px solid #00d4ff; padding: 15px; margin: 20px 0; border-radius: 5px;">
+        <p style="margin: 0; font-size: 14px; color: #0c5460;">
+            <strong><i class="fas fa-info-circle"></i> Automatic Parameter Monitoring</strong><br>
+            Temperature and pH levels are monitored automatically based on optimal crayfish farming guidelines:
+        </p>
+        <ul style="margin: 10px 0 0 20px; color: #0c5460;">
+            <li><strong>Temperature:</strong> Optimal 20-25°C, Critical below 15°C or above 30°C</li>
+            <li><strong>pH Level:</strong> Optimal 6.5-8.0, Critical below 6.0 or above 8.5</li>
+        </ul>
+    </div>
+    
+    <div class="form-group">
+        <label for="measurement-unit" class="form-label">Measurement Unit</label>
+        <select id="measurement-unit" class="form-control">
+            <option value="metric" selected>Metric (°C, cm, g)</option>
+            <option value="imperial">Imperial (°F, in, oz)</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="alert-frequency" class="form-label">Alert Frequency</label>
+        <select id="alert-frequency" class="form-control">
+            <option value="immediate" selected>Immediate</option>
+            <option value="daily">Daily Summary</option>
+            <option value="weekly">Weekly Summary</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="water-testing-frequency" class="form-label">Water Testing Frequency</label>
+        <select id="water-testing-frequency" class="form-control">
+            <option value="daily">Daily</option>
+            <option value="twice-weekly" selected>Twice Weekly</option>
+            <option value="weekly">Weekly</option>
+        </select>
+    </div>
+    
+         <button class="btn btn-primary" id="save-settings">
+        <i class="fas fa-save"></i> Save Settings
             </button>
         </div>
     </div>

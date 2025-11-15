@@ -1,6 +1,29 @@
 // dashboard.js - COMPLETE CORRECTED VERSION - ALL FIXES APPLIED
 console.log('dashboard.js loaded');
 
+// OPTIMAL CRAYFISH PARAMETERS - From Knowledge Base Guidelines
+const CRAYFISH_GUIDELINES = {
+    temperature: {
+        min: 20.0,
+        max: 25.0,
+        critical_low: 15.0,
+        critical_high: 30.0
+    },
+    ph: {
+        min: 6.5,
+        max: 8.0,
+        critical_low: 6.0,
+        critical_high: 8.5
+    }
+};
+
+const lastAlertTimes = {
+    temperature: 0,
+    ph: 0,
+    lowFeed: 0
+};
+
+const ALERT_COOLDOWN_MS = 5 * 60 * 1000;
 // ========================================
 // GLOBAL STATE & CONFIGURATION
 // ========================================
@@ -249,95 +272,115 @@ function displayWaterChangeHistory(history) {
 async function checkAndSendLowFeedAlert(currentPercentage) {
     try {
         const settings = await window.getFarmSettings();
+        if (!settings || !settings.email) return;
         
-        if (!settings || !settings.email_alerts_enabled || !settings.email) {
-            return;
-        }
+        const emailAlertsEnabled = settings.email_alerts_enabled !== false;
+        if (!emailAlertsEnabled) return;
         
         const threshold = settings.low_feed_threshold || 20;
+        const now = Date.now();
         
-        if (currentPercentage <= threshold) {
-            console.log('[Email] Sending low feed alert...');
-            
-            const result = await window.sendLowFeedAlert(
-                settings.email,
-                currentPercentage,
-                threshold
-            );
-            
-            if (result.success) {
-                console.log('[Email] ✓ Low feed alert sent');
-            }
+        if (currentPercentage <= threshold && (now - lastAlertTimes.lowFeed > ALERT_COOLDOWN_MS)) {
+            const result = await window.sendLowFeedAlert(settings.email, currentPercentage, threshold);
+            if (result && result.success) lastAlertTimes.lowFeed = now;
         }
     } catch (error) {
-        console.error('[Email] Error checking/sending low feed alert:', error);
+        console.error('[Email] Error:', error);
     }
 }
 
 async function sendWaterChangeEmail(changeType, percentage) {
     try {
         const settings = await window.getFarmSettings();
+        if (!settings || !settings.email) return { success: false };
         
-        if (!settings || !settings.email_alerts_enabled || !settings.email) {
-            return;
-        }
+        const emailAlertsEnabled = settings.email_alerts_enabled !== false;
+        if (!emailAlertsEnabled) return { success: false };
         
-        console.log('[Email] Sending water change notification...');
-        
-        const result = await window.sendWaterChangeNotification(
-            settings.email,
-            changeType,
-            percentage
-        );
-        
-        if (result.success) {
-            console.log('[Email] ✓ Water change notification sent');
-        }
+        return await window.sendWaterChangeNotification(settings.email, changeType, percentage);
     } catch (error) {
-        console.error('[Email] Error sending water change email:', error);
+        console.error('[Email] Error:', error);
+        return { success: false };
     }
 }
 
 async function checkParameterViolations(temperature, ph) {
     try {
         const settings = await window.getFarmSettings();
+        if (!settings || !settings.email) return;
         
-        if (!settings || !settings.email_alerts_enabled || !settings.email) {
-            return;
+        const emailAlertsEnabled = settings.email_alerts_enabled !== false;
+        if (!emailAlertsEnabled) return;
+        
+        const now = Date.now();
+        
+        // Temperature check
+        const tempGuidelines = CRAYFISH_GUIDELINES.temperature;
+        const isTempCritical = temperature < tempGuidelines.critical_low || temperature > tempGuidelines.critical_high;
+        const isTempWarning = !isTempCritical && (temperature < tempGuidelines.min || temperature > tempGuidelines.max);
+        
+        if ((isTempCritical || isTempWarning) && (now - lastAlertTimes.temperature > ALERT_COOLDOWN_MS)) {
+            const result = await window.sendParameterViolationAlert(
+                settings.email, 'temperature', temperature,
+                { min: tempGuidelines.min, max: tempGuidelines.max }
+            );
+            if (result && result.success) lastAlertTimes.temperature = now;
         }
         
-        // Check temperature
-        const tempMin = settings.temp_min_threshold || 20.0;
-        const tempMax = settings.temp_max_threshold || 25.0;
+        // pH check
+        const phGuidelines = CRAYFISH_GUIDELINES.ph;
+        const isPhCritical = ph < phGuidelines.critical_low || ph > phGuidelines.critical_high;
+        const isPhWarning = !isPhCritical && (ph < phGuidelines.min || ph > phGuidelines.max);
         
-        if (temperature < tempMin || temperature > tempMax) {
-            console.log('[Email] Temperature violation detected');
-            await window.sendParameterViolationAlert(
-                settings.email,
-                'temperature',
-                temperature,
-                { min: tempMin, max: tempMax }
+        if ((isPhCritical || isPhWarning) && (now - lastAlertTimes.ph > ALERT_COOLDOWN_MS)) {
+            const result = await window.sendParameterViolationAlert(
+                settings.email, 'ph', ph,
+                { min: phGuidelines.min, max: phGuidelines.max }
             );
-        }
-        
-        // Check pH
-        const phMin = settings.ph_min_threshold || 6.5;
-        const phMax = settings.ph_max_threshold || 8.0;
-        
-        if (ph < phMin || ph > phMax) {
-            console.log('[Email] pH violation detected');
-            await window.sendParameterViolationAlert(
-                settings.email,
-                'ph',
-                ph,
-                { min: phMin, max: phMax }
-            );
+            if (result && result.success) lastAlertTimes.ph = now;
         }
     } catch (error) {
-        console.error('[Email] Error checking parameter violations:', error);
+        console.error('[Email] Error:', error);
     }
 }
 
+async function sendFeedingNotificationEmail(amount, foodType) {
+    try {
+        const settings = await window.getFarmSettings();
+        if (!settings || !settings.email) return { success: false };
+        
+        const emailAlertsEnabled = settings.email_alerts_enabled !== false;
+        if (!emailAlertsEnabled) return { success: false };
+        
+        const foodTypeMap = {
+            'juvenile-pellets': 'Juvenile Pellets (40% protein)',
+            'growth-pellets': 'Growth Pellets (35% protein)',
+            'breeder-pellets': 'Breeder Pellets (30% protein)'
+        };
+        
+        const subject = '🍽️ Feeding Completed - AquaVision Pro';
+        const html = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; padding: 30px; text-align: center;">
+                    <h1 style="margin: 0;">🐟 AquaVision Pro</h1>
+                </div>
+                <div style="background: white; padding: 30px;">
+                    <h2 style="color: #00d4ff;">🍽️ Feeding Completed</h2>
+                    <div style="background: #d1ecf1; padding: 15px; margin: 20px 0;">
+                        <p style="margin: 0;"><strong>Amount:</strong> ${amount}g<br>
+                        <strong>Food Type:</strong> ${foodTypeMap[foodType] || foodType}<br>
+                        <strong>Time:</strong> ${new Date().toLocaleString()}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return await window.sendEmail(settings.email, subject, html);
+    } catch (error) {
+        console.error('[Email] Error:', error);
+        return { success: false };
+    }
+}
 // ========================================
 // USER ID DISPLAY FUNCTION
 // ========================================
@@ -1094,7 +1137,11 @@ async function loadFarmSettings() {
         const unitInput = document.getElementById('measurement-unit');
         const alertFreqInput = document.getElementById('alert-frequency');
         const waterTestFreqInput = document.getElementById('water-testing-frequency');
-        
+        const emailAlertsCheckbox = document.getElementById('email-alerts-enabled');
+        const lowFeedThresholdInput = document.getElementById('low-feed-threshold');
+
+        if (emailAlertsCheckbox) emailAlertsCheckbox.checked = farmSettings.email_alerts_enabled !== false;
+        if (lowFeedThresholdInput) lowFeedThresholdInput.value = farmSettings.low_feed_threshold || 20;
         if (farmNameInput) farmNameInput.value = farmSettings.name || 'My Crayfish Farm';
         if (emailInput) emailInput.value = farmSettings.email || '';
         if (phoneInput) phoneInput.value = farmSettings.phone || '';
@@ -1312,8 +1359,10 @@ async function feedNow() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Feeding...';
     }
-    
+
+   
     await sendCommand('feed');
+    await sendFeedingNotificationEmail(amount, foodType);
     
     setTimeout(async () => {
         try {
@@ -1763,6 +1812,8 @@ async function saveSettings() {
     const farmName = document.getElementById('farm-name')?.value;
     const notificationEmail = document.getElementById('notification-email')?.value;
     const notificationPhone = document.getElementById('notification-phone')?.value;
+    const emailAlertsEnabled = document.getElementById('email-alerts-enabled')?.checked;
+    const lowFeedThreshold = document.getElementById('low-feed-threshold')?.value;
     const measurementUnit = document.getElementById('measurement-unit')?.value;
     const alertFrequency = document.getElementById('alert-frequency')?.value;
     const waterTestingFrequency = document.getElementById('water-testing-frequency')?.value;
@@ -1772,29 +1823,30 @@ async function saveSettings() {
         return;
     }
     
+    if (!notificationEmail || notificationEmail.trim() === '') {
+        showNotification('Error', 'Email is required for alerts', 'warning');
+        return;
+    }
+    
     farmSettings = {
         name: farmName.trim(),
-        email: notificationEmail?.trim() || '',
+        email: notificationEmail.trim(),
         phone: notificationPhone?.trim() || '',
+        email_alerts_enabled: emailAlertsEnabled !== false,
+        low_feed_threshold: parseInt(lowFeedThreshold) || 20,
         unit: measurementUnit || 'metric',
         alertFrequency: alertFrequency || 'immediate',
         waterTestingFrequency: waterTestingFrequency || 'twice-weekly'
     };
     
-    console.log('[Settings] Saving farm settings:', farmSettings);
-    
-    // CRITICAL FIX: Use window.saveFarmSettings from database.js
     const result = await window.saveFarmSettings(farmSettings);
     
     if (result && result.success) {
         updateFarmNameDisplay();
-        showNotification('Settings Saved', 'Farm settings have been updated successfully', 'success');
-        console.log('[Settings] ✓ Settings saved to Supabase');
-    } else {
-        // Even if Supabase fails, we saved to localStorage as fallback
-        updateFarmNameDisplay();
-        showNotification('Settings Saved Locally', 'Settings saved to browser (Supabase sync failed)', 'warning');
-        console.warn('[Settings] Saved to localStorage only:', result?.message);
+        showNotification('Success', 
+            `Settings saved. ${emailAlertsEnabled ? 'Alerts ON' : 'Alerts OFF'}`,
+            'success'
+        );
     }
 }
 
