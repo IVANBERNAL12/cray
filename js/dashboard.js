@@ -324,7 +324,7 @@ async function checkAndSendLowFeedAlert(currentPercentage) {
     } catch (error) {
         console.log('[Email] Error in checkAndSendLowFeedAlert (non-critical):', error.message);
     }
-}
+
 async function sendWaterChangeEmail(changeType, percentage) {
     try {
         console.log('[Email] Sending water change notification...');
@@ -423,6 +423,7 @@ async function checkParameterViolations(temperature, ph) {
         // Don't crash on email errors
         console.log('[Email] Error in checkParameterViolations (non-critical):', error.message);
     }
+}
 }
 
 async function sendFeedingNotificationEmail(amount, foodType) {
@@ -1222,64 +1223,6 @@ async function loadFarmSettings() {
     }
 }
 
-// CRITICAL FIX #5: Complete chart enhancement setup
-// Make sure this is in your dashboard.js:
-
-function setupChartEnhancements() {
-    console.log('[Charts] Setting up chart enhancements...');
-    
-    // Temperature Chart - Expand Button
-    const expandTempBtn = document.getElementById('expand-temp-chart');
-    if (expandTempBtn) {
-        expandTempBtn.addEventListener('click', () => {
-            toggleFullscreenChart('tempChart', 'Temperature Trends');
-        });
-    }
-    
-    // Temperature Chart - Download Button
-    const downloadTempBtn = document.getElementById('download-temp-chart');
-    if (downloadTempBtn) {
-        downloadTempBtn.addEventListener('click', () => {
-            downloadChartData('tempChart', 'Temperature-Data');
-        });
-    }
-    
-    // pH Chart - Expand Button
-    const expandPhBtn = document.getElementById('expand-ph-chart');
-    if (expandPhBtn) {
-        expandPhBtn.addEventListener('click', () => {
-            toggleFullscreenChart('phChart', 'pH Level Trends');
-        });
-    }
-    
-    // pH Chart - Download Button
-    const downloadPhBtn = document.getElementById('download-ph-chart');
-    if (downloadPhBtn) {
-        downloadPhBtn.addEventListener('click', () => {
-            downloadChartData('phChart', 'pH-Data');
-        });
-    }
-    
-    // Historical Chart - Expand Button
-    const expandHistoricalBtn = document.getElementById('expand-historical-chart');
-    if (expandHistoricalBtn) {
-        expandHistoricalBtn.addEventListener('click', () => {
-            toggleFullscreenChart('historicalChart', 'Historical Data (Temperature & pH)');
-        });
-    }
-    
-    // Historical Chart - Download Button
-    const downloadHistoricalBtn = document.getElementById('download-historical-chart');
-    if (downloadHistoricalBtn) {
-        downloadHistoricalBtn.addEventListener('click', () => {
-            downloadChartData('historicalChart', 'Historical-Data');
-        });
-    }
-    
-    console.log('[Charts] ✓ Chart enhancements setup complete');
-}
-
-
 function updateFarmNameDisplay() {
     const dashboardTitle = document.querySelector('.dashboard-title');
     if (dashboardTitle) {
@@ -1620,8 +1563,10 @@ async function feedNow() {
             btn.innerHTML = '<i class="fas fa-utensils"></i> Feed Now';
         }
     }, 1000);
-
 }
+
+
+
 
 async function changeWaterNow() {
     const btn = document.getElementById('change-water-now');

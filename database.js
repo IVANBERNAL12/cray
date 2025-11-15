@@ -289,6 +289,7 @@ async function saveFeedData(feedData) {
         return { success: false, message: error.message, error: error };
     }
 }
+
 async function getFeedData() {
     try {
         const user = await ensureAuthenticated();
