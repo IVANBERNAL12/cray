@@ -294,6 +294,7 @@ async function checkAndSendLowFeedAlert(currentPercentage) {
         const threshold = settings.low_feed_threshold || 20;
         const now = Date.now();
         
+        // Check cooldown
         if (now - lastAlertTimes.lowFeed < ALERT_COOLDOWN_MS) {
             console.log('[Email] Alert cooldown active, skipping');
             return;
@@ -302,24 +303,27 @@ async function checkAndSendLowFeedAlert(currentPercentage) {
         if (currentPercentage <= threshold) {
             console.log('[Email] Feed below threshold! Sending alert...');
             
-            const result = await window.sendLowFeedAlert(
-                settings.email, 
-                currentPercentage, 
-                threshold
-            );
-            
-            if (result && result.success) {
-                lastAlertTimes.lowFeed = now;
-                console.log('[Email] ✓ Low feed alert sent successfully');
-                showNotification('Alert Sent', 'Low feed email notification sent', 'info');
-            } else {
-                console.error('[Email] Failed to send low feed alert:', result);
+            try {
+                const result = await window.sendLowFeedAlert(
+                    settings.email, 
+                    currentPercentage, 
+                    threshold
+                );
+                
+                if (result && result.success) {
+                    lastAlertTimes.lowFeed = now;
+                    console.log('[Email] ✓ Low feed alert sent successfully');
+                    showNotification('Alert Sent', 'Low feed email notification sent', 'info');
+                } else {
+                    console.log('[Email] Low feed alert failed, but continuing:', result);
+                }
+            } catch (emailError) {
+                console.log('[Email] Email sending failed, but continuing:', emailError.message);
             }
         }
     } catch (error) {
-        console.error('[Email] Error in checkAndSendLowFeedAlert:', error);
+        console.log('[Email] Error in checkAndSendLowFeedAlert (non-critical):', error.message);
     }
-}
 
 async function sendWaterChangeEmail(changeType, percentage) {
     try {
@@ -356,6 +360,7 @@ async function sendWaterChangeEmail(changeType, percentage) {
 
 
 async function checkParameterViolations(temperature, ph) {
+    // Don't let email errors crash the system
     try {
         const settings = await window.getFarmSettings();
         if (!settings || !settings.email) return;
@@ -373,17 +378,20 @@ async function checkParameterViolations(temperature, ph) {
         if ((isTempCritical || isTempWarning) && (now - lastAlertTimes.temperature > ALERT_COOLDOWN_MS)) {
             console.log('[Email] Temperature violation detected:', temperature, '°C');
             
-            const result = await window.sendParameterViolationAlert(
-                settings.email, 
-                'temperature', 
-                temperature,
-                { min: tempGuidelines.min, max: tempGuidelines.max }
-            );
-            
-            if (result && result.success) {
-                lastAlertTimes.temperature = now;
-                console.log('[Email] ✓ Temperature alert sent');
-                showNotification('Alert Sent', 'Temperature violation email sent', 'warning');
+            try {
+                const result = await window.sendParameterViolationAlert(
+                    settings.email, 
+                    'temperature', 
+                    temperature,
+                    { min: tempGuidelines.min, max: tempGuidelines.max }
+                );
+                
+                if (result && result.success) {
+                    lastAlertTimes.temperature = now;
+                    console.log('[Email] ✓ Temperature alert sent');
+                }
+            } catch (err) {
+                console.log('[Email] Temperature alert failed (non-critical):', err.message);
             }
         }
         
@@ -395,21 +403,25 @@ async function checkParameterViolations(temperature, ph) {
         if ((isPhCritical || isPhWarning) && (now - lastAlertTimes.ph > ALERT_COOLDOWN_MS)) {
             console.log('[Email] pH violation detected:', ph);
             
-            const result = await window.sendParameterViolationAlert(
-                settings.email, 
-                'ph', 
-                ph,
-                { min: phGuidelines.min, max: phGuidelines.max }
-            );
-            
-            if (result && result.success) {
-                lastAlertTimes.ph = now;
-                console.log('[Email] ✓ pH alert sent');
-                showNotification('Alert Sent', 'pH violation email sent', 'warning');
+            try {
+                const result = await window.sendParameterViolationAlert(
+                    settings.email, 
+                    'ph', 
+                    ph,
+                    { min: phGuidelines.min, max: phGuidelines.max }
+                );
+                
+                if (result && result.success) {
+                    lastAlertTimes.ph = now;
+                    console.log('[Email] ✓ pH alert sent');
+                }
+            } catch (err) {
+                console.log('[Email] pH alert failed (non-critical):', err.message);
             }
         }
     } catch (error) {
-        console.error('[Email] Error in checkParameterViolations:', error);
+        // Don't crash on email errors
+        console.log('[Email] Error in checkParameterViolations (non-critical):', error.message);
     }
 }
 
@@ -1453,46 +1465,96 @@ async function feedNow() {
     
     setTimeout(async () => {
         try {
+            console.log('[Feed] Starting feeding process...');
+            
+            // Get schedule
             const schedule = await window.getFeedingSchedule();
             const amount = schedule?.amount || 7.5;
             const foodType = schedule?.type || 'juvenile-pellets';
             
-            const currentFeedData = await window.getFeedData();
-            feedData.capacity = currentFeedData.capacity || 500;
-            feedData.current = Math.max(0, (currentFeedData.current || 375) - amount);
-            feedData.lastUpdated = new Date();
+            console.log('[Feed] Schedule:', { amount, foodType });
             
+            // Get current feed data
+            const currentFeedData = await window.getFeedData();
+            console.log('[Feed] Current feed data:', currentFeedData);
+            
+            // Calculate new values - ENSURE INTEGERS
+            const newCurrent = Math.max(0, Math.round(currentFeedData.current - amount));
+            const capacity = Math.round(currentFeedData.capacity);
+            
+            console.log('[Feed] Calculated new values:', {
+                oldCurrent: currentFeedData.current,
+                amount: amount,
+                newCurrent: newCurrent,
+                capacity: capacity
+            });
+            
+            // Update global feedData
+            feedData = {
+                capacity: capacity,
+                current: newCurrent,
+                lastUpdated: new Date()
+            };
+            
+            console.log('[Feed] Saving feed data:', feedData);
+            
+            // Save to database
             const saveResult = await window.saveFeedData(feedData);
             
             if (saveResult.success) {
                 console.log('[Feed] ✓ Feed data saved successfully');
+                
+                // Update UI immediately
                 updateFeedLevelUI(feedData);
+                
+                // Calculate percentage
+                const percentage = Math.round((newCurrent / capacity) * 100);
+                console.log('[Feed] New feed level:', percentage + '%');
+                
+                showNotification('Feed Updated', `Feed level: ${percentage}%`, 'success');
+            } else {
+                console.error('[Feed] Failed to save feed data:', saveResult);
+                showNotification('Warning', 'Feed dispensed but level not updated', 'warning');
             }
             
-            const percentage = Math.round((feedData.current / feedData.capacity) * 100);
-            
+            // Save feed history
             await window.saveFeedHistory({
                 amount: amount,
                 food_type: foodType,
                 method: 'manual'
             });
             
+            console.log('[Feed] ✓ Feed history saved');
+            
+            // Reload feed history
             await loadFeedHistory();
             
-            // SEND EMAIL NOTIFICATION
-            await sendFeedingNotificationEmail(amount, foodType);
+            // Try to send email (but don't fail if it doesn't work)
+            try {
+                const settings = await window.getFarmSettings();
+                if (settings && settings.email && settings.email_alerts_enabled !== false) {
+                    await sendFeedingNotificationEmail(amount, foodType);
+                }
+            } catch (emailError) {
+                console.log('[Feed] Email notification skipped:', emailError.message);
+            }
             
-            await checkAndSendLowFeedAlert(percentage);
+            // Check for low feed alert
+            const finalPercentage = Math.round((newCurrent / capacity) * 100);
+            await checkAndSendLowFeedAlert(finalPercentage);
             
+            // Update last feeding time
             const now = new Date();
             const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const lastFeeding = document.getElementById('last-feeding');
             if (lastFeeding) lastFeeding.textContent = `Last fed: Today at ${timeString}`;
             
-            showNotification('Feeding Complete', 'Feeding completed successfully', 'success');
+            console.log('[Feed] ✓ Feeding process completed');
+            showNotification('Feeding Complete', 'Crayfish have been fed successfully', 'success');
+            
         } catch (error) {
             console.error('[Feed] Error in feedNow:', error);
-            showNotification('Error', 'Failed to complete feeding', 'error');
+            showNotification('Error', 'Failed to complete feeding: ' + error.message, 'error');
         }
         
         if (btn) {
@@ -1501,6 +1563,7 @@ async function feedNow() {
         }
     }, 1000);
 }
+
 
 
 
@@ -3038,3 +3101,4 @@ document.addEventListener('chartReady', function() {
 
 console.log('[Mock] ✓ Mock data system loaded (VISUAL ONLY - NO DATABASE SAVES)');
 console.log('[Dashboard] ✓ Dashboard script loaded successfully');
+}

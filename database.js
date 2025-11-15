@@ -255,9 +255,15 @@ async function saveFeedData(feedData) {
     try {
         const user = await ensureAuthenticated();
         
-        // FIX: Round current to integer since database expects INTEGER type
-        const currentAmount = Math.round(feedData.current || 375);
-        const capacityAmount = Math.round(feedData.capacity || 500);
+        // CRITICAL FIX: Round to integers AND ensure they're numbers
+        const currentAmount = Math.round(Number(feedData.current) || 375);
+        const capacityAmount = Math.round(Number(feedData.capacity) || 500);
+        
+        console.log('[Database] Saving feed data:', {
+            current: currentAmount,
+            capacity: capacityAmount,
+            user_id: user.id
+        });
         
         const { data, error } = await window.supabase
             .from('feed_data')
@@ -271,15 +277,17 @@ async function saveFeedData(feedData) {
             })
             .select();
             
-        if (error) throw error;
+        if (error) {
+            console.error('[Database] Error saving feed data:', error);
+            throw error;
+        }
         
-        console.log('✓ Feed data saved:', data);
+        console.log('[Database] ✓ Feed data saved successfully:', data);
         return { success: true, data: data };
     } catch (error) {
-        console.error('Error saving feed data:', error);
-        return { success: false, message: error.message };
+        console.error('[Database] saveFeedData error:', error);
+        return { success: false, message: error.message, error: error };
     }
-}
 
 async function getFeedData() {
     try {
@@ -1158,3 +1166,4 @@ window.sendFeedingNotification = sendFeedingNotification;
 window.sendParameterViolationAlert = sendParameterViolationAlert;
 
 console.log('[Database] ✓ All database functions loaded and exported (COMPLETE VERSION WITH EMAIL)');
+}
