@@ -1,4 +1,5 @@
-// dashboard.js - COMPLETE CORRECTED VERSION - ALL FIXES APPLIED
+// dashboard.js - COMPLETE UPDATED VERSION WITH EMAIL NOTIFICATIONS
+// Part 1: Setup, Configuration, Email Functions
 console.log('dashboard.js loaded');
 
 // OPTIMAL CRAYFISH PARAMETERS - From Knowledge Base Guidelines
@@ -17,13 +18,15 @@ const CRAYFISH_GUIDELINES = {
     }
 };
 
+// Alert cooldown tracking (prevents spam)
 const lastAlertTimes = {
     temperature: 0,
     ph: 0,
     lowFeed: 0
 };
 
-const ALERT_COOLDOWN_MS = 5 * 60 * 1000;
+const ALERT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
 // ========================================
 // GLOBAL STATE & CONFIGURATION
 // ========================================
@@ -55,7 +58,9 @@ let farmSettings = {
     phone: '+63 912 345 6789',
     unit: 'metric',
     alertFrequency: 'immediate',
-    waterTestingFrequency: 'twice-weekly'
+    waterTestingFrequency: 'twice-weekly',
+    email_alerts_enabled: true,
+    low_feed_threshold: 20
 };
 
 // ========================================
@@ -124,6 +129,7 @@ function formatTime(frequency, time) {
         return `at ${time}`;
     }
 }
+
 // ========================================
 // FEED HISTORY FUNCTIONS
 // ========================================
@@ -271,38 +277,83 @@ function displayWaterChangeHistory(history) {
 
 async function checkAndSendLowFeedAlert(currentPercentage) {
     try {
+        console.log('[Email] Checking low feed alert for:', currentPercentage, '%');
+        
         const settings = await window.getFarmSettings();
-        if (!settings || !settings.email) return;
+        if (!settings || !settings.email) {
+            console.log('[Email] No email configured, skipping alert');
+            return;
+        }
         
         const emailAlertsEnabled = settings.email_alerts_enabled !== false;
-        if (!emailAlertsEnabled) return;
+        if (!emailAlertsEnabled) {
+            console.log('[Email] Email alerts disabled, skipping');
+            return;
+        }
         
         const threshold = settings.low_feed_threshold || 20;
         const now = Date.now();
         
-        if (currentPercentage <= threshold && (now - lastAlertTimes.lowFeed > ALERT_COOLDOWN_MS)) {
-            const result = await window.sendLowFeedAlert(settings.email, currentPercentage, threshold);
-            if (result && result.success) lastAlertTimes.lowFeed = now;
+        if (now - lastAlertTimes.lowFeed < ALERT_COOLDOWN_MS) {
+            console.log('[Email] Alert cooldown active, skipping');
+            return;
+        }
+        
+        if (currentPercentage <= threshold) {
+            console.log('[Email] Feed below threshold! Sending alert...');
+            
+            const result = await window.sendLowFeedAlert(
+                settings.email, 
+                currentPercentage, 
+                threshold
+            );
+            
+            if (result && result.success) {
+                lastAlertTimes.lowFeed = now;
+                console.log('[Email] ✓ Low feed alert sent successfully');
+                showNotification('Alert Sent', 'Low feed email notification sent', 'info');
+            } else {
+                console.error('[Email] Failed to send low feed alert:', result);
+            }
         }
     } catch (error) {
-        console.error('[Email] Error:', error);
+        console.error('[Email] Error in checkAndSendLowFeedAlert:', error);
     }
 }
 
 async function sendWaterChangeEmail(changeType, percentage) {
     try {
+        console.log('[Email] Sending water change notification...');
+        
         const settings = await window.getFarmSettings();
-        if (!settings || !settings.email) return { success: false };
+        if (!settings || !settings.email) {
+            console.log('[Email] No email configured');
+            return { success: false };
+        }
         
         const emailAlertsEnabled = settings.email_alerts_enabled !== false;
-        if (!emailAlertsEnabled) return { success: false };
+        if (!emailAlertsEnabled) {
+            console.log('[Email] Email alerts disabled');
+            return { success: false };
+        }
         
-        return await window.sendWaterChangeNotification(settings.email, changeType, percentage);
+        const result = await window.sendWaterChangeNotification(
+            settings.email, 
+            changeType, 
+            percentage
+        );
+        
+        if (result && result.success) {
+            console.log('[Email] ✓ Water change email sent');
+        }
+        
+        return result;
     } catch (error) {
-        console.error('[Email] Error:', error);
-        return { success: false };
+        console.error('[Email] Error sending water change email:', error);
+        return { success: false, error: error.message };
     }
 }
+
 
 async function checkParameterViolations(temperature, ph) {
     try {
@@ -320,11 +371,20 @@ async function checkParameterViolations(temperature, ph) {
         const isTempWarning = !isTempCritical && (temperature < tempGuidelines.min || temperature > tempGuidelines.max);
         
         if ((isTempCritical || isTempWarning) && (now - lastAlertTimes.temperature > ALERT_COOLDOWN_MS)) {
+            console.log('[Email] Temperature violation detected:', temperature, '°C');
+            
             const result = await window.sendParameterViolationAlert(
-                settings.email, 'temperature', temperature,
+                settings.email, 
+                'temperature', 
+                temperature,
                 { min: tempGuidelines.min, max: tempGuidelines.max }
             );
-            if (result && result.success) lastAlertTimes.temperature = now;
+            
+            if (result && result.success) {
+                lastAlertTimes.temperature = now;
+                console.log('[Email] ✓ Temperature alert sent');
+                showNotification('Alert Sent', 'Temperature violation email sent', 'warning');
+            }
         }
         
         // pH check
@@ -333,52 +393,56 @@ async function checkParameterViolations(temperature, ph) {
         const isPhWarning = !isPhCritical && (ph < phGuidelines.min || ph > phGuidelines.max);
         
         if ((isPhCritical || isPhWarning) && (now - lastAlertTimes.ph > ALERT_COOLDOWN_MS)) {
+            console.log('[Email] pH violation detected:', ph);
+            
             const result = await window.sendParameterViolationAlert(
-                settings.email, 'ph', ph,
+                settings.email, 
+                'ph', 
+                ph,
                 { min: phGuidelines.min, max: phGuidelines.max }
             );
-            if (result && result.success) lastAlertTimes.ph = now;
+            
+            if (result && result.success) {
+                lastAlertTimes.ph = now;
+                console.log('[Email] ✓ pH alert sent');
+                showNotification('Alert Sent', 'pH violation email sent', 'warning');
+            }
         }
     } catch (error) {
-        console.error('[Email] Error:', error);
+        console.error('[Email] Error in checkParameterViolations:', error);
     }
 }
 
 async function sendFeedingNotificationEmail(amount, foodType) {
     try {
+        console.log('[Email] Sending feeding notification...');
+        
         const settings = await window.getFarmSettings();
-        if (!settings || !settings.email) return { success: false };
+        if (!settings || !settings.email) {
+            console.log('[Email] No email configured');
+            return { success: false };
+        }
         
         const emailAlertsEnabled = settings.email_alerts_enabled !== false;
-        if (!emailAlertsEnabled) return { success: false };
+        if (!emailAlertsEnabled) {
+            console.log('[Email] Email alerts disabled');
+            return { success: false };
+        }
         
-        const foodTypeMap = {
-            'juvenile-pellets': 'Juvenile Pellets (40% protein)',
-            'growth-pellets': 'Growth Pellets (35% protein)',
-            'breeder-pellets': 'Breeder Pellets (30% protein)'
-        };
+        const result = await window.sendFeedingNotification(
+            settings.email, 
+            amount, 
+            foodType
+        );
         
-        const subject = '🍽️ Feeding Completed - AquaVision Pro';
-        const html = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <div style="background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; padding: 30px; text-align: center;">
-                    <h1 style="margin: 0;">🐟 AquaVision Pro</h1>
-                </div>
-                <div style="background: white; padding: 30px;">
-                    <h2 style="color: #00d4ff;">🍽️ Feeding Completed</h2>
-                    <div style="background: #d1ecf1; padding: 15px; margin: 20px 0;">
-                        <p style="margin: 0;"><strong>Amount:</strong> ${amount}g<br>
-                        <strong>Food Type:</strong> ${foodTypeMap[foodType] || foodType}<br>
-                        <strong>Time:</strong> ${new Date().toLocaleString()}</p>
-                    </div>
-                </div>
-            </div>
-        `;
+        if (result && result.success) {
+            console.log('[Email] ✓ Feeding email sent');
+        }
         
-        return await window.sendEmail(settings.email, subject, html);
+        return result;
     } catch (error) {
-        console.error('[Email] Error:', error);
-        return { success: false };
+        console.error('[Email] Error sending feeding email:', error);
+        return { success: false, error: error.message };
     }
 }
 // ========================================
@@ -388,8 +452,7 @@ async function sendFeedingNotificationEmail(amount, foodType) {
 async function displayUserID() {
     try {
         console.log('[User ID] Getting current user...');
-        
-        // Use the global getCurrentUser function
+    
         const user = await getCurrentUser();
         
         if (!user) {
@@ -410,9 +473,7 @@ async function displayUserID() {
         } else {
             console.warn('[User ID] user-id-text element not found');
         }
-
-    }
-     catch (error) {
+    } catch (error) {
         console.error('[User ID] Error displaying user ID:', error);
         const userIdText = document.getElementById('user-id-text');
         if (userIdText) {
@@ -457,6 +518,7 @@ async function copyUserID() {
         showNotification('Error', 'Failed to copy user ID', 'error');
     }
 }
+
 // ========================================
 // SUPABASE INTEGRATION
 // ========================================
@@ -595,8 +657,7 @@ async function checkDeviceStatus() {
             return;
         }
 
-        // CRITICAL FIX: Check for data in last 90 SECONDS (ESP sends every 30s)
-        // This gives 3x buffer for network delays
+        // Check for data in last 90 seconds
         const ninetySecondsAgo = new Date();
         ninetySecondsAgo.setSeconds(ninetySecondsAgo.getSeconds() - 90);
 
@@ -618,7 +679,7 @@ async function checkDeviceStatus() {
 
         console.log('[Device] Recent data found:', data?.length || 0);
 
-        // Device is online if we have data from last 90 seconds
+
         const hasRecentData = data && data.length > 0;
         
         if (hasRecentData) {
@@ -702,7 +763,7 @@ async function sendCommand(command) {
             return { success: false, reason: 'not_authenticated' };
         }
 
-        // Show sending notification
+        
         showNotification('Sending Command', `Sending ${command} to device...`, 'info');
 
         const { data, error } = await window.supabase
@@ -721,7 +782,7 @@ async function sendCommand(command) {
         
         showNotification('Command Sent', `${command} command queued successfully`, 'success');
         
-        // Monitor command processing (check for 15 seconds)
+        // Monitor command processing
         const commandId = data[0].id;
         let checkCount = 0;
         const maxChecks = 15;
@@ -771,10 +832,8 @@ function setupRealtimeSubscription() {
         const subscription = window.subscribeToSensorData(user.id, (newData) => {
             console.log('[Device] 🔴 Real-time update received!');
             
-            // Mark as connected
             isConnected = true;
             
-            // Update status UI
             const statusIndicator = document.getElementById('device-status-indicator');
             const statusText = document.getElementById('device-status-text');
             const lastUpdate = document.getElementById('last-device-update');
@@ -791,7 +850,6 @@ function setupRealtimeSubscription() {
                 lastUpdate.textContent = 'Last update: Just now';
             }
             
-            // Update hardware data
             hardwareData.temperature = newData.temperature;
             hardwareData.ph = newData.ph;
             hardwareData.population = newData.population || 15;
@@ -803,7 +861,6 @@ function setupRealtimeSubscription() {
             updateDashboardWithNewData(hardwareData);
             stopMockData();
             
-            // Update charts if available
             if (window.chartManager) {
                 window.chartManager.streamData('tempChart', {
                     x: hardwareData.lastUpdated.getTime(),
@@ -1201,11 +1258,7 @@ function updateDashboardWithNewData(data) {
         'water-temp-value': `${hardwareData.temperature.toFixed(1)}°C`,
         'ph-value': hardwareData.ph.toFixed(1),
         'water-ph-value': hardwareData.ph.toFixed(1),
-        'population-value': hardwareData.population,
         'health-value': `${hardwareData.healthStatus}%`,
-        'weight-value': `${hardwareData.avgWeight.toFixed(1)}g`,
-        'harvest-value': hardwareData.daysToHarvest,
-        'days-harvest-value': hardwareData.daysToHarvest,
     };
 
     for (const id in elements) {
@@ -1214,11 +1267,46 @@ function updateDashboardWithNewData(data) {
     }
 
     updateWaterQualityStatus(hardwareData.temperature, hardwareData.ph);
-    updateHarvestProjections(hardwareData);
     updateLastUpdated();
     
-    // NEW: Check for parameter violations and send emails if needed
+    // CHECK FOR PARAMETER VIOLATIONS AND SEND EMAILS
     checkParameterViolations(hardwareData.temperature, hardwareData.ph);
+}
+
+function updateWaterQualityStatus(temperature, ph) {
+    const getTempStatus = (t) => {
+        if (t < 15 || t > 30) return { text: 'Critical', class: 'critical' };
+        if (t < 20 || t > 25) return { text: 'Warning', class: 'warning' };
+        return { text: 'Optimal', class: 'optimal' };
+    };
+    const getPhStatus = (p) => {
+        if (p < 6.0 || p > 8.5) return { text: 'Critical', class: 'critical' };
+        if (p < 6.5 || p > 8.0) return { text: 'Warning', class: 'warning' };
+        return { text: 'Optimal', class: 'optimal' };
+    };
+
+    const tempStatus = getTempStatus(temperature);
+    const phStatus = getPhStatus(ph);
+
+    const tempEl = document.getElementById('water-temp-status');
+    if (tempEl) {
+        tempEl.textContent = tempStatus.text;
+        tempEl.className = `parameter-status ${tempStatus.class}`;
+    }
+    const phEl = document.getElementById('water-ph-status');
+    if (phEl) {
+        phEl.textContent = phStatus.text;
+        phEl.className = `parameter-status ${phStatus.class}`;
+    }
+
+    const waterStatusIndicator = document.getElementById('water-status-indicator');
+    const waterStatusText = document.querySelector('.water-info h3');
+    if (waterStatusIndicator && waterStatusText) {
+        const isCritical = tempStatus.class === 'critical' || phStatus.class === 'critical';
+        const isWarning = tempStatus.class === 'warning' || phStatus.class === 'warning';
+        waterStatusIndicator.className = `status-indicator ${isCritical ? 'critical' : isWarning ? 'warning' : 'good'}`;
+        waterStatusText.textContent = `Water Quality: ${isCritical ? 'Critical' : isWarning ? 'Warning' : 'Good'}`;
+    }
 }
 
 function updateWaterQualityStatus(temperature, ph) {
@@ -1313,9 +1401,10 @@ function updateFeedLevelUI(data) {
     updateElement('feed-current', `${feedData.current}g`);
     updateElement('feed-days-left', `${Math.floor(feedData.current / 15)} days`);
     
-    // NEW: Check for low feed alert
+    // CHECK FOR LOW FEED ALERT
     checkAndSendLowFeedAlert(percentage);
 }
+
 
 function updateFeedingScheduleList(schedule) {
     const listEl = document.getElementById('feeding-schedule-list');
@@ -1360,59 +1449,47 @@ async function feedNow() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Feeding...';
     }
 
-   
     await sendCommand('feed');
-    await sendFeedingNotificationEmail(amount, foodType);
     
     setTimeout(async () => {
         try {
-            // Get current food type and amount from schedule
             const schedule = await window.getFeedingSchedule();
             const amount = schedule?.amount || 7.5;
             const foodType = schedule?.type || 'juvenile-pellets';
             
-            // FIXED: Properly update feed level
             const currentFeedData = await window.getFeedData();
             feedData.capacity = currentFeedData.capacity || 500;
             feedData.current = Math.max(0, (currentFeedData.current || 375) - amount);
             feedData.lastUpdated = new Date();
             
-            // Save to Supabase using the correct function
             const saveResult = await window.saveFeedData(feedData);
             
             if (saveResult.success) {
                 console.log('[Feed] ✓ Feed data saved successfully');
                 updateFeedLevelUI(feedData);
-            } else {
-                console.error('[Feed] Failed to save feed data:', saveResult.message);
             }
             
-            // Calculate percentage
             const percentage = Math.round((feedData.current / feedData.capacity) * 100);
             
-            // Save to feed history
             await window.saveFeedHistory({
                 amount: amount,
                 food_type: foodType,
                 method: 'manual'
             });
             
-            // Reload feed history display
             await loadFeedHistory();
             
-            // Check for low feed alert
+            // SEND EMAIL NOTIFICATION
+            await sendFeedingNotificationEmail(amount, foodType);
+            
             await checkAndSendLowFeedAlert(percentage);
             
-            // Update last feeding time
             const now = new Date();
             const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const lastFeeding = document.getElementById('last-feeding');
             if (lastFeeding) lastFeeding.textContent = `Last fed: Today at ${timeString}`;
             
-            const feedingStatusIndicator = document.getElementById('feeding-status-indicator');
-            if (feedingStatusIndicator) feedingStatusIndicator.className = 'status-indicator good';
-            
-            showNotification('Feeding', 'Feeding completed successfully.', 'success');
+            showNotification('Feeding Complete', 'Feeding completed successfully', 'success');
         } catch (error) {
             console.error('[Feed] Error in feedNow:', error);
             showNotification('Error', 'Failed to complete feeding', 'error');
@@ -1437,41 +1514,33 @@ async function changeWaterNow() {
     await sendCommand('change_water');
     
     setTimeout(async () => {
-        // Get current water parameters
         const tempBefore = hardwareData.temperature;
         const phBefore = hardwareData.ph;
         
-        // Get schedule percentage (or default to 50%)
         const schedule = await window.getWaterSchedule();
         const percentage = schedule?.percentage || 50;
         
-        // Save to water change history
         await window.saveWaterChangeHistory({
             change_type: 'manual',
             percentage: percentage,
             temp_before: tempBefore,
             ph_before: phBefore,
-            temp_after: null, // Will be updated by next sensor reading
+            temp_after: null,
             ph_after: null,
             status: 'completed'
         });
         
-        // Reload water change history display
         await loadWaterChangeHistory();
         
-        // Send email notification
+        // SEND EMAIL NOTIFICATION
         await sendWaterChangeEmail('manual', percentage);
         
-        // Update UI
         const now = new Date();
         const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         const lastWaterChangeEl = document.getElementById('last-water-change');
-        if(lastWaterChangeEl) lastWaterChangeEl.textContent = `Last changed: Today at ${timeString}`;
+        if (lastWaterChangeEl) lastWaterChangeEl.textContent = `Last changed: Today at ${timeString}`;
         
-        const waterStatusIndicator = document.getElementById('water-status-indicator');
-        if (waterStatusIndicator) waterStatusIndicator.className = 'status-indicator good';
-        
-        showNotification('Water Change', 'Water change command sent successfully.', 'success');
+        showNotification('Water Change Complete', 'Water change completed successfully', 'success');
         
         if (btn) {
             btn.disabled = false;
@@ -1479,6 +1548,7 @@ async function changeWaterNow() {
         }
     }, 1000);
 }
+
 
 async function testWaterNow() {
     showNotification('Water Test', 'Testing water quality...', 'info');
@@ -1489,6 +1559,7 @@ async function testWaterNow() {
         showNotification('Water Test Results', 'Water test completed. Dashboard updated.', 'success');
     }, 3000);
 }
+
 
 async function testConnection() {
     showNotification('Testing', 'Testing device connection...', 'info');
