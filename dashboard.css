@@ -4555,4 +4555,164 @@
     .message-content li {
         margin: 5px 0;
     }
+    /* ============================================
+   ENHANCED CHATBOT STYLES
+   ADD THESE TO THE END OF YOUR dashboard.css
+   ============================================ */
+
+/* Highlight animation for guided navigation */
+.chatbot-highlight {
+    position: relative;
+    animation: highlightPulse 2s ease-in-out infinite;
+    border: 3px solid var(--primary-color) !important;
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.8) !important;
+    z-index: 999;
+    transition: all 0.3s ease;
+}
+
+@keyframes highlightPulse {
+    0%, 100% {
+        box-shadow: 0 0 30px rgba(0, 212, 255, 0.8);
+        border-color: var(--primary-color);
+    }
+    50% {
+        box-shadow: 0 0 50px rgba(0, 212, 255, 1);
+        border-color: var(--accent-color);
+    }
+}
+
+/* Task guide styling */
+.task-guide {
+    background: rgba(0, 212, 255, 0.1);
+    border-left: 4px solid var(--primary-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
+.task-guide strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.guide-step {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.guide-step:last-child {
+    border-bottom: none;
+}
+
+/* Enhanced message content */
+.message-content strong {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.message-content em {
+    color: var(--coral-color);
+    font-style: italic;
+}
+
+/* Button container */
+.chat-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* Individual chat button */
+.chat-btn {
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.chat-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
+    border-color: var(--accent-color);
+}
+
+.chat-btn:active {
+    transform: scale(0.98);
+}
+
+/* Message content formatting */
+.message-content ul {
+    margin: 10px 0;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.message-content li {
+    margin: 5px 0;
+    line-height: 1.6;
+}
+
+/* Typing indicator */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 0;
+}
+
+.typing-indicator span {
+    width: 8px;
+    height: 8px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes typingBounce {
+    0%, 80%, 100% {
+        transform: scale(0);
+    }
+    40% {
+        transform: scale(1);
+    }
+}
+
+/* Mobile responsive for buttons */
+@media (max-width: 480px) {
+    .chat-buttons {
+        flex-direction: column;
+    }
     
+    .chat-btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .task-guide {
+        padding: 0.75rem;
+    }
+    
+    .guide-step {
+        font-size: 0.9rem;
+    }
+}
