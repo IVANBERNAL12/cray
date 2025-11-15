@@ -1995,7 +1995,6 @@ function refillFeed() {
 // ENHANCED CHAT FUNCTIONALITY FOR NON-TECHNICAL USERS
 // ========================================
 
-// Chat context to remember conversation
 let chatContext = {
     lastTopic: null,
     userName: null,
@@ -2065,8 +2064,6 @@ function addMessage(text, sender, buttons = null) {
                 cursor: pointer;
                 font-size: 0.85rem;
                 transition: all 0.3s ease;
-                font-family: 'Exo 2', sans-serif;
-                font-weight: 500;
             `;
             button.onclick = () => {
                 if (btn.action === 'navigate') {
@@ -2075,11 +2072,8 @@ function addMessage(text, sender, buttons = null) {
                 } else if (btn.action === 'action') {
                     btn.callback();
                 } else if (btn.action === 'message') {
-                    const input = document.getElementById('chat-input');
-                    if (input) {
-                        input.value = btn.message;
-                        sendMessage();
-                    }
+                    input.value = btn.message;
+                    sendMessage();
                 }
             };
             button.onmouseover = () => {
@@ -2371,41 +2365,6 @@ function generateResponse(message) {
         };
     }
     
-    // Farm name
-    if (lowerMessage.includes('farm') || lowerMessage.includes('name')) {
-        return {
-            text: `Your farm is named "<b>${farmSettings.name}</b>". You can change this in the Settings section if you'd like! 🏡`,
-            buttons: [
-                { text: "Change Farm Name", action: "navigate", target: "settings" },
-                { text: "Back to Main Menu", action: "message", message: "help" }
-            ]
-        };
-    }
-    
-    // Temperature
-    if (lowerMessage.includes('temperature') || lowerMessage.includes('temp')) {
-        const status = hardwareData.temperature >= 20 && hardwareData.temperature <= 25 ? '✅ optimal' : '⚠️ needs attention';
-        return {
-            text: `🌡️ <b>Current Temperature</b>\n\nYour water temperature is <b>${hardwareData.temperature.toFixed(1)}°C</b> - ${status}\n\nBest range: 20-25°C\n\n${status.includes('needs') ? 'You might want to adjust the temperature or change the water.' : 'Temperature looks perfect!'}`,
-            buttons: [
-                { text: "Check Full Water Quality", action: "navigate", target: "water-quality" },
-                { text: "Change Water", action: "action", callback: changeWaterNow }
-            ]
-        };
-    }
-    
-    // pH
-    if (lowerMessage.includes('ph')) {
-        const status = hardwareData.ph >= 6.5 && hardwareData.ph <= 8.0 ? '✅ optimal' : '⚠️ needs attention';
-        return {
-            text: `⚗️ <b>Current pH Level</b>\n\nYour water pH is <b>${hardwareData.ph.toFixed(1)}</b> - ${status}\n\nBest range: 6.5-8.0\n\n${status.includes('needs') ? 'Consider changing the water to improve pH levels.' : 'pH level looks perfect!'}`,
-            buttons: [
-                { text: "Check Full Water Quality", action: "navigate", target: "water-quality" },
-                { text: "Change Water", action: "action", callback: changeWaterNow }
-            ]
-        };
-    }
-    
     // Default response - smart fallback
     return {
         text: "I'm not quite sure what you're asking, but I'm here to help! 🤔\n\nHere are the most common things people ask about:",
@@ -2416,25 +2375,6 @@ function generateResponse(message) {
             { text: "❓ Show All Options", action: "message", message: "help" }
         ]
     };
-}
-
-function toggleChat() {
-    const chatContainer = document.getElementById('chat-container');
-    const chatMessages = document.getElementById('chat-messages');
-    if (!chatContainer || !chatMessages) return;
-    
-    const isMinimized = chatContainer.classList.toggle('minimized');
-    
-    const toggleIcon = document.querySelector('#chat-toggle i');
-    if (toggleIcon) {
-        toggleIcon.className = isMinimized ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
-    }
-
-    if (isMinimized) {
-        chatMessages.style.display = 'none';
-    } else {
-        chatMessages.style.display = 'flex';
-    }
 }
 // ========================================
 // KNOWLEDGE BASE FUNCTIONS
