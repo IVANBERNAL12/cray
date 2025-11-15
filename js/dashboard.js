@@ -423,6 +423,8 @@ async function checkParameterViolations(temperature, ph) {
         // Don't crash on email errors
         console.log('[Email] Error in checkParameterViolations (non-critical):', error.message);
     }
+
+
 }
 }
 
@@ -2887,6 +2889,11 @@ function toggleChat() {
     }
 }
 
+// ========================================
+// EXPORT & INITIALIZATION
+// ========================================
+
+console.log('[Chatbot] ✓ Enhanced chatbot loaded with visual navigation');
 
 // ========================================
 // KNOWLEDGE BASE FUNCTIONS
